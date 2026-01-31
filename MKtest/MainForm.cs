@@ -1,7 +1,7 @@
 ﻿using MKtest.Configs;
+using MKtest.Managers;
 using MKtest.Services;
 using System;
-using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -9,309 +9,218 @@ namespace MKtest
 {
     public partial class MainForm : Form
     {
-        #region Поля
+        #region Менеджеры (объявляем как nullable)
+        private LogManager? _logManager;
+        private SSHConnectionManager? _sshManager;
+        private ConnectionStateManager? _stateManager;
+        private TimeCommandsManager? _timeManager;
+        private SettingsManager? _settingsManager;
+        #endregion
+
+        #region Сервисы (объявляем как nullable)
         private SSHService? _sshService;
-        private TimeCommandsService? _timeCommandsService;
-        private bool _servicesInitialized = false;
+        private TimeCommandsService? _timeService;
         #endregion
 
         #region Конструктор
         public MainForm()
         {
             InitializeComponent();
-            InitializeServices();
-            SetupUI();
+            InitializeAll();
         }
         #endregion
 
-        #region Инициализация
+        #region Инициализация всего
+        private void InitializeAll()
+        {
+            try
+            {
+                // Инициализируем всё в правильном порядке
+                InitializeServices();
+                InitializeManagers();
+                SetupUI();
+
+                _logManager?.AppendLog("Приложение инициализировано");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка инициализации: {ex.Message}",
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        #endregion
+
+        #region Инициализация сервисов
         private void InitializeServices()
         {
-            if (_servicesInitialized) return;
-
             _sshService = new SSHService();
-            _timeCommandsService = new TimeCommandsService(_sshService);
-
-            // Подписываемся на события сервисов
-            _sshService.OnLogMessage += OnSSHLogMessage;
-            _sshService.OnStatusChanged += OnSSHStatusChanged;
-            _timeCommandsService.OnCommandExecuted += OnTimeCommandExecuted;
-
-            _servicesInitialized = true;
+            _timeService = new TimeCommandsService(_sshService);
         }
+        #endregion
 
+        #region Инициализация менеджеров
+        private void InitializeManagers()
+        {
+            // 1. Менеджер логов
+            _logManager = new LogManager(beelinkLogTextBox);
+
+            // 2. Менеджер состояния UI
+            _stateManager = new ConnectionStateManager(
+                beelinkConnectButton,
+                beelinkDisconnectButton,
+                beelinkTestButton,
+                beelinkStatusLabel,
+                timeCheckButton,
+                timeEnableNTPButton,
+                timeDisableNTPButton,
+                timeSetButton,
+                manualDatePicker,
+                manualTimePicker,
+                timeGroupBox
+            );
+
+            // 3. Менеджер настроек
+            _settingsManager = new SettingsManager(
+                ipTextBox,
+                portNumeric,
+                userTextBox,
+                passwordUserTextBox,
+                passwordRootTextBox
+            );
+
+            // 4. Менеджер SSH подключения (зависит от сервисов и других менеджеров)
+            if (_sshService == null || _logManager == null || _stateManager == null)
+                throw new InvalidOperationException("Зависимые сервисы не инициализированы");
+
+            _sshManager = new SSHConnectionManager(_sshService, _logManager, _stateManager);
+
+            // 5. Менеджер команд времени
+            if (_timeService == null || _logManager == null || _sshManager == null)
+                throw new InvalidOperationException("Зависимые сервисы не инициализированы");
+
+            _timeManager = new TimeCommandsManager(_timeService, _logManager, () =>
+                _sshManager.IsConnected()
+            );
+        }
+        #endregion
+
+        #region Настройка UI
         private void SetupUI()
         {
-            // Загружаем настройки
-            LoadSettings();
-
-            // Настраиваем лог
-            beelinkLogTextBox.ReadOnly = true;
-            beelinkLogTextBox.ScrollBars = ScrollBars.Vertical;
-            beelinkLogTextBox.Font = new Font("Consolas", 9);
-
-            // Настраиваем контролы времени
+            // Настройка контролов времени
             manualDatePicker.Format = DateTimePickerFormat.Short;
             manualTimePicker.Format = DateTimePickerFormat.Time;
             manualTimePicker.ShowUpDown = true;
 
-            // Обновляем состояние кнопок
-            UpdateConnectionButtons();
+            // Загрузка настроек
+            _settingsManager?.LoadSettings();
         }
         #endregion
 
-        #region Обработчики событий
-        private void OnSSHLogMessage(string message)
-        {
-            AppendLog(message);
-        }
-
-        private void OnSSHStatusChanged(string status)
-        {
-            if (beelinkStatusLabel.InvokeRequired)
-            {
-                beelinkStatusLabel.Invoke(new Action(() =>
-                {
-                    beelinkStatusLabel.Text = $"Статус: {status}";
-                }));
-            }
-            else
-            {
-                beelinkStatusLabel.Text = $"Статус: {status}";
-            }
-
-            // Обновляем состояние кнопок в UI потоке
-            UpdateConnectionButtons();
-        }
-
-        private void OnTimeCommandExecuted(string message)
-        {
-            AppendLog(message);
-        }
-        #endregion
-
-        #region SSH методы
+        #region Обработчики SSH подключения
         private async void beelinkConnectButton_Click(object sender, EventArgs e)
         {
-            if (_sshService == null) return;
-
-            try
+            if (_sshManager == null)
             {
-                var config = ConfigService.Config.SSHBeelink;
-
-                beelinkConnectButton.Enabled = false;
-                beelinkTestButton.Enabled = false;
-
-                // Подключаемся асинхронно
-                bool connected = await _sshService.ConnectAsync(config);
-
-                if (connected)
-                {
-                    MessageBox.Show("SSH подключение установлено!",
-                        "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Не удалось установить SSH подключение",
-                        "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка: {ex.Message}",
+                MessageBox.Show("Менеджер подключения не инициализирован",
                     "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                AppendLog($"Ошибка подключения: {ex.Message}");
+                return;
             }
-            finally
-            {
-                UpdateConnectionButtons();
-            }
+
+            var config = ConfigService.Config.SSHBeelink;
+            await _sshManager.ConnectAsync(config);
         }
 
         private void beelinkDisconnectButton_Click(object sender, EventArgs e)
         {
-            _sshService?.Disconnect();
+            _sshManager?.Disconnect();
         }
 
         private void beelinkTestButton_Click(object sender, EventArgs e)
         {
-            if (_sshService != null && _sshService.IsConnected())
+            if (_sshManager?.IsConnected() == true)
             {
-                // Тестируем команду
-                var result = _sshService.ExecuteDirectCommand("echo 'SSH Test OK'");
-                AppendLog($"Тест подключения: {result}");
+                _sshManager.TestConnection();
             }
             else
             {
-                // Пытаемся подключиться
                 beelinkConnectButton_Click(sender, e);
             }
         }
         #endregion
 
-        #region Команды времени (только 4 кнопки осталось)
+        #region Обработчики команд времени
         private void timeCheckButton_Click(object sender, EventArgs e)
         {
-            if (!CheckConnection()) return;
-
-            var result = _timeCommandsService?.CheckTimeStatus() ?? "Ошибка: сервис не инициализирован";
-            AppendLog($"Статус времени:\n{result}");
+            _timeManager?.CheckTimeStatus();
         }
 
         private void timeEnableNTPButton_Click(object sender, EventArgs e)
         {
-            if (!CheckConnection()) return;
-
-            var result = _timeCommandsService?.EnableNTP() ?? "Ошибка: сервис не инициализирован";
-            AppendLog(result);
+            _timeManager?.EnableNTP();
         }
 
         private void timeDisableNTPButton_Click(object sender, EventArgs e)
         {
-            if (!CheckConnection()) return;
-
-            var result = _timeCommandsService?.DisableNTP() ?? "Ошибка: сервис не инициализирован";
-            AppendLog(result);
+            _timeManager?.DisableNTP();
         }
 
         private void timeSetButton_Click(object sender, EventArgs e)
         {
-            if (!CheckConnection()) return;
-
-            var dateTime = $"{manualDatePicker.Value:yyyy-MM-dd} {manualTimePicker.Value:HH:mm:ss}";
-            var result = _timeCommandsService?.SetManualDateTime(dateTime) ?? "Ошибка: сервис не инициализирован";
-            AppendLog(result);
+            _timeManager?.SetManualDateTime(manualDatePicker.Value, manualTimePicker.Value);
         }
         #endregion
 
-        #region Вспомогательные методы
-        private bool CheckConnection()
-        {
-            if (_sshService == null || !_sshService.IsConnected())
-            {
-                MessageBox.Show("Сначала установите SSH подключение",
-                    "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-            return true;
-        }
-
-        private void AppendLog(string message)
-        {
-            if (beelinkLogTextBox.InvokeRequired)
-            {
-                beelinkLogTextBox.Invoke(new Action(() =>
-                {
-                    beelinkLogTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}\r\n");
-                    beelinkLogTextBox.ScrollToCaret();
-                }));
-            }
-            else
-            {
-                beelinkLogTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}\r\n");
-                beelinkLogTextBox.ScrollToCaret();
-            }
-        }
-
-        private void UpdateConnectionButtons()
-        {
-            bool isConnected = _sshService?.IsConnected() ?? false;
-
-            // Обновляем состояние кнопок в UI потоке
-            if (beelinkConnectButton.InvokeRequired)
-            {
-                beelinkConnectButton.Invoke(new Action(() =>
-                {
-                    UpdateButtonsState(isConnected);
-                }));
-            }
-            else
-            {
-                UpdateButtonsState(isConnected);
-            }
-        }
-
-        private void UpdateButtonsState(bool isConnected)
-        {
-            beelinkConnectButton.Enabled = !isConnected;
-            beelinkDisconnectButton.Enabled = isConnected;
-            beelinkTestButton.Enabled = true;
-
-            // Активируем кнопки команд времени только при подключении
-            timeCheckButton.Enabled = isConnected;
-            timeEnableNTPButton.Enabled = isConnected;
-            timeDisableNTPButton.Enabled = isConnected;
-            timeSetButton.Enabled = isConnected;
-            manualDatePicker.Enabled = isConnected;
-            manualTimePicker.Enabled = isConnected;
-            timeGroupBox.Enabled = isConnected;
-        }
-
+        #region Обработчики UI
         private void beelinkClearLogButton_Click(object sender, EventArgs e)
         {
-            beelinkLogTextBox.Clear();
+            _logManager?.ClearLog();
         }
         #endregion
 
-        #region Настройки
-        private void LoadSettings()
-        {
-            var config = ConfigService.Config.SSHBeelink;
-
-            ipTextBox.Text = config.IP;
-            portNumeric.Value = config.Port;
-            userTextBox.Text = config.User;
-            passwordUserTextBox.Text = config.PasswordUser;
-            passwordRootTextBox.Text = config.PasswordRoot;
-        }
-
+        #region Обработчики настроек
         private void saveButton_Click(object sender, EventArgs e)
         {
-            try
+            if (_settingsManager == null || _logManager == null)
             {
-                var config = ConfigService.Config.SSHBeelink;
+                MessageBox.Show("Менеджеры не инициализированы",
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
-                config.IP = ipTextBox.Text;
-                config.Port = (int)portNumeric.Value;
-                config.User = userTextBox.Text;
-                config.PasswordUser = passwordUserTextBox.Text;
-                config.PasswordRoot = passwordRootTextBox.Text;
-
-                ConfigService.Save();
+            if (_settingsManager.SaveSettings(_logManager))
+            {
                 MessageBox.Show("Настройки SSH Beelink сохранены!",
                     "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                AppendLog("Настройки SSH сохранены");
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show($"Ошибка сохранения: {ex.Message}",
+                MessageBox.Show("Ошибка сохранения настроек",
                     "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                AppendLog($"Ошибка сохранения настроек: {ex.Message}");
             }
         }
 
         private void resetButton_Click(object sender, EventArgs e)
         {
+            if (_settingsManager == null || _logManager == null)
+            {
+                MessageBox.Show("Менеджеры не инициализированы",
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             if (MessageBox.Show("Сбросить настройки SSH Beelink к значениям по умолчанию?",
                 "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                try
+                if (_settingsManager.ResetSettings(_logManager))
                 {
-                    ConfigService.Config.SSHBeelink = new SSHConfig();
-                    ConfigService.Save();
-                    LoadSettings();
-
                     MessageBox.Show("Настройки сброшены к значениям по умолчанию!",
                         "Сброс", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                    AppendLog("Настройки SSH сброшены к значениям по умолчанию");
                 }
-                catch (Exception ex)
+                else
                 {
-                    MessageBox.Show($"Ошибка сброса: {ex.Message}",
+                    MessageBox.Show("Ошибка сброса настроек",
                         "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    AppendLog($"Ошибка сброса настроек: {ex.Message}");
                 }
             }
         }
@@ -320,7 +229,7 @@ namespace MKtest
         #region События формы
         private void MainForm_Load(object sender, EventArgs e)
         {
-            AppendLog("Приложение запущено");
+            _logManager?.AppendLog("Приложение запущено");
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -328,19 +237,19 @@ namespace MKtest
             try
             {
                 _sshService?.Dispose();
-                AppendLog("Приложение закрывается");
+                _logManager?.AppendLog("Приложение закрывается");
             }
             catch (Exception ex)
             {
-                AppendLog($"Ошибка при закрытии: {ex.Message}");
+                _logManager?.AppendLog($"Ошибка при закрытии: {ex.Message}");
             }
         }
         #endregion
 
-        #region Пустые обработчики
+        #region Пустые обработчики (созданы конструктором)
         private void timeGroupBox_Enter(object sender, EventArgs e)
         {
-            // Пустой обработчик, созданный конструктором
+            // Пустой обработчик
         }
         #endregion
     }
