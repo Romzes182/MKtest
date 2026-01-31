@@ -22,6 +22,11 @@ namespace MKtest
         private TimeCommandsService? _timeService;
         #endregion
 
+        #region Поля для управления сворачиванием
+        private bool _isBeelinkCollapsed = true;
+        private int _beelinkCollapsiblePanelOriginalHeight;
+        #endregion
+
         #region Конструктор
         public MainForm()
         {
@@ -35,6 +40,9 @@ namespace MKtest
         {
             try
             {
+                // Сохраняем исходную высоту панели
+                _beelinkCollapsiblePanelOriginalHeight = beelinkCollapsiblePanel.Height;
+
                 // Инициализируем всё в правильном порядке
                 InitializeServices();
                 InitializeManagers();
@@ -112,6 +120,13 @@ namespace MKtest
             manualTimePicker.Format = DateTimePickerFormat.Time;
             manualTimePicker.ShowUpDown = true;
 
+            // Настройка сворачиваемой панели
+            beelinkHeaderPanel.Click += BeelinkHeaderPanel_Click;
+            beelinkHeaderLabel.Click += BeelinkHeaderPanel_Click;
+
+            // Добавляем визуальный индикатор сворачивания в заголовок
+            UpdateCollapsiblePanelState();
+
             // Загрузка настроек
             _settingsManager?.LoadSettings();
         }
@@ -175,6 +190,41 @@ namespace MKtest
         private void beelinkClearLogButton_Click(object sender, EventArgs e)
         {
             _logManager?.ClearLog();
+        }
+        #endregion
+
+        #region Обработчики сворачиваемой панели
+        private void BeelinkHeaderPanel_Click(object sender, EventArgs e)
+        {
+            _isBeelinkCollapsed = !_isBeelinkCollapsed;
+            UpdateCollapsiblePanelState();
+        }
+
+        private void UpdateCollapsiblePanelState()
+        {
+            if (_isBeelinkCollapsed)
+            {
+                // Сворачиваем
+                beelinkContentPanel.Visible = false;
+                beelinkCollapsiblePanel.Height = beelinkHeaderPanel.Height + 2; // +2 для границы
+                beelinkHeaderLabel.Text = "SSH Beelink ▶"; // Стрелка вправо для свернутого состояния
+            }
+            else
+            {
+                // Разворачиваем
+                beelinkContentPanel.Visible = true;
+                beelinkCollapsiblePanel.Height = _beelinkCollapsiblePanelOriginalHeight;
+                beelinkHeaderLabel.Text = "SSH Beelink ▼"; // Стрелка вниз для развернутого состояния
+            }
+        }
+        #endregion
+
+        #region Дополнительные обработчики
+        private void beelinkLogTextBox_TextChanged(object sender, EventArgs e)
+        {
+            // Автопрокрутка текстового поля лога
+            beelinkLogTextBox.SelectionStart = beelinkLogTextBox.Text.Length;
+            beelinkLogTextBox.ScrollToCaret();
         }
         #endregion
 
@@ -243,13 +293,6 @@ namespace MKtest
             {
                 _logManager?.AppendLog($"Ошибка при закрытии: {ex.Message}");
             }
-        }
-        #endregion
-
-        #region Пустые обработчики (созданы конструктором)
-        private void timeGroupBox_Enter(object sender, EventArgs e)
-        {
-            // Пустой обработчик
         }
         #endregion
     }

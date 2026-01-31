@@ -30,9 +30,10 @@
         {
             mainTabControl = new TabControl();
             mainTabPage = new TabPage();
-            beelinkGroupBox = new GroupBox();
+            flowLayoutPanel = new FlowLayoutPanel();
+            beelinkCollapsiblePanel = new Panel();
+            beelinkContentPanel = new Panel();
             beelinkClearLogButton = new Button();
-            beelinkLogTextBox = new TextBox();
             timeGroupBox = new GroupBox();
             timeSetButton = new Button();
             manualTimePicker = new DateTimePicker();
@@ -41,9 +42,12 @@
             timeEnableNTPButton = new Button();
             timeCheckButton = new Button();
             beelinkTestButton = new Button();
+            beelinkLogTextBox = new TextBox();
             beelinkDisconnectButton = new Button();
             beelinkConnectButton = new Button();
             beelinkStatusLabel = new Label();
+            beelinkHeaderPanel = new Panel();
+            beelinkHeaderLabel = new Label();
             settingsTabPage = new TabPage();
             sshBeelinkGroupBox = new GroupBox();
             resetButton = new Button();
@@ -60,8 +64,11 @@
             ipLabel = new Label();
             mainTabControl.SuspendLayout();
             mainTabPage.SuspendLayout();
-            beelinkGroupBox.SuspendLayout();
+            flowLayoutPanel.SuspendLayout();
+            beelinkCollapsiblePanel.SuspendLayout();
+            beelinkContentPanel.SuspendLayout();
             timeGroupBox.SuspendLayout();
+            beelinkHeaderPanel.SuspendLayout();
             settingsTabPage.SuspendLayout();
             sshBeelinkGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)portNumeric).BeginInit();
@@ -75,56 +82,67 @@
             mainTabControl.Location = new Point(0, 0);
             mainTabControl.Name = "mainTabControl";
             mainTabControl.SelectedIndex = 0;
-            mainTabControl.Size = new Size(800, 450);
+            mainTabControl.Size = new Size(1008, 729);
             mainTabControl.TabIndex = 0;
             // 
             // mainTabPage
             // 
-            mainTabPage.Controls.Add(beelinkGroupBox);
+            mainTabPage.Controls.Add(flowLayoutPanel);
             mainTabPage.Location = new Point(4, 24);
             mainTabPage.Name = "mainTabPage";
             mainTabPage.Padding = new Padding(3);
-            mainTabPage.Size = new Size(792, 422);
+            mainTabPage.Size = new Size(1000, 701);
             mainTabPage.TabIndex = 0;
             mainTabPage.Text = "Главная";
             mainTabPage.UseVisualStyleBackColor = true;
             // 
-            // beelinkGroupBox
+            // flowLayoutPanel
             // 
-            beelinkGroupBox.Controls.Add(beelinkClearLogButton);
-            beelinkGroupBox.Controls.Add(beelinkLogTextBox);
-            beelinkGroupBox.Controls.Add(timeGroupBox);
-            beelinkGroupBox.Controls.Add(beelinkTestButton);
-            beelinkGroupBox.Controls.Add(beelinkDisconnectButton);
-            beelinkGroupBox.Controls.Add(beelinkConnectButton);
-            beelinkGroupBox.Controls.Add(beelinkStatusLabel);
-            beelinkGroupBox.Location = new Point(10, 10);
-            beelinkGroupBox.Name = "beelinkGroupBox";
-            beelinkGroupBox.Size = new Size(600, 400);
-            beelinkGroupBox.TabIndex = 0;
-            beelinkGroupBox.TabStop = false;
-            beelinkGroupBox.Text = "SSH Beelink";
+            flowLayoutPanel.AutoScroll = true;
+            flowLayoutPanel.Controls.Add(beelinkCollapsiblePanel);
+            flowLayoutPanel.Dock = DockStyle.Fill;
+            flowLayoutPanel.FlowDirection = FlowDirection.TopDown;
+            flowLayoutPanel.Location = new Point(3, 3);
+            flowLayoutPanel.Name = "flowLayoutPanel";
+            flowLayoutPanel.Size = new Size(994, 695);
+            flowLayoutPanel.TabIndex = 1;
+            flowLayoutPanel.WrapContents = false;
+            // 
+            // beelinkCollapsiblePanel
+            // 
+            beelinkCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            beelinkCollapsiblePanel.Controls.Add(beelinkContentPanel);
+            beelinkCollapsiblePanel.Controls.Add(beelinkHeaderPanel);
+            beelinkCollapsiblePanel.Location = new Point(10, 10);
+            beelinkCollapsiblePanel.Margin = new Padding(10);
+            beelinkCollapsiblePanel.Name = "beelinkCollapsiblePanel";
+            beelinkCollapsiblePanel.Size = new Size(430, 329);
+            beelinkCollapsiblePanel.TabIndex = 0;
+            // 
+            // beelinkContentPanel
+            // 
+            beelinkContentPanel.Controls.Add(beelinkClearLogButton);
+            beelinkContentPanel.Controls.Add(timeGroupBox);
+            beelinkContentPanel.Controls.Add(beelinkTestButton);
+            beelinkContentPanel.Controls.Add(beelinkLogTextBox);
+            beelinkContentPanel.Controls.Add(beelinkDisconnectButton);
+            beelinkContentPanel.Controls.Add(beelinkConnectButton);
+            beelinkContentPanel.Controls.Add(beelinkStatusLabel);
+            beelinkContentPanel.Dock = DockStyle.Fill;
+            beelinkContentPanel.Location = new Point(0, 30);
+            beelinkContentPanel.Name = "beelinkContentPanel";
+            beelinkContentPanel.Size = new Size(428, 297);
+            beelinkContentPanel.TabIndex = 1;
             // 
             // beelinkClearLogButton
             // 
-            beelinkClearLogButton.Location = new Point(10, 365);
+            beelinkClearLogButton.Location = new Point(10, 265);
             beelinkClearLogButton.Name = "beelinkClearLogButton";
             beelinkClearLogButton.Size = new Size(100, 25);
             beelinkClearLogButton.TabIndex = 6;
             beelinkClearLogButton.Text = "Очистить лог";
             beelinkClearLogButton.UseVisualStyleBackColor = true;
             beelinkClearLogButton.Click += beelinkClearLogButton_Click;
-            // 
-            // beelinkLogTextBox
-            // 
-            beelinkLogTextBox.Font = new Font("Consolas", 9F);
-            beelinkLogTextBox.Location = new Point(10, 220);
-            beelinkLogTextBox.Multiline = true;
-            beelinkLogTextBox.Name = "beelinkLogTextBox";
-            beelinkLogTextBox.ReadOnly = true;
-            beelinkLogTextBox.ScrollBars = ScrollBars.Vertical;
-            beelinkLogTextBox.Size = new Size(580, 140);
-            beelinkLogTextBox.TabIndex = 5;
             // 
             // timeGroupBox
             // 
@@ -134,13 +152,12 @@
             timeGroupBox.Controls.Add(timeDisableNTPButton);
             timeGroupBox.Controls.Add(timeEnableNTPButton);
             timeGroupBox.Controls.Add(timeCheckButton);
-            timeGroupBox.Location = new Point(10, 90);
+            timeGroupBox.Location = new Point(10, 65);
             timeGroupBox.Name = "timeGroupBox";
-            timeGroupBox.Size = new Size(580, 120);
+            timeGroupBox.Size = new Size(411, 88);
             timeGroupBox.TabIndex = 4;
             timeGroupBox.TabStop = false;
             timeGroupBox.Text = "Управление временем";
-            timeGroupBox.Enter += timeGroupBox_Enter;
             // 
             // timeSetButton
             // 
@@ -203,19 +220,31 @@
             // 
             // beelinkTestButton
             // 
-            beelinkTestButton.Location = new Point(230, 50);
+            beelinkTestButton.Location = new Point(211, 38);
             beelinkTestButton.Name = "beelinkTestButton";
-            beelinkTestButton.Size = new Size(120, 30);
+            beelinkTestButton.Size = new Size(59, 21);
             beelinkTestButton.TabIndex = 3;
-            beelinkTestButton.Text = "Тест подключения";
+            beelinkTestButton.Text = "Тест ";
             beelinkTestButton.UseVisualStyleBackColor = true;
             beelinkTestButton.Click += beelinkTestButton_Click;
             // 
+            // beelinkLogTextBox
+            // 
+            beelinkLogTextBox.Font = new Font("Consolas", 9F);
+            beelinkLogTextBox.Location = new Point(10, 159);
+            beelinkLogTextBox.Multiline = true;
+            beelinkLogTextBox.Name = "beelinkLogTextBox";
+            beelinkLogTextBox.ReadOnly = true;
+            beelinkLogTextBox.ScrollBars = ScrollBars.Vertical;
+            beelinkLogTextBox.Size = new Size(411, 100);
+            beelinkLogTextBox.TabIndex = 5;
+            beelinkLogTextBox.TextChanged += beelinkLogTextBox_TextChanged;
+            // 
             // beelinkDisconnectButton
             // 
-            beelinkDisconnectButton.Location = new Point(120, 50);
+            beelinkDisconnectButton.Location = new Point(106, 38);
             beelinkDisconnectButton.Name = "beelinkDisconnectButton";
-            beelinkDisconnectButton.Size = new Size(100, 30);
+            beelinkDisconnectButton.Size = new Size(90, 21);
             beelinkDisconnectButton.TabIndex = 2;
             beelinkDisconnectButton.Text = "Отключить";
             beelinkDisconnectButton.UseVisualStyleBackColor = true;
@@ -223,9 +252,9 @@
             // 
             // beelinkConnectButton
             // 
-            beelinkConnectButton.Location = new Point(10, 50);
+            beelinkConnectButton.Location = new Point(10, 38);
             beelinkConnectButton.Name = "beelinkConnectButton";
-            beelinkConnectButton.Size = new Size(100, 30);
+            beelinkConnectButton.Size = new Size(90, 21);
             beelinkConnectButton.TabIndex = 1;
             beelinkConnectButton.Text = "Подключить";
             beelinkConnectButton.UseVisualStyleBackColor = true;
@@ -240,13 +269,34 @@
             beelinkStatusLabel.TabIndex = 0;
             beelinkStatusLabel.Text = "Статус: Не подключено";
             // 
+            // beelinkHeaderPanel
+            // 
+            beelinkHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            beelinkHeaderPanel.Controls.Add(beelinkHeaderLabel);
+            beelinkHeaderPanel.Cursor = Cursors.Hand;
+            beelinkHeaderPanel.Dock = DockStyle.Top;
+            beelinkHeaderPanel.Location = new Point(0, 0);
+            beelinkHeaderPanel.Name = "beelinkHeaderPanel";
+            beelinkHeaderPanel.Size = new Size(428, 30);
+            beelinkHeaderPanel.TabIndex = 0;
+            // 
+            // beelinkHeaderLabel
+            // 
+            beelinkHeaderLabel.AutoSize = true;
+            beelinkHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            beelinkHeaderLabel.Location = new Point(10, 8);
+            beelinkHeaderLabel.Name = "beelinkHeaderLabel";
+            beelinkHeaderLabel.Size = new Size(75, 15);
+            beelinkHeaderLabel.TabIndex = 0;
+            beelinkHeaderLabel.Text = "SSH Beelink";
+            // 
             // settingsTabPage
             // 
             settingsTabPage.Controls.Add(sshBeelinkGroupBox);
             settingsTabPage.Location = new Point(4, 24);
             settingsTabPage.Name = "settingsTabPage";
             settingsTabPage.Padding = new Padding(3);
-            settingsTabPage.Size = new Size(792, 422);
+            settingsTabPage.Size = new Size(809, 610);
             settingsTabPage.TabIndex = 1;
             settingsTabPage.Text = "Настройки";
             settingsTabPage.UseVisualStyleBackColor = true;
@@ -381,7 +431,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
+            ClientSize = new Size(1008, 729);
             Controls.Add(mainTabControl);
             Name = "MainForm";
             Text = "MKtest";
@@ -389,15 +439,18 @@
             Load += MainForm_Load;
             mainTabControl.ResumeLayout(false);
             mainTabPage.ResumeLayout(false);
-            beelinkGroupBox.ResumeLayout(false);
-            beelinkGroupBox.PerformLayout();
+            flowLayoutPanel.ResumeLayout(false);
+            beelinkCollapsiblePanel.ResumeLayout(false);
+            beelinkContentPanel.ResumeLayout(false);
+            beelinkContentPanel.PerformLayout();
             timeGroupBox.ResumeLayout(false);
+            beelinkHeaderPanel.ResumeLayout(false);
+            beelinkHeaderPanel.PerformLayout();
             settingsTabPage.ResumeLayout(false);
             sshBeelinkGroupBox.ResumeLayout(false);
             sshBeelinkGroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)portNumeric).EndInit();
             ResumeLayout(false);
-            
         }
         #endregion
 
@@ -407,10 +460,14 @@
         private TabControl mainTabControl;
         private TabPage mainTabPage;
         private TabPage settingsTabPage;
+        private FlowLayoutPanel flowLayoutPanel;
         #endregion
 
-        #region Элементы SSH Beelink на главной вкладке
-        private GroupBox beelinkGroupBox;
+        #region Сворачиваемая панель SSH Beelink
+        private Panel beelinkCollapsiblePanel;
+        private Panel beelinkHeaderPanel;
+        private Label beelinkHeaderLabel;
+        private Panel beelinkContentPanel;
         private Label beelinkStatusLabel;
         private Button beelinkConnectButton;
         private Button beelinkDisconnectButton;
