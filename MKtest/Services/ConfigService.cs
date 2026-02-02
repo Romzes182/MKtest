@@ -3,20 +3,28 @@ using System;
 using System.IO;
 using System.Text.Json;
 
-
 namespace MKtest.Services
 {
-    public class ConfigService
+    public static class ConfigService
     {
         private static readonly string ConfigFile = "config.json";
-        private static AppConfig? _config; 
+        private static AppConfig? _config;
+
+        // Статический конструктор для автоматической загрузки
+        static ConfigService()
+        {
+            Load();
+        }
 
         public static AppConfig Config
         {
             get
             {
-                if (_config == null) Load();
-                return _config!; 
+                if (_config == null)
+                {
+                    Load();
+                }
+                return _config!;
             }
         }
 
@@ -29,7 +37,6 @@ namespace MKtest.Services
                     var json = File.ReadAllText(ConfigFile);
                     _config = JsonSerializer.Deserialize<AppConfig>(json);
 
-                   
                     if (_config == null)
                     {
                         _config = new AppConfig();
@@ -42,7 +49,6 @@ namespace MKtest.Services
             }
             catch (Exception)
             {
-                // В случае ошибки создаем новый конфиг
                 _config = new AppConfig();
             }
         }
@@ -57,7 +63,6 @@ namespace MKtest.Services
             }
             catch (Exception ex)
             {
-                // Можно добавить логирование
                 Console.WriteLine($"Ошибка сохранения конфигурации: {ex.Message}");
             }
         }

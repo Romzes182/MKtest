@@ -1,78 +1,191 @@
 ﻿using MKtest.Configs;
 using MKtest.Services;
+using System;
 using System.Windows.Forms;
 
 namespace MKtest.Managers
 {
     public class SettingsManager
     {
+        // SSH Beelink
         private readonly TextBox _ipTextBox;
         private readonly NumericUpDown _portNumeric;
         private readonly TextBox _userTextBox;
         private readonly TextBox _passwordUserTextBox;
         private readonly TextBox _passwordRootTextBox;
 
+        // Web Server
+        private readonly TextBox _webServerIpTextBox;
+        private readonly NumericUpDown _webServerPortNumeric;
+
+        // Кнопки веб-сервера
+        private readonly Button _webServerSaveButton;
+        private readonly Button _webServerResetButton;
+
         public SettingsManager(
             TextBox ipTextBox,
             NumericUpDown portNumeric,
             TextBox userTextBox,
             TextBox passwordUserTextBox,
-            TextBox passwordRootTextBox)
+            TextBox passwordRootTextBox,
+            TextBox webServerIpTextBox = null,
+            NumericUpDown webServerPortNumeric = null,
+            Button webServerSaveButton = null,
+            Button webServerResetButton = null)
         {
             _ipTextBox = ipTextBox;
             _portNumeric = portNumeric;
             _userTextBox = userTextBox;
             _passwordUserTextBox = passwordUserTextBox;
             _passwordRootTextBox = passwordRootTextBox;
+
+            _webServerIpTextBox = webServerIpTextBox;
+            _webServerPortNumeric = webServerPortNumeric;
+            _webServerSaveButton = webServerSaveButton;
+            _webServerResetButton = webServerResetButton;
         }
 
         public void LoadSettings()
         {
-            var config = ConfigService.Config.SSHBeelink;
+            // SSH Beelink
+            var sshConfig = ConfigService.Config.SSHBeelink;
+            _ipTextBox.Text = sshConfig.IP;
+            _portNumeric.Value = sshConfig.Port;
+            _userTextBox.Text = sshConfig.User;
+            _passwordUserTextBox.Text = sshConfig.PasswordUser;
+            _passwordRootTextBox.Text = sshConfig.PasswordRoot;
 
-            _ipTextBox.Text = config.IP;
-            _portNumeric.Value = config.Port;
-            _userTextBox.Text = config.User;
-            _passwordUserTextBox.Text = config.PasswordUser;
-            _passwordRootTextBox.Text = config.PasswordRoot;
+            // Web Server
+            if (_webServerIpTextBox != null && _webServerPortNumeric != null)
+            {
+                var webConfig = ConfigService.Config.WebServer;
+                _webServerIpTextBox.Text = webConfig.IpAddress;
+                _webServerPortNumeric.Value = webConfig.Port;
+            }
         }
 
         public bool SaveSettings(LogManager logManager)
         {
             try
             {
-                var config = ConfigService.Config.SSHBeelink;
+                // SSH Beelink
+                ConfigService.Config.SSHBeelink.IP = _ipTextBox.Text;
+                ConfigService.Config.SSHBeelink.Port = (int)_portNumeric.Value;
+                ConfigService.Config.SSHBeelink.User = _userTextBox.Text;
+                ConfigService.Config.SSHBeelink.PasswordUser = _passwordUserTextBox.Text;
+                ConfigService.Config.SSHBeelink.PasswordRoot = _passwordRootTextBox.Text;
 
-                config.IP = _ipTextBox.Text;
-                config.Port = (int)_portNumeric.Value;
-                config.User = _userTextBox.Text;
-                config.PasswordUser = _passwordUserTextBox.Text;
-                config.PasswordRoot = _passwordRootTextBox.Text;
+                // Web Server
+                if (_webServerIpTextBox != null && _webServerPortNumeric != null)
+                {
+                    ConfigService.Config.WebServer.IpAddress = _webServerIpTextBox.Text;
+                    ConfigService.Config.WebServer.Port = (int)_webServerPortNumeric.Value;
+                }
 
                 ConfigService.Save();
-                logManager.AppendLog("Настройки SSH сохранены");
+                logManager.AppendLog("Все настройки сохранены");
                 return true;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 logManager.AppendLog($"Ошибка сохранения настроек: {ex.Message}");
                 return false;
             }
         }
 
-        public bool ResetSettings(LogManager logManager)
+        public bool SaveSshSettings(LogManager logManager)
+        {
+            try
+            {
+                // Только SSH Beelink
+                ConfigService.Config.SSHBeelink.IP = _ipTextBox.Text;
+                ConfigService.Config.SSHBeelink.Port = (int)_portNumeric.Value;
+                ConfigService.Config.SSHBeelink.User = _userTextBox.Text;
+                ConfigService.Config.SSHBeelink.PasswordUser = _passwordUserTextBox.Text;
+                ConfigService.Config.SSHBeelink.PasswordRoot = _passwordRootTextBox.Text;
+
+                ConfigService.Save();
+                logManager.AppendLog("Настройки SSH Beelink сохранены");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка сохранения настроек SSH: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool SaveWebServerSettings(LogManager logManager)
+        {
+            try
+            {
+                // Только веб-сервер
+                if (_webServerIpTextBox != null && _webServerPortNumeric != null)
+                {
+                    ConfigService.Config.WebServer.IpAddress = _webServerIpTextBox.Text;
+                    ConfigService.Config.WebServer.Port = (int)_webServerPortNumeric.Value;
+                    ConfigService.Save();
+                    logManager.AppendLog("Настройки веб-сервера сохранены");
+                    return true;
+                }
+                logManager.AppendLog("Элементы управления веб-сервера не найдены");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка сохранения настроек веб-сервера: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool ResetAllSettings(LogManager logManager)
+        {
+            try
+            {
+                ConfigService.Config.SSHBeelink = new SSHConfig();
+                ConfigService.Config.WebServer = new WebServerConfig();
+                ConfigService.Save();
+                LoadSettings();
+                logManager.AppendLog("Все настройки сброшены");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка сброса настроек: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool ResetSshSettings(LogManager logManager)
         {
             try
             {
                 ConfigService.Config.SSHBeelink = new SSHConfig();
                 ConfigService.Save();
                 LoadSettings();
-                logManager.AppendLog("Настройки SSH сброшены к значениям по умолчанию");
+                logManager.AppendLog("Настройки SSH Beelink сброшены");
                 return true;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                logManager.AppendLog($"Ошибка сброса настроек: {ex.Message}");
+                logManager.AppendLog($"Ошибка сброса настроек SSH: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool ResetWebServerSettings(LogManager logManager)
+        {
+            try
+            {
+                ConfigService.Config.WebServer = new WebServerConfig();
+                ConfigService.Save();
+                LoadSettings();
+                logManager.AppendLog("Настройки веб-сервера сброшены");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка сброса настроек веб-сервера: {ex.Message}");
                 return false;
             }
         }

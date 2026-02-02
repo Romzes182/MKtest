@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MKtest.Services;
+using System;
 using System.Windows.Forms;
 
 namespace MKtest.Managers
@@ -6,10 +7,12 @@ namespace MKtest.Managers
     public class LogManager
     {
         private TextBox _logTextBox;
+        private LoggerService _loggerService;
 
         public LogManager(TextBox logTextBox)
         {
             _logTextBox = logTextBox;
+            _loggerService = new LoggerService();
             SetupLogTextBox();
         }
 
@@ -22,6 +25,10 @@ namespace MKtest.Managers
 
         public void AppendLog(string message)
         {
+            // Записываем в файл через LoggerService
+            _loggerService.Log(message);
+
+            // Выводим в TextBox
             if (_logTextBox.InvokeRequired)
             {
                 _logTextBox.Invoke(new Action(() =>
@@ -39,6 +46,9 @@ namespace MKtest.Managers
 
         public void ClearLog()
         {
+            // Очищаем лог в файле (создаем новый файл)
+            _loggerService.Log("--- Лог очищен ---");
+
             if (_logTextBox.InvokeRequired)
             {
                 _logTextBox.Invoke(new Action(() => _logTextBox.Clear()));
@@ -47,6 +57,13 @@ namespace MKtest.Managers
             {
                 _logTextBox.Clear();
             }
+        }
+
+        // Метод для получения пути к файлу лога (может пригодиться)
+        public string GetLogFilePath()
+        {
+            // LoggerService сохраняет логи в папке logs
+            return System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
         }
     }
 }

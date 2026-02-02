@@ -33,7 +33,6 @@
             flowLayoutPanel = new FlowLayoutPanel();
             beelinkCollapsiblePanel = new Panel();
             beelinkContentPanel = new Panel();
-            beelinkClearLogButton = new Button();
             timeGroupBox = new GroupBox();
             timeSetButton = new Button();
             manualTimePicker = new DateTimePicker();
@@ -42,13 +41,28 @@
             timeEnableNTPButton = new Button();
             timeCheckButton = new Button();
             beelinkTestButton = new Button();
-            beelinkLogTextBox = new TextBox();
             beelinkDisconnectButton = new Button();
             beelinkConnectButton = new Button();
             beelinkStatusLabel = new Label();
             beelinkHeaderPanel = new Panel();
             beelinkHeaderLabel = new Label();
+            webServerCollapsiblePanel = new Panel();
+            webServerContentPanel = new Panel();
+            webServerStatusLabel = new Label();
+            webServerStopButton = new Button();
+            webServerStartButton = new Button();
+            webServerHeaderPanel = new Panel();
+            webServerHeaderLabel = new Label();
+            beelinkLogTextBox = new TextBox();
+            beelinkClearLogButton = new Button();
             settingsTabPage = new TabPage();
+            webServerGroupBox = new GroupBox();
+            webServerResetButton = new Button();
+            webServerSaveButton = new Button();
+            webServerPortNumeric = new NumericUpDown();
+            webServerPortLabel = new Label();
+            webServerIpTextBox = new TextBox();
+            webServerIpLabel = new Label();
             sshBeelinkGroupBox = new GroupBox();
             resetButton = new Button();
             saveButton = new Button();
@@ -62,6 +76,7 @@
             portLabel = new Label();
             ipTextBox = new TextBox();
             ipLabel = new Label();
+            logPanel = new Panel();
             mainTabControl.SuspendLayout();
             mainTabPage.SuspendLayout();
             flowLayoutPanel.SuspendLayout();
@@ -69,9 +84,15 @@
             beelinkContentPanel.SuspendLayout();
             timeGroupBox.SuspendLayout();
             beelinkHeaderPanel.SuspendLayout();
+            webServerCollapsiblePanel.SuspendLayout();
+            webServerContentPanel.SuspendLayout();
+            webServerHeaderPanel.SuspendLayout();
             settingsTabPage.SuspendLayout();
+            webServerGroupBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)webServerPortNumeric).BeginInit();
             sshBeelinkGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)portNumeric).BeginInit();
+            logPanel.SuspendLayout();
             SuspendLayout();
             // 
             // mainTabControl
@@ -100,13 +121,17 @@
             // 
             flowLayoutPanel.AutoScroll = true;
             flowLayoutPanel.Controls.Add(beelinkCollapsiblePanel);
-            flowLayoutPanel.Dock = DockStyle.Fill;
+            flowLayoutPanel.Controls.Add(webServerCollapsiblePanel);
+            flowLayoutPanel.Controls.Add(logPanel);
+            flowLayoutPanel.Cursor = Cursors.Hand;
+            flowLayoutPanel.Dock = DockStyle.Top;
             flowLayoutPanel.FlowDirection = FlowDirection.TopDown;
             flowLayoutPanel.Location = new Point(3, 3);
             flowLayoutPanel.Name = "flowLayoutPanel";
             flowLayoutPanel.Size = new Size(994, 695);
             flowLayoutPanel.TabIndex = 1;
             flowLayoutPanel.WrapContents = false;
+            flowLayoutPanel.Paint += flowLayoutPanel_Paint;
             // 
             // beelinkCollapsiblePanel
             // 
@@ -116,33 +141,21 @@
             beelinkCollapsiblePanel.Location = new Point(10, 10);
             beelinkCollapsiblePanel.Margin = new Padding(10);
             beelinkCollapsiblePanel.Name = "beelinkCollapsiblePanel";
-            beelinkCollapsiblePanel.Size = new Size(430, 329);
+            beelinkCollapsiblePanel.Size = new Size(430, 190);
             beelinkCollapsiblePanel.TabIndex = 0;
             // 
             // beelinkContentPanel
             // 
-            beelinkContentPanel.Controls.Add(beelinkClearLogButton);
             beelinkContentPanel.Controls.Add(timeGroupBox);
             beelinkContentPanel.Controls.Add(beelinkTestButton);
-            beelinkContentPanel.Controls.Add(beelinkLogTextBox);
             beelinkContentPanel.Controls.Add(beelinkDisconnectButton);
             beelinkContentPanel.Controls.Add(beelinkConnectButton);
             beelinkContentPanel.Controls.Add(beelinkStatusLabel);
             beelinkContentPanel.Dock = DockStyle.Fill;
             beelinkContentPanel.Location = new Point(0, 30);
             beelinkContentPanel.Name = "beelinkContentPanel";
-            beelinkContentPanel.Size = new Size(428, 297);
+            beelinkContentPanel.Size = new Size(428, 158);
             beelinkContentPanel.TabIndex = 1;
-            // 
-            // beelinkClearLogButton
-            // 
-            beelinkClearLogButton.Location = new Point(10, 265);
-            beelinkClearLogButton.Name = "beelinkClearLogButton";
-            beelinkClearLogButton.Size = new Size(100, 25);
-            beelinkClearLogButton.TabIndex = 6;
-            beelinkClearLogButton.Text = "Очистить лог";
-            beelinkClearLogButton.UseVisualStyleBackColor = true;
-            beelinkClearLogButton.Click += beelinkClearLogButton_Click;
             // 
             // timeGroupBox
             // 
@@ -228,18 +241,6 @@
             beelinkTestButton.UseVisualStyleBackColor = true;
             beelinkTestButton.Click += beelinkTestButton_Click;
             // 
-            // beelinkLogTextBox
-            // 
-            beelinkLogTextBox.Font = new Font("Consolas", 9F);
-            beelinkLogTextBox.Location = new Point(10, 159);
-            beelinkLogTextBox.Multiline = true;
-            beelinkLogTextBox.Name = "beelinkLogTextBox";
-            beelinkLogTextBox.ReadOnly = true;
-            beelinkLogTextBox.ScrollBars = ScrollBars.Vertical;
-            beelinkLogTextBox.Size = new Size(411, 100);
-            beelinkLogTextBox.TabIndex = 5;
-            beelinkLogTextBox.TextChanged += beelinkLogTextBox_TextChanged;
-            // 
             // beelinkDisconnectButton
             // 
             beelinkDisconnectButton.Location = new Point(106, 38);
@@ -290,16 +291,182 @@
             beelinkHeaderLabel.TabIndex = 0;
             beelinkHeaderLabel.Text = "SSH Beelink";
             // 
+            // webServerCollapsiblePanel
+            // 
+            webServerCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            webServerCollapsiblePanel.Controls.Add(webServerContentPanel);
+            webServerCollapsiblePanel.Controls.Add(webServerHeaderPanel);
+            webServerCollapsiblePanel.Location = new Point(10, 220);
+            webServerCollapsiblePanel.Margin = new Padding(10);
+            webServerCollapsiblePanel.Name = "webServerCollapsiblePanel";
+            webServerCollapsiblePanel.Size = new Size(430, 81);
+            webServerCollapsiblePanel.TabIndex = 2;
+            // 
+            // webServerContentPanel
+            // 
+            webServerContentPanel.Controls.Add(webServerStatusLabel);
+            webServerContentPanel.Controls.Add(webServerStopButton);
+            webServerContentPanel.Controls.Add(webServerStartButton);
+            webServerContentPanel.Location = new Point(0, 30);
+            webServerContentPanel.Name = "webServerContentPanel";
+            webServerContentPanel.Size = new Size(428, 46);
+            webServerContentPanel.TabIndex = 1;
+            webServerContentPanel.Paint += webServerContentPanel_Paint;
+            // 
+            // webServerStatusLabel
+            // 
+            webServerStatusLabel.AutoSize = true;
+            webServerStatusLabel.Location = new Point(230, 15);
+            webServerStatusLabel.Name = "webServerStatusLabel";
+            webServerStatusLabel.Size = new Size(115, 15);
+            webServerStatusLabel.TabIndex = 2;
+            webServerStatusLabel.Text = "Статус: Остановлен";
+            // 
+            // webServerStopButton
+            // 
+            webServerStopButton.Enabled = false;
+            webServerStopButton.Location = new Point(110, 10);
+            webServerStopButton.Name = "webServerStopButton";
+            webServerStopButton.Size = new Size(90, 25);
+            webServerStopButton.TabIndex = 1;
+            webServerStopButton.Text = "Остановить";
+            webServerStopButton.UseVisualStyleBackColor = true;
+            // 
+            // webServerStartButton
+            // 
+            webServerStartButton.Location = new Point(10, 10);
+            webServerStartButton.Name = "webServerStartButton";
+            webServerStartButton.Size = new Size(90, 25);
+            webServerStartButton.TabIndex = 0;
+            webServerStartButton.Text = "Запустить";
+            webServerStartButton.UseVisualStyleBackColor = true;
+            // 
+            // webServerHeaderPanel
+            // 
+            webServerHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            webServerHeaderPanel.Controls.Add(webServerHeaderLabel);
+            webServerHeaderPanel.Dock = DockStyle.Top;
+            webServerHeaderPanel.Location = new Point(0, 0);
+            webServerHeaderPanel.Name = "webServerHeaderPanel";
+            webServerHeaderPanel.Size = new Size(428, 30);
+            webServerHeaderPanel.TabIndex = 0;
+            // 
+            // webServerHeaderLabel
+            // 
+            webServerHeaderLabel.AutoSize = true;
+            webServerHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            webServerHeaderLabel.Location = new Point(10, 8);
+            webServerHeaderLabel.Name = "webServerHeaderLabel";
+            webServerHeaderLabel.Size = new Size(75, 15);
+            webServerHeaderLabel.TabIndex = 0;
+            webServerHeaderLabel.Text = "Веб-сервер";
+            // 
+            // beelinkLogTextBox
+            // 
+            beelinkLogTextBox.Dock = DockStyle.Fill;
+            beelinkLogTextBox.Font = new Font("Consolas", 9F);
+            beelinkLogTextBox.Location = new Point(0, 0);
+            beelinkLogTextBox.Multiline = true;
+            beelinkLogTextBox.Name = "beelinkLogTextBox";
+            beelinkLogTextBox.ReadOnly = true;
+            beelinkLogTextBox.ScrollBars = ScrollBars.Vertical;
+            beelinkLogTextBox.Size = new Size(442, 168);
+            beelinkLogTextBox.TabIndex = 5;
+            beelinkLogTextBox.TextChanged += beelinkLogTextBox_TextChanged;
+            // 
+            // beelinkClearLogButton
+            // 
+            beelinkClearLogButton.Dock = DockStyle.Bottom;
+            beelinkClearLogButton.Location = new Point(0, 168);
+            beelinkClearLogButton.Name = "beelinkClearLogButton";
+            beelinkClearLogButton.Size = new Size(442, 30);
+            beelinkClearLogButton.TabIndex = 6;
+            beelinkClearLogButton.Text = "Очистить лог";
+            beelinkClearLogButton.UseVisualStyleBackColor = true;
+            beelinkClearLogButton.Click += beelinkClearLogButton_Click;
+            // 
             // settingsTabPage
             // 
+            settingsTabPage.Controls.Add(webServerGroupBox);
             settingsTabPage.Controls.Add(sshBeelinkGroupBox);
             settingsTabPage.Location = new Point(4, 24);
             settingsTabPage.Name = "settingsTabPage";
             settingsTabPage.Padding = new Padding(3);
-            settingsTabPage.Size = new Size(809, 610);
+            settingsTabPage.Size = new Size(1000, 701);
             settingsTabPage.TabIndex = 1;
             settingsTabPage.Text = "Настройки";
             settingsTabPage.UseVisualStyleBackColor = true;
+            // 
+            // webServerGroupBox
+            // 
+            webServerGroupBox.Controls.Add(webServerResetButton);
+            webServerGroupBox.Controls.Add(webServerSaveButton);
+            webServerGroupBox.Controls.Add(webServerPortNumeric);
+            webServerGroupBox.Controls.Add(webServerPortLabel);
+            webServerGroupBox.Controls.Add(webServerIpTextBox);
+            webServerGroupBox.Controls.Add(webServerIpLabel);
+            webServerGroupBox.Location = new Point(10, 190);
+            webServerGroupBox.Name = "webServerGroupBox";
+            webServerGroupBox.Size = new Size(319, 80);
+            webServerGroupBox.TabIndex = 1;
+            webServerGroupBox.TabStop = false;
+            webServerGroupBox.Text = "Веб-сервер";
+            // 
+            // webServerResetButton
+            // 
+            webServerResetButton.Location = new Point(228, 49);
+            webServerResetButton.Name = "webServerResetButton";
+            webServerResetButton.Size = new Size(80, 25);
+            webServerResetButton.TabIndex = 5;
+            webServerResetButton.Text = "Сбросить";
+            webServerResetButton.UseVisualStyleBackColor = true;
+            webServerResetButton.Click += webServerResetButton_Click;
+            // 
+            // webServerSaveButton
+            // 
+            webServerSaveButton.Location = new Point(228, 18);
+            webServerSaveButton.Name = "webServerSaveButton";
+            webServerSaveButton.Size = new Size(80, 25);
+            webServerSaveButton.TabIndex = 4;
+            webServerSaveButton.Text = "Сохранить";
+            webServerSaveButton.UseVisualStyleBackColor = true;
+            webServerSaveButton.Click += webServerSaveButton_Click;
+            // 
+            // webServerPortNumeric
+            // 
+            webServerPortNumeric.Location = new Point(121, 49);
+            webServerPortNumeric.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
+            webServerPortNumeric.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            webServerPortNumeric.Name = "webServerPortNumeric";
+            webServerPortNumeric.Size = new Size(80, 23);
+            webServerPortNumeric.TabIndex = 3;
+            webServerPortNumeric.Value = new decimal(new int[] { 8080, 0, 0, 0 });
+            // 
+            // webServerPortLabel
+            // 
+            webServerPortLabel.AutoSize = true;
+            webServerPortLabel.Location = new Point(10, 53);
+            webServerPortLabel.Name = "webServerPortLabel";
+            webServerPortLabel.Size = new Size(38, 15);
+            webServerPortLabel.TabIndex = 2;
+            webServerPortLabel.Text = "Порт:";
+            // 
+            // webServerIpTextBox
+            // 
+            webServerIpTextBox.Location = new Point(121, 20);
+            webServerIpTextBox.Name = "webServerIpTextBox";
+            webServerIpTextBox.Size = new Size(80, 23);
+            webServerIpTextBox.TabIndex = 1;
+            webServerIpTextBox.Text = "*";
+            // 
+            // webServerIpLabel
+            // 
+            webServerIpLabel.AutoSize = true;
+            webServerIpLabel.Location = new Point(10, 28);
+            webServerIpLabel.Name = "webServerIpLabel";
+            webServerIpLabel.Size = new Size(54, 15);
+            webServerIpLabel.TabIndex = 0;
+            webServerIpLabel.Text = "IP адрес:";
             // 
             // sshBeelinkGroupBox
             // 
@@ -317,7 +484,7 @@
             sshBeelinkGroupBox.Controls.Add(ipLabel);
             sshBeelinkGroupBox.Location = new Point(10, 10);
             sshBeelinkGroupBox.Name = "sshBeelinkGroupBox";
-            sshBeelinkGroupBox.Size = new Size(450, 200);
+            sshBeelinkGroupBox.Size = new Size(369, 174);
             sshBeelinkGroupBox.TabIndex = 0;
             sshBeelinkGroupBox.TabStop = false;
             sshBeelinkGroupBox.Text = "SSH Beelink";
@@ -427,6 +594,17 @@
             ipLabel.TabIndex = 0;
             ipLabel.Text = "IP:";
             // 
+            // logPanel
+            // 
+            logPanel.BorderStyle = BorderStyle.FixedSingle;
+            logPanel.Controls.Add(beelinkLogTextBox);
+            logPanel.Controls.Add(beelinkClearLogButton);
+            logPanel.Dock = DockStyle.Bottom;
+            logPanel.Location = new Point(3, 314);
+            logPanel.Name = "logPanel";
+            logPanel.Size = new Size(444, 200);
+            logPanel.TabIndex = 7;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -446,10 +624,20 @@
             timeGroupBox.ResumeLayout(false);
             beelinkHeaderPanel.ResumeLayout(false);
             beelinkHeaderPanel.PerformLayout();
+            webServerCollapsiblePanel.ResumeLayout(false);
+            webServerContentPanel.ResumeLayout(false);
+            webServerContentPanel.PerformLayout();
+            webServerHeaderPanel.ResumeLayout(false);
+            webServerHeaderPanel.PerformLayout();
             settingsTabPage.ResumeLayout(false);
+            webServerGroupBox.ResumeLayout(false);
+            webServerGroupBox.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)webServerPortNumeric).EndInit();
             sshBeelinkGroupBox.ResumeLayout(false);
             sshBeelinkGroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)portNumeric).EndInit();
+            logPanel.ResumeLayout(false);
+            logPanel.PerformLayout();
             ResumeLayout(false);
         }
         #endregion
@@ -500,5 +688,21 @@
         #endregion
 
         #endregion
+
+        private GroupBox webServerGroupBox;
+        private Label webServerIpLabel;
+        private NumericUpDown webServerPortNumeric;
+        private Label webServerPortLabel;
+        private TextBox webServerIpTextBox;
+        private Button webServerResetButton;
+        private Button webServerSaveButton;
+        private Panel webServerCollapsiblePanel;
+        private Panel webServerHeaderPanel;
+        private Label webServerHeaderLabel;
+        private Panel webServerContentPanel;
+        private Label webServerStatusLabel;
+        private Button webServerStopButton;
+        private Button webServerStartButton;
+        private Panel logPanel;
     }
 }
