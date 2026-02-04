@@ -35,7 +35,7 @@ namespace MKtest.Services
         public WebServerService(LogManager? logManager = null)
         {
             _logManager = logManager;
-            _rootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "wwwroot");
+            _rootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "JsonTemplates");
             Directory.CreateDirectory(_rootPath);
         }
 

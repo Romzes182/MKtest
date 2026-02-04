@@ -11,5 +11,12 @@
   <ItemGroup>
     <PackageReference Include="SSH.NET" Version="2025.1.0" />
   </ItemGroup>
-
+  <ItemGroup>
+    <None Update="DemoScenarios\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="JsonTemplates\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

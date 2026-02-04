@@ -1,0 +1,22 @@
+{
+    "destination": "Конечная",
+    "destination2": "",
+    "direction": 0,
+    "enabled": true,
+    "nextWord": "Следующая остановка",
+    "number": "1",
+    "seq": 28,
+    "speakingCityDirection": 0,
+    "speakingCityNumber": "1",
+    "startingPoint": "пр. Старт",
+    "startingPoint2": "",
+    "stationWord": "Остановка",
+    "stations": [
+        "пр. Старт",
+        "Ленинский пр., 55",
+        "          10 пробелов          ",
+        "      6 пробелов      ",
+        "ул. Котина",
+        "Конечная"
+    ]
+}

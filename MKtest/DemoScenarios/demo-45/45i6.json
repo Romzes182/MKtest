@@ -1,0 +1,15 @@
+{
+    "currentStation": "Следующая остановка: ул. Котина",
+    "destination": "Витебский пр.",
+    "direction": 0,
+    "enabled": true,
+    "nextStation": "",
+    "number": "45",
+    "outdoorTemp": 27,
+    "salonTemp": 24,
+    "speakingCityNumber": "45",
+    "startingPoint": "пр. Героев",
+    "stations": [
+        ""
+    ]
+}

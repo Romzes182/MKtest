@@ -30,7 +30,9 @@
         {
             mainTabControl = new TabControl();
             mainTabPage = new TabPage();
-            flowLayoutPanel = new FlowLayoutPanel();
+            splitContainerMain = new SplitContainer();
+            panelLeft = new Panel();
+            leftFlowLayout = new FlowLayoutPanel();
             beelinkCollapsiblePanel = new Panel();
             beelinkContentPanel = new Panel();
             timeGroupBox = new GroupBox();
@@ -53,6 +55,16 @@
             webServerStartButton = new Button();
             webServerHeaderPanel = new Panel();
             webServerHeaderLabel = new Label();
+            panelRight = new Panel();
+            demoCollapsiblePanel = new Panel();
+            demoContentPanel = new Panel();
+            lblDemoStatus = new Label();
+            btnStopDemo = new Button();
+            btnStartDemo = new Button();
+            cmbDemoScenarios = new ComboBox();
+            demoHeaderPanel = new Panel();
+            demoHeaderLabel = new Label();
+            logPanel = new Panel();
             beelinkLogTextBox = new TextBox();
             beelinkClearLogButton = new Button();
             settingsTabPage = new TabPage();
@@ -76,10 +88,14 @@
             portLabel = new Label();
             ipTextBox = new TextBox();
             ipLabel = new Label();
-            logPanel = new Panel();
             mainTabControl.SuspendLayout();
             mainTabPage.SuspendLayout();
-            flowLayoutPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)splitContainerMain).BeginInit();
+            splitContainerMain.Panel1.SuspendLayout();
+            splitContainerMain.Panel2.SuspendLayout();
+            splitContainerMain.SuspendLayout();
+            panelLeft.SuspendLayout();
+            leftFlowLayout.SuspendLayout();
             beelinkCollapsiblePanel.SuspendLayout();
             beelinkContentPanel.SuspendLayout();
             timeGroupBox.SuspendLayout();
@@ -87,12 +103,16 @@
             webServerCollapsiblePanel.SuspendLayout();
             webServerContentPanel.SuspendLayout();
             webServerHeaderPanel.SuspendLayout();
+            panelRight.SuspendLayout();
+            demoCollapsiblePanel.SuspendLayout();
+            demoContentPanel.SuspendLayout();
+            demoHeaderPanel.SuspendLayout();
+            logPanel.SuspendLayout();
             settingsTabPage.SuspendLayout();
             webServerGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)webServerPortNumeric).BeginInit();
             sshBeelinkGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)portNumeric).BeginInit();
-            logPanel.SuspendLayout();
             SuspendLayout();
             // 
             // mainTabControl
@@ -108,7 +128,8 @@
             // 
             // mainTabPage
             // 
-            mainTabPage.Controls.Add(flowLayoutPanel);
+            mainTabPage.Controls.Add(splitContainerMain);
+            mainTabPage.Controls.Add(logPanel);
             mainTabPage.Location = new Point(4, 24);
             mainTabPage.Name = "mainTabPage";
             mainTabPage.Padding = new Padding(3);
@@ -117,31 +138,56 @@
             mainTabPage.Text = "Главная";
             mainTabPage.UseVisualStyleBackColor = true;
             // 
-            // flowLayoutPanel
+            // splitContainerMain
             // 
-            flowLayoutPanel.AutoScroll = true;
-            flowLayoutPanel.Controls.Add(beelinkCollapsiblePanel);
-            flowLayoutPanel.Controls.Add(webServerCollapsiblePanel);
-            flowLayoutPanel.Controls.Add(logPanel);
-            flowLayoutPanel.Cursor = Cursors.Hand;
-            flowLayoutPanel.Dock = DockStyle.Top;
-            flowLayoutPanel.FlowDirection = FlowDirection.TopDown;
-            flowLayoutPanel.Location = new Point(3, 3);
-            flowLayoutPanel.Name = "flowLayoutPanel";
-            flowLayoutPanel.Size = new Size(994, 695);
-            flowLayoutPanel.TabIndex = 1;
-            flowLayoutPanel.WrapContents = false;
-            flowLayoutPanel.Paint += flowLayoutPanel_Paint;
+            splitContainerMain.Dock = DockStyle.Fill;
+            splitContainerMain.Location = new Point(3, 3);
+            splitContainerMain.Name = "splitContainerMain";
+            // 
+            // splitContainerMain.Panel1
+            // 
+            splitContainerMain.Panel1.Controls.Add(panelLeft);
+            splitContainerMain.Panel1MinSize = 300;
+            // 
+            // splitContainerMain.Panel2
+            // 
+            splitContainerMain.Panel2.Controls.Add(panelRight);
+            splitContainerMain.Panel2.Paint += splitContainerMain_Panel2_Paint;
+            splitContainerMain.Panel2MinSize = 300;
+            splitContainerMain.Size = new Size(994, 576);
+            splitContainerMain.SplitterDistance = 401;
+            splitContainerMain.TabIndex = 0;
+            // 
+            // panelLeft
+            // 
+            panelLeft.Controls.Add(leftFlowLayout);
+            panelLeft.Location = new Point(0, 0);
+            panelLeft.Name = "panelLeft";
+            panelLeft.Padding = new Padding(10);
+            panelLeft.Size = new Size(395, 320);
+            panelLeft.TabIndex = 0;
+            // 
+            // leftFlowLayout
+            // 
+            leftFlowLayout.AutoScroll = true;
+            leftFlowLayout.Controls.Add(beelinkCollapsiblePanel);
+            leftFlowLayout.Controls.Add(webServerCollapsiblePanel);
+            leftFlowLayout.FlowDirection = FlowDirection.TopDown;
+            leftFlowLayout.Location = new Point(10, 10);
+            leftFlowLayout.Name = "leftFlowLayout";
+            leftFlowLayout.Size = new Size(376, 297);
+            leftFlowLayout.TabIndex = 0;
+            leftFlowLayout.WrapContents = false;
             // 
             // beelinkCollapsiblePanel
             // 
             beelinkCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             beelinkCollapsiblePanel.Controls.Add(beelinkContentPanel);
             beelinkCollapsiblePanel.Controls.Add(beelinkHeaderPanel);
-            beelinkCollapsiblePanel.Location = new Point(10, 10);
-            beelinkCollapsiblePanel.Margin = new Padding(10);
+            beelinkCollapsiblePanel.Location = new Point(3, 3);
+            beelinkCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             beelinkCollapsiblePanel.Name = "beelinkCollapsiblePanel";
-            beelinkCollapsiblePanel.Size = new Size(430, 190);
+            beelinkCollapsiblePanel.Size = new Size(367, 190);
             beelinkCollapsiblePanel.TabIndex = 0;
             // 
             // beelinkContentPanel
@@ -152,9 +198,9 @@
             beelinkContentPanel.Controls.Add(beelinkConnectButton);
             beelinkContentPanel.Controls.Add(beelinkStatusLabel);
             beelinkContentPanel.Dock = DockStyle.Fill;
-            beelinkContentPanel.Location = new Point(0, 30);
+            beelinkContentPanel.Location = new Point(0, 24);
             beelinkContentPanel.Name = "beelinkContentPanel";
-            beelinkContentPanel.Size = new Size(428, 158);
+            beelinkContentPanel.Size = new Size(365, 164);
             beelinkContentPanel.TabIndex = 1;
             // 
             // timeGroupBox
@@ -167,16 +213,16 @@
             timeGroupBox.Controls.Add(timeCheckButton);
             timeGroupBox.Location = new Point(10, 65);
             timeGroupBox.Name = "timeGroupBox";
-            timeGroupBox.Size = new Size(411, 88);
+            timeGroupBox.Size = new Size(352, 88);
             timeGroupBox.TabIndex = 4;
             timeGroupBox.TabStop = false;
             timeGroupBox.Text = "Управление временем";
             // 
             // timeSetButton
             // 
-            timeSetButton.Location = new Point(240, 55);
+            timeSetButton.Location = new Point(229, 51);
             timeSetButton.Name = "timeSetButton";
-            timeSetButton.Size = new Size(120, 25);
+            timeSetButton.Size = new Size(118, 25);
             timeSetButton.TabIndex = 5;
             timeSetButton.Text = "Установить время";
             timeSetButton.UseVisualStyleBackColor = true;
@@ -188,7 +234,7 @@
             manualTimePicker.Location = new Point(140, 55);
             manualTimePicker.Name = "manualTimePicker";
             manualTimePicker.ShowUpDown = true;
-            manualTimePicker.Size = new Size(90, 23);
+            manualTimePicker.Size = new Size(68, 23);
             manualTimePicker.TabIndex = 4;
             manualTimePicker.Value = new DateTime(2026, 1, 31, 16, 27, 18, 279);
             // 
@@ -197,15 +243,15 @@
             manualDatePicker.Format = DateTimePickerFormat.Short;
             manualDatePicker.Location = new Point(10, 55);
             manualDatePicker.Name = "manualDatePicker";
-            manualDatePicker.Size = new Size(120, 23);
+            manualDatePicker.Size = new Size(93, 23);
             manualDatePicker.TabIndex = 3;
             manualDatePicker.Value = new DateTime(2026, 1, 31, 16, 27, 18, 280);
             // 
             // timeDisableNTPButton
             // 
-            timeDisableNTPButton.Location = new Point(270, 20);
+            timeDisableNTPButton.Location = new Point(240, 20);
             timeDisableNTPButton.Name = "timeDisableNTPButton";
-            timeDisableNTPButton.Size = new Size(120, 25);
+            timeDisableNTPButton.Size = new Size(107, 25);
             timeDisableNTPButton.TabIndex = 2;
             timeDisableNTPButton.Text = "Выключить NTP";
             timeDisableNTPButton.UseVisualStyleBackColor = true;
@@ -213,9 +259,9 @@
             // 
             // timeEnableNTPButton
             // 
-            timeEnableNTPButton.Location = new Point(140, 20);
+            timeEnableNTPButton.Location = new Point(121, 20);
             timeEnableNTPButton.Name = "timeEnableNTPButton";
-            timeEnableNTPButton.Size = new Size(120, 25);
+            timeEnableNTPButton.Size = new Size(100, 25);
             timeEnableNTPButton.TabIndex = 1;
             timeEnableNTPButton.Text = "Включить NTP";
             timeEnableNTPButton.UseVisualStyleBackColor = true;
@@ -225,7 +271,7 @@
             // 
             timeCheckButton.Location = new Point(10, 20);
             timeCheckButton.Name = "timeCheckButton";
-            timeCheckButton.Size = new Size(120, 25);
+            timeCheckButton.Size = new Size(105, 25);
             timeCheckButton.TabIndex = 0;
             timeCheckButton.Text = "Статус времени";
             timeCheckButton.UseVisualStyleBackColor = true;
@@ -233,9 +279,9 @@
             // 
             // beelinkTestButton
             // 
-            beelinkTestButton.Location = new Point(211, 38);
+            beelinkTestButton.Location = new Point(3, 33);
             beelinkTestButton.Name = "beelinkTestButton";
-            beelinkTestButton.Size = new Size(59, 21);
+            beelinkTestButton.Size = new Size(90, 21);
             beelinkTestButton.TabIndex = 3;
             beelinkTestButton.Text = "Тест ";
             beelinkTestButton.UseVisualStyleBackColor = true;
@@ -243,7 +289,7 @@
             // 
             // beelinkDisconnectButton
             // 
-            beelinkDisconnectButton.Location = new Point(106, 38);
+            beelinkDisconnectButton.Location = new Point(99, 6);
             beelinkDisconnectButton.Name = "beelinkDisconnectButton";
             beelinkDisconnectButton.Size = new Size(90, 21);
             beelinkDisconnectButton.TabIndex = 2;
@@ -253,7 +299,7 @@
             // 
             // beelinkConnectButton
             // 
-            beelinkConnectButton.Location = new Point(10, 38);
+            beelinkConnectButton.Location = new Point(3, 6);
             beelinkConnectButton.Name = "beelinkConnectButton";
             beelinkConnectButton.Size = new Size(90, 21);
             beelinkConnectButton.TabIndex = 1;
@@ -264,7 +310,7 @@
             // beelinkStatusLabel
             // 
             beelinkStatusLabel.AutoSize = true;
-            beelinkStatusLabel.Location = new Point(10, 20);
+            beelinkStatusLabel.Location = new Point(195, 9);
             beelinkStatusLabel.Name = "beelinkStatusLabel";
             beelinkStatusLabel.Size = new Size(137, 15);
             beelinkStatusLabel.TabIndex = 0;
@@ -278,16 +324,17 @@
             beelinkHeaderPanel.Dock = DockStyle.Top;
             beelinkHeaderPanel.Location = new Point(0, 0);
             beelinkHeaderPanel.Name = "beelinkHeaderPanel";
-            beelinkHeaderPanel.Size = new Size(428, 30);
+            beelinkHeaderPanel.Size = new Size(365, 24);
             beelinkHeaderPanel.TabIndex = 0;
+            beelinkHeaderPanel.Click += CollapsiblePanelHeader_Click;
             // 
             // beelinkHeaderLabel
             // 
-            beelinkHeaderLabel.AutoSize = true;
+            beelinkHeaderLabel.Dock = DockStyle.Fill;
             beelinkHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            beelinkHeaderLabel.Location = new Point(10, 8);
+            beelinkHeaderLabel.Location = new Point(0, 0);
             beelinkHeaderLabel.Name = "beelinkHeaderLabel";
-            beelinkHeaderLabel.Size = new Size(75, 15);
+            beelinkHeaderLabel.Size = new Size(365, 24);
             beelinkHeaderLabel.TabIndex = 0;
             beelinkHeaderLabel.Text = "SSH Beelink";
             // 
@@ -296,10 +343,10 @@
             webServerCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             webServerCollapsiblePanel.Controls.Add(webServerContentPanel);
             webServerCollapsiblePanel.Controls.Add(webServerHeaderPanel);
-            webServerCollapsiblePanel.Location = new Point(10, 220);
-            webServerCollapsiblePanel.Margin = new Padding(10);
+            webServerCollapsiblePanel.Location = new Point(3, 206);
+            webServerCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             webServerCollapsiblePanel.Name = "webServerCollapsiblePanel";
-            webServerCollapsiblePanel.Size = new Size(430, 81);
+            webServerCollapsiblePanel.Size = new Size(366, 81);
             webServerCollapsiblePanel.TabIndex = 2;
             // 
             // webServerContentPanel
@@ -307,16 +354,16 @@
             webServerContentPanel.Controls.Add(webServerStatusLabel);
             webServerContentPanel.Controls.Add(webServerStopButton);
             webServerContentPanel.Controls.Add(webServerStartButton);
-            webServerContentPanel.Location = new Point(0, 30);
+            webServerContentPanel.Dock = DockStyle.Fill;
+            webServerContentPanel.Location = new Point(0, 24);
             webServerContentPanel.Name = "webServerContentPanel";
-            webServerContentPanel.Size = new Size(428, 46);
+            webServerContentPanel.Size = new Size(364, 55);
             webServerContentPanel.TabIndex = 1;
-            webServerContentPanel.Paint += webServerContentPanel_Paint;
             // 
             // webServerStatusLabel
             // 
             webServerStatusLabel.AutoSize = true;
-            webServerStatusLabel.Location = new Point(230, 15);
+            webServerStatusLabel.Location = new Point(208, 15);
             webServerStatusLabel.Name = "webServerStatusLabel";
             webServerStatusLabel.Size = new Size(115, 15);
             webServerStatusLabel.TabIndex = 2;
@@ -327,7 +374,7 @@
             webServerStopButton.Enabled = false;
             webServerStopButton.Location = new Point(110, 10);
             webServerStopButton.Name = "webServerStopButton";
-            webServerStopButton.Size = new Size(90, 25);
+            webServerStopButton.Size = new Size(79, 25);
             webServerStopButton.TabIndex = 1;
             webServerStopButton.Text = "Остановить";
             webServerStopButton.UseVisualStyleBackColor = true;
@@ -336,7 +383,7 @@
             // 
             webServerStartButton.Location = new Point(10, 10);
             webServerStartButton.Name = "webServerStartButton";
-            webServerStartButton.Size = new Size(90, 25);
+            webServerStartButton.Size = new Size(73, 25);
             webServerStartButton.TabIndex = 0;
             webServerStartButton.Text = "Запустить";
             webServerStartButton.UseVisualStyleBackColor = true;
@@ -345,21 +392,126 @@
             // 
             webServerHeaderPanel.BackColor = SystemColors.ActiveCaption;
             webServerHeaderPanel.Controls.Add(webServerHeaderLabel);
+            webServerHeaderPanel.Cursor = Cursors.Hand;
             webServerHeaderPanel.Dock = DockStyle.Top;
             webServerHeaderPanel.Location = new Point(0, 0);
             webServerHeaderPanel.Name = "webServerHeaderPanel";
-            webServerHeaderPanel.Size = new Size(428, 30);
+            webServerHeaderPanel.Size = new Size(364, 24);
             webServerHeaderPanel.TabIndex = 0;
+            webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
             // 
             // webServerHeaderLabel
             // 
-            webServerHeaderLabel.AutoSize = true;
+            webServerHeaderLabel.Dock = DockStyle.Fill;
             webServerHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            webServerHeaderLabel.Location = new Point(10, 8);
+            webServerHeaderLabel.Location = new Point(0, 0);
             webServerHeaderLabel.Name = "webServerHeaderLabel";
-            webServerHeaderLabel.Size = new Size(75, 15);
+            webServerHeaderLabel.Size = new Size(364, 24);
             webServerHeaderLabel.TabIndex = 0;
             webServerHeaderLabel.Text = "Веб-сервер";
+            // 
+            // panelRight
+            // 
+            panelRight.Controls.Add(demoCollapsiblePanel);
+            panelRight.Location = new Point(3, 10);
+            panelRight.Name = "panelRight";
+            panelRight.Padding = new Padding(10);
+            panelRight.Size = new Size(581, 187);
+            panelRight.TabIndex = 0;
+            // 
+            // demoCollapsiblePanel
+            // 
+            demoCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            demoCollapsiblePanel.Controls.Add(demoContentPanel);
+            demoCollapsiblePanel.Controls.Add(demoHeaderPanel);
+            demoCollapsiblePanel.Location = new Point(10, 4);
+            demoCollapsiblePanel.Margin = new Padding(0, 0, 0, 10);
+            demoCollapsiblePanel.Name = "demoCollapsiblePanel";
+            demoCollapsiblePanel.Size = new Size(244, 102);
+            demoCollapsiblePanel.TabIndex = 8;
+            // 
+            // demoContentPanel
+            // 
+            demoContentPanel.Controls.Add(lblDemoStatus);
+            demoContentPanel.Controls.Add(btnStopDemo);
+            demoContentPanel.Controls.Add(btnStartDemo);
+            demoContentPanel.Controls.Add(cmbDemoScenarios);
+            demoContentPanel.Dock = DockStyle.Fill;
+            demoContentPanel.Location = new Point(0, 23);
+            demoContentPanel.Name = "demoContentPanel";
+            demoContentPanel.Size = new Size(242, 77);
+            demoContentPanel.TabIndex = 1;
+            demoContentPanel.Paint += demoContentPanel_Paint;
+            // 
+            // lblDemoStatus
+            // 
+            lblDemoStatus.AutoSize = true;
+            lblDemoStatus.Location = new Point(19, 47);
+            lblDemoStatus.Name = "lblDemoStatus";
+            lblDemoStatus.Size = new Size(115, 15);
+            lblDemoStatus.TabIndex = 3;
+            lblDemoStatus.Text = "Статус: Остановлен";
+            // 
+            // btnStopDemo
+            // 
+            btnStopDemo.Enabled = false;
+            btnStopDemo.Location = new Point(162, 41);
+            btnStopDemo.Name = "btnStopDemo";
+            btnStopDemo.Size = new Size(71, 25);
+            btnStopDemo.TabIndex = 2;
+            btnStopDemo.Text = "Остановить";
+            btnStopDemo.UseVisualStyleBackColor = true;
+            // 
+            // btnStartDemo
+            // 
+            btnStartDemo.Location = new Point(162, 6);
+            btnStartDemo.Name = "btnStartDemo";
+            btnStartDemo.Size = new Size(71, 25);
+            btnStartDemo.TabIndex = 1;
+            btnStartDemo.Text = "Запустить";
+            btnStartDemo.UseVisualStyleBackColor = true;
+            // 
+            // cmbDemoScenarios
+            // 
+            cmbDemoScenarios.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbDemoScenarios.FormattingEnabled = true;
+            cmbDemoScenarios.Location = new Point(10, 15);
+            cmbDemoScenarios.Name = "cmbDemoScenarios";
+            cmbDemoScenarios.Size = new Size(135, 23);
+            cmbDemoScenarios.TabIndex = 0;
+            // 
+            // demoHeaderPanel
+            // 
+            demoHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            demoHeaderPanel.Controls.Add(demoHeaderLabel);
+            demoHeaderPanel.Cursor = Cursors.Hand;
+            demoHeaderPanel.Dock = DockStyle.Top;
+            demoHeaderPanel.Location = new Point(0, 0);
+            demoHeaderPanel.Name = "demoHeaderPanel";
+            demoHeaderPanel.Size = new Size(242, 23);
+            demoHeaderPanel.TabIndex = 0;
+            demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            // 
+            // demoHeaderLabel
+            // 
+            demoHeaderLabel.Dock = DockStyle.Fill;
+            demoHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            demoHeaderLabel.Location = new Point(0, 0);
+            demoHeaderLabel.Name = "demoHeaderLabel";
+            demoHeaderLabel.Size = new Size(242, 23);
+            demoHeaderLabel.TabIndex = 0;
+            demoHeaderLabel.Text = "Демо-сценарии";
+            // 
+            // logPanel
+            // 
+            logPanel.BorderStyle = BorderStyle.FixedSingle;
+            logPanel.Controls.Add(beelinkLogTextBox);
+            logPanel.Controls.Add(beelinkClearLogButton);
+            logPanel.Dock = DockStyle.Bottom;
+            logPanel.Location = new Point(3, 579);
+            logPanel.Name = "logPanel";
+            logPanel.Size = new Size(994, 119);
+            logPanel.TabIndex = 7;
             // 
             // beelinkLogTextBox
             // 
@@ -370,16 +522,15 @@
             beelinkLogTextBox.Name = "beelinkLogTextBox";
             beelinkLogTextBox.ReadOnly = true;
             beelinkLogTextBox.ScrollBars = ScrollBars.Vertical;
-            beelinkLogTextBox.Size = new Size(442, 168);
+            beelinkLogTextBox.Size = new Size(992, 86);
             beelinkLogTextBox.TabIndex = 5;
-            beelinkLogTextBox.TextChanged += beelinkLogTextBox_TextChanged;
             // 
             // beelinkClearLogButton
             // 
             beelinkClearLogButton.Dock = DockStyle.Bottom;
-            beelinkClearLogButton.Location = new Point(0, 168);
+            beelinkClearLogButton.Location = new Point(0, 86);
             beelinkClearLogButton.Name = "beelinkClearLogButton";
-            beelinkClearLogButton.Size = new Size(442, 30);
+            beelinkClearLogButton.Size = new Size(992, 31);
             beelinkClearLogButton.TabIndex = 6;
             beelinkClearLogButton.Text = "Очистить лог";
             beelinkClearLogButton.UseVisualStyleBackColor = true;
@@ -594,17 +745,6 @@
             ipLabel.TabIndex = 0;
             ipLabel.Text = "IP:";
             // 
-            // logPanel
-            // 
-            logPanel.BorderStyle = BorderStyle.FixedSingle;
-            logPanel.Controls.Add(beelinkLogTextBox);
-            logPanel.Controls.Add(beelinkClearLogButton);
-            logPanel.Dock = DockStyle.Bottom;
-            logPanel.Location = new Point(3, 314);
-            logPanel.Name = "logPanel";
-            logPanel.Size = new Size(444, 200);
-            logPanel.TabIndex = 7;
-            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -617,18 +757,28 @@
             Load += MainForm_Load;
             mainTabControl.ResumeLayout(false);
             mainTabPage.ResumeLayout(false);
-            flowLayoutPanel.ResumeLayout(false);
+            splitContainerMain.Panel1.ResumeLayout(false);
+            splitContainerMain.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)splitContainerMain).EndInit();
+            splitContainerMain.ResumeLayout(false);
+            panelLeft.ResumeLayout(false);
+            leftFlowLayout.ResumeLayout(false);
             beelinkCollapsiblePanel.ResumeLayout(false);
             beelinkContentPanel.ResumeLayout(false);
             beelinkContentPanel.PerformLayout();
             timeGroupBox.ResumeLayout(false);
             beelinkHeaderPanel.ResumeLayout(false);
-            beelinkHeaderPanel.PerformLayout();
             webServerCollapsiblePanel.ResumeLayout(false);
             webServerContentPanel.ResumeLayout(false);
             webServerContentPanel.PerformLayout();
             webServerHeaderPanel.ResumeLayout(false);
-            webServerHeaderPanel.PerformLayout();
+            panelRight.ResumeLayout(false);
+            demoCollapsiblePanel.ResumeLayout(false);
+            demoContentPanel.ResumeLayout(false);
+            demoContentPanel.PerformLayout();
+            demoHeaderPanel.ResumeLayout(false);
+            logPanel.ResumeLayout(false);
+            logPanel.PerformLayout();
             settingsTabPage.ResumeLayout(false);
             webServerGroupBox.ResumeLayout(false);
             webServerGroupBox.PerformLayout();
@@ -636,19 +786,21 @@
             sshBeelinkGroupBox.ResumeLayout(false);
             sshBeelinkGroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)portNumeric).EndInit();
-            logPanel.ResumeLayout(false);
-            logPanel.PerformLayout();
             ResumeLayout(false);
         }
         #endregion
 
-        #region Объявления компонентов (разделено по группам)
+        #region Объявления компонентов
 
         #region Основные элементы управления
         private TabControl mainTabControl;
         private TabPage mainTabPage;
         private TabPage settingsTabPage;
-        private FlowLayoutPanel flowLayoutPanel;
+        private SplitContainer splitContainerMain;
+        private Panel panelLeft;
+        private FlowLayoutPanel leftFlowLayout;
+        private Panel panelRight;
+        private Panel logPanel;
         #endregion
 
         #region Сворачиваемая панель SSH Beelink
@@ -687,8 +839,7 @@
         private Button resetButton;
         #endregion
 
-        #endregion
-
+        #region Веб-сервер элементы
         private GroupBox webServerGroupBox;
         private Label webServerIpLabel;
         private NumericUpDown webServerPortNumeric;
@@ -703,6 +854,19 @@
         private Label webServerStatusLabel;
         private Button webServerStopButton;
         private Button webServerStartButton;
-        private Panel logPanel;
+        #endregion
+
+        #region Демо-сценарии элементы
+        private Panel demoCollapsiblePanel;
+        private Panel demoHeaderPanel;
+        private Label demoHeaderLabel;
+        private Panel demoContentPanel;
+        private Button btnStopDemo;
+        private Button btnStartDemo;
+        private ComboBox cmbDemoScenarios;
+        private Label lblDemoStatus;
+        #endregion
+
+        #endregion
     }
 }

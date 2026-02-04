@@ -1,0 +1,19 @@
+{
+    "destination": "Конечная",
+    "destination2": "",
+    "direction": 0,
+    "enabled": true,
+    "nextWord": "Следующая остановка",
+    "number": "3",
+    "seq": 28,
+    "speakingCityDirection": 0,
+    "speakingCityNumber": "3",
+    "startingPoint": "пр. Старт",
+    "startingPoint2": "",
+    "stationWord": "Остановка",
+    "stations": [
+        "пр. Старт",
+        "Конечная"
+
+    ]
+}

@@ -1,0 +1,13 @@
+{
+    "currentStation": "Остановка: Конечная",
+    "destination": "Конечная",
+    "direction": 125,
+    "enabled": true,
+    "nextStation": "",
+    "number": "3",
+    "outdoorTemp": 17,
+    "salonTemp": 14,
+    "speakingCityNumber": "3",
+    "startingPoint": "пр. Старт",
+    "stations": [""]
+}

@@ -2,8 +2,10 @@
 using MKtest.Managers;
 using MKtest.Services;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Linq;
 
 namespace MKtest
 {
@@ -15,16 +17,24 @@ namespace MKtest
         private ConnectionStateManager? _stateManager;
         private TimeCommandsManager? _timeManager;
         private SettingsManager? _settingsManager;
+        private DemoScenarioManager? _demoManager;
         #endregion
 
         #region Сервисы (объявляем как nullable)
         private SSHService? _sshService;
         private TimeCommandsService? _timeService;
+        private WebServerService? _webServerService;
+        private DemoFileService? _demoFileService;
+        private DemoScenarioService? _demoScenarioService;
+        #endregion
+
+        #region Веб-сервер менеджеры
+        private WebServerManager? _webServerManager;
+        private WebServerStateManager? _webServerStateManager;
         #endregion
 
         #region Поля для управления сворачиванием
-        private bool _isBeelinkCollapsed = true;
-        private int _beelinkCollapsiblePanelOriginalHeight;
+        private Dictionary<Panel, int> _originalHeights = new Dictionary<Panel, int>();
         #endregion
 
         #region Конструктор
@@ -40,8 +50,8 @@ namespace MKtest
         {
             try
             {
-                // Сохраняем исходную высоту панели
-                _beelinkCollapsiblePanelOriginalHeight = beelinkCollapsiblePanel.Height;
+                // Перемещаем logPanel в mainTabPage (нижняя часть)
+                RepositionLogPanel();
 
                 // Инициализируем всё в правильном порядке
                 InitializeServices();
@@ -56,11 +66,37 @@ namespace MKtest
                     "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        private void RepositionLogPanel()
+        {
+            // Убедимся, что logPanel находится в правильном месте
+            if (logPanel.Parent != mainTabPage)
+            {
+                // Удаляем logPanel из текущего родителя
+                if (logPanel.Parent != null)
+                {
+                    logPanel.Parent.Controls.Remove(logPanel);
+                }
+
+                // Добавляем logPanel в mainTabPage внизу
+                mainTabPage.Controls.Add(logPanel);
+                logPanel.Dock = DockStyle.Bottom;
+                logPanel.Height = 200;
+                logPanel.BringToFront();
+
+                // Устанавливаем splitContainerMain для заполнения оставшегося пространства
+                splitContainerMain.Dock = DockStyle.Fill;
+                splitContainerMain.BringToFront();
+            }
+        }
         #endregion
 
         #region Инициализация сервисов
         private void InitializeServices()
         {
+            // Лог менеджер должен быть первым
+            _logManager = new LogManager(beelinkLogTextBox);
+
             _sshService = new SSHService();
             _timeService = new TimeCommandsService(_sshService);
             _webServerService = new WebServerService(_logManager);
@@ -70,10 +106,7 @@ namespace MKtest
         #region Инициализация менеджеров
         private void InitializeManagers()
         {
-            // 1. Менеджер логов
-            _logManager = new LogManager(beelinkLogTextBox);
-
-            // 2. Менеджер состояния SSH UI
+            // 1. Менеджер состояния SSH UI
             _stateManager = new ConnectionStateManager(
                 beelinkConnectButton,
                 beelinkDisconnectButton,
@@ -88,43 +121,77 @@ namespace MKtest
                 timeGroupBox
             );
 
-            // 3. Менеджер состояния веб-сервера
+            // 2. Менеджер состояния веб-сервера
             _webServerStateManager = new WebServerStateManager(
                 webServerStartButton,
                 webServerStopButton,
                 webServerStatusLabel
             );
 
-            // 4. Менеджер настроек (обновлен для веб-сервера)
+            // 3. Менеджер настроек
             _settingsManager = new SettingsManager(
                 ipTextBox,
                 portNumeric,
                 userTextBox,
                 passwordUserTextBox,
                 passwordRootTextBox,
-                webServerIpTextBox,      // Добавлено
-                webServerPortNumeric     // Добавлено
+                webServerIpTextBox,
+                webServerPortNumeric
             );
 
-            // 5. Менеджер SSH подключения
+            // 4. Менеджер SSH подключения
             if (_sshService == null || _logManager == null || _stateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
 
             _sshManager = new SSHConnectionManager(_sshService, _logManager, _stateManager);
 
-            // 6. Менеджер веб-сервера
+            // 5. Менеджер веб-сервера
             if (_webServerService == null || _logManager == null || _webServerStateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
 
             _webServerManager = new WebServerManager(_webServerService, _logManager, _webServerStateManager);
 
-            // 7. Менеджер команд времени
+            // 6. Менеджер команд времени
             if (_timeService == null || _logManager == null || _sshManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
 
             _timeManager = new TimeCommandsManager(_timeService, _logManager, () =>
                 _sshManager.IsConnected()
             );
+
+            // 7. Инициализация демо-сервисов
+            InitializeDemoServices();
+        }
+
+        private void InitializeDemoServices()
+        {
+            try
+            {
+                // Создаем демо-конфигурацию
+                var demoConfig = new DemoConfig();
+
+                // Создаем файловый сервис
+                _demoFileService = new DemoFileService(demoConfig);
+
+                // Создаем сервис сценариев
+                _demoScenarioService = new DemoScenarioService(_demoFileService, _logManager!);
+
+                // Создаем менеджер UI для демо-сценариев
+                _demoManager = new DemoScenarioManager(
+                    cmbDemoScenarios,
+                    btnStartDemo,
+                    btnStopDemo,
+                    lblDemoStatus,
+                    beelinkLogTextBox,
+                    _demoScenarioService
+                );
+
+                _logManager?.AppendLog("Демо-сервисы инициализированы");
+            }
+            catch (Exception ex)
+            {
+                _logManager?.AppendLog($"Ошибка инициализации демо-сервисов: {ex.Message}");
+            }
         }
         #endregion
 
@@ -136,16 +203,23 @@ namespace MKtest
             manualTimePicker.Format = DateTimePickerFormat.Time;
             manualTimePicker.ShowUpDown = true;
 
-            // Настройка сворачиваемой панели SSH
-            beelinkHeaderPanel.Click += BeelinkHeaderPanel_Click;
-            beelinkHeaderLabel.Click += BeelinkHeaderPanel_Click;
-            UpdateCollapsiblePanelState();
+            // Сохраняем исходные высоты сворачиваемых панелей
+            SaveOriginalHeights();
+
+            // Настройка сворачиваемой панели SSH Beelink
+            beelinkHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            beelinkHeaderLabel.Click += CollapsiblePanelHeader_Click;
+            beelinkCollapsiblePanel.Tag = "beelink";
 
             // Настройка сворачиваемой панели веб-сервера
-            webServerHeaderPanel.Click += WebServerHeaderPanel_Click;
-            webServerHeaderLabel.Click += WebServerHeaderPanel_Click;
-            _webServerCollapsiblePanelOriginalHeight = webServerCollapsiblePanel.Height;
-            UpdateWebServerCollapsiblePanelState();
+            webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            webServerHeaderLabel.Click += CollapsiblePanelHeader_Click;
+            webServerCollapsiblePanel.Tag = "webserver";
+
+            // Настройка сворачиваемой панели демо-сценариев
+            demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            demoHeaderLabel.Click += CollapsiblePanelHeader_Click;
+            demoCollapsiblePanel.Tag = "demo";
 
             // Обработчики кнопок веб-сервера
             webServerStartButton.Click += WebServerStartButton_Click;
@@ -153,6 +227,135 @@ namespace MKtest
 
             // Загрузка настроек
             _settingsManager?.LoadSettings();
+
+            // Добавляем обработчик для обновления расположения при изменении размера формы
+            this.Resize += MainForm_Resize;
+
+            // Сворачиваем все панели при запуске
+            CollapseAllPanels();
+        }
+
+        private void SaveOriginalHeights()
+        {
+            _originalHeights[beelinkCollapsiblePanel] = beelinkCollapsiblePanel.Height;
+            _originalHeights[webServerCollapsiblePanel] = webServerCollapsiblePanel.Height;
+            _originalHeights[demoCollapsiblePanel] = demoCollapsiblePanel.Height;
+        }
+
+        private void CollapseAllPanels()
+        {
+            // Сворачиваем SSH Beelink
+            beelinkContentPanel.Visible = false;
+            beelinkCollapsiblePanel.Height = beelinkHeaderPanel.Height;
+            beelinkHeaderLabel.Text = "SSH Beelink ▶";
+
+            // Сворачиваем веб-сервер
+            webServerContentPanel.Visible = false;
+            webServerCollapsiblePanel.Height = webServerHeaderPanel.Height;
+            webServerHeaderLabel.Text = "Веб-сервер ▶";
+
+            // Сворачиваем демо-сценарии
+            demoContentPanel.Visible = false;
+            demoCollapsiblePanel.Height = demoHeaderPanel.Height;
+            demoHeaderLabel.Text = "Демо-сценарии ▶";
+
+            // Обновляем layout
+            UpdateLayout();
+        }
+
+        private void MainForm_Resize(object? sender, EventArgs e)
+        {
+            // Обновляем расположение при изменении размера формы
+            if (mainTabControl.SelectedTab == mainTabPage)
+            {
+                UpdateLayout();
+            }
+        }
+        #endregion
+
+        #region Обработчики сворачиваемых панелей
+        private void CollapsiblePanelHeader_Click(object sender, EventArgs e)
+        {
+            Panel headerPanel;
+
+            if (sender is Panel panel)
+            {
+                headerPanel = panel;
+            }
+            else if (sender is Label label)
+            {
+                headerPanel = label.Parent as Panel ?? new Panel();
+            }
+            else
+            {
+                return;
+            }
+
+            ToggleCollapsiblePanel(headerPanel);
+        }
+
+        private void ToggleCollapsiblePanel(Panel headerPanel)
+        {
+            var collapsiblePanel = headerPanel.Parent as Panel;
+            if (collapsiblePanel == null || !_originalHeights.ContainsKey(collapsiblePanel))
+                return;
+
+            var contentPanel = collapsiblePanel.Controls.OfType<Panel>()
+                .FirstOrDefault(p => p != headerPanel);
+
+            if (contentPanel == null)
+                return;
+
+            if (contentPanel.Visible)
+            {
+                // Сворачиваем
+                contentPanel.Visible = false;
+                collapsiblePanel.Height = headerPanel.Height;
+
+                // Обновляем текст заголовка
+                UpdateHeaderLabel(headerPanel, false);
+            }
+            else
+            {
+                // Разворачиваем
+                contentPanel.Visible = true;
+                collapsiblePanel.Height = _originalHeights[collapsiblePanel];
+
+                // Обновляем текст заголовка
+                UpdateHeaderLabel(headerPanel, true);
+            }
+
+            // Обновляем layout
+            UpdateLayout();
+        }
+
+        private void UpdateHeaderLabel(Panel headerPanel, bool isExpanded)
+        {
+            var label = headerPanel.Controls.OfType<Label>().FirstOrDefault();
+            if (label == null) return;
+
+            var collapsiblePanel = headerPanel.Parent as Panel;
+            var panelType = collapsiblePanel?.Tag?.ToString() ?? "";
+
+            switch (panelType)
+            {
+                case "beelink":
+                    label.Text = isExpanded ? "SSH Beelink ▼" : "SSH Beelink ▶";
+                    break;
+                case "webserver":
+                    label.Text = isExpanded ? "Веб-сервер ▼" : "Веб-сервер ▶";
+                    break;
+                case "demo":
+                    label.Text = isExpanded ? "Демо-сценарии ▼" : "Демо-сценарии ▶";
+                    break;
+            }
+        }
+
+        private void UpdateLayout()
+        {
+            // Обновляем расположение всех панелей
+            leftFlowLayout?.PerformLayout();
+            panelRight?.PerformLayout();
         }
         #endregion
 
@@ -215,38 +418,9 @@ namespace MKtest
         {
             _logManager?.ClearLog();
         }
-        #endregion
 
-        #region Обработчики сворачиваемой панели
-        private void BeelinkHeaderPanel_Click(object sender, EventArgs e)
-        {
-            _isBeelinkCollapsed = !_isBeelinkCollapsed;
-            UpdateCollapsiblePanelState();
-        }
-
-        private void UpdateCollapsiblePanelState()
-        {
-            if (_isBeelinkCollapsed)
-            {
-                // Сворачиваем
-                beelinkContentPanel.Visible = false;
-                beelinkCollapsiblePanel.Height = beelinkHeaderPanel.Height + 2; // +2 для границы
-                beelinkHeaderLabel.Text = "SSH Beelink ▶"; // Стрелка вправо для свернутого состояния
-            }
-            else
-            {
-                // Разворачиваем
-                beelinkContentPanel.Visible = true;
-                beelinkCollapsiblePanel.Height = _beelinkCollapsiblePanelOriginalHeight;
-                beelinkHeaderLabel.Text = "SSH Beelink ▼"; // Стрелка вниз для развернутого состояния
-            }
-        }
-        #endregion
-
-        #region Дополнительные обработчики
         private void beelinkLogTextBox_TextChanged(object sender, EventArgs e)
         {
-            // Автопрокрутка текстового поля лога
             beelinkLogTextBox.SelectionStart = beelinkLogTextBox.Text.Length;
             beelinkLogTextBox.ScrollToCaret();
         }
@@ -262,16 +436,10 @@ namespace MKtest
                 return;
             }
 
-            // Используем SaveSshSettings вместо SaveSettings
             if (_settingsManager.SaveSshSettings(_logManager))
             {
                 MessageBox.Show("Настройки SSH Beelink сохранены!",
                     "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            else
-            {
-                MessageBox.Show("Ошибка сохранения настроек SSH",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -287,17 +455,7 @@ namespace MKtest
             if (MessageBox.Show("Сбросить настройки SSH Beelink к значениям по умолчанию?",
                 "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                // Используем ResetSshSettings вместо ResetSettings
-                if (_settingsManager.ResetSshSettings(_logManager))
-                {
-                    MessageBox.Show("Настройки SSH Beelink сброшены к значениям по умолчанию!",
-                        "Сброс", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Ошибка сброса настроек SSH",
-                        "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                _settingsManager.ResetSshSettings(_logManager);
             }
         }
         #endregion
@@ -317,11 +475,6 @@ namespace MKtest
                 MessageBox.Show("Настройки веб-сервера сохранены!",
                     "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            else
-            {
-                MessageBox.Show("Ошибка сохранения настроек веб-сервера",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
 
         private void webServerResetButton_Click(object sender, EventArgs e)
@@ -336,16 +489,7 @@ namespace MKtest
             if (MessageBox.Show("Сбросить настройки веб-сервера к значениям по умолчанию?",
                 "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                if (_settingsManager.ResetWebServerSettings(_logManager))
-                {
-                    MessageBox.Show("Настройки веб-сервера сброшены к значениям по умолчанию!",
-                        "Сброс", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Ошибка сброса настроек веб-сервера",
-                        "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                _settingsManager.ResetWebServerSettings(_logManager);
             }
         }
         #endregion
@@ -368,38 +512,6 @@ namespace MKtest
         {
             _webServerManager?.StopServer();
         }
-
-        private void WebServerHeaderPanel_Click(object sender, EventArgs e)
-        {
-            _isWebServerCollapsed = !_isWebServerCollapsed;
-            UpdateWebServerCollapsiblePanelState();
-        }
-
-        private void UpdateWebServerCollapsiblePanelState()
-        {
-            if (_isWebServerCollapsed)
-            {
-                // Сворачиваем
-                webServerContentPanel.Visible = false;
-                webServerCollapsiblePanel.Height = webServerHeaderPanel.Height + 2;
-                webServerHeaderLabel.Text = "Веб-сервер ▶";
-            }
-            else
-            {
-                // Разворачиваем
-                webServerContentPanel.Visible = true;
-                webServerCollapsiblePanel.Height = _webServerCollapsiblePanelOriginalHeight;
-                webServerHeaderLabel.Text = "Веб-сервер ▼";
-            }
-        }
-        #endregion
-
-        #region Веб-сервер
-        private WebServerService? _webServerService;
-        private WebServerManager? _webServerManager;
-        private WebServerStateManager? _webServerStateManager;
-        private bool _isWebServerCollapsed = true;
-        private int _webServerCollapsiblePanelOriginalHeight;
         #endregion
 
         #region События формы
@@ -414,6 +526,7 @@ namespace MKtest
             {
                 _sshService?.Dispose();
                 _webServerService?.Dispose();
+                _demoManager?.Cleanup();
                 _logManager?.AppendLog("Приложение закрывается");
             }
             catch (Exception ex)
@@ -422,19 +535,25 @@ namespace MKtest
             }
         }
 
-        private void webServerContentPanel_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
         private void flowLayoutPanel_Paint(object sender, PaintEventArgs e)
         {
+            // Пустая реализация для обработки события
+        }
 
+        private void webServerContentPanel_Paint(object sender, PaintEventArgs e)
+        {
+            // Пустая реализация для обработки события
         }
         #endregion
 
-        // Удалите эти два пустых метода:
-        // private void webServerSaveButton_Click_1(object sender, EventArgs e) { }
-        // private void webServerResetButton_Click_1(object sender, EventArgs e) { }
+        private void demoContentPanel_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void splitContainerMain_Panel2_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
     }
 }

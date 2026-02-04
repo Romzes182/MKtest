@@ -1,0 +1,15 @@
+{
+    "currentStation": "Следующая остановка: --Ленинский пр., 55--",
+    "destination": "КОНЕЧНАЯ$",
+    "direction": 30,
+    "enabled": true,
+    "nextStation": "",
+    "number": "4",
+    "outdoorTemp": 27,
+    "salonTemp": 24,
+    "speakingCityNumber": "4",
+    "startingPoint": "пр.開始",
+    "stations": [
+        ""
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "destination": "КОНЕЧНАЯ$",
+    "destination2": "",
+    "direction": 0,
+    "enabled": true,
+    "nextWord": "Следующая остановка",
+    "number": "4",
+    "seq": 28,
+    "speakingCityDirection": 0,
+    "speakingCityNumber": "4",
+    "startingPoint": "пр. 開始",
+    "startingPoint2": "",
+    "stationWord": "Остановка",
+    "stations": [
+        "пр.開始",
+        "--Ленинский пр., 55--",
+        "@!ул. Доблести",
+        " ",
+        "666666",
+        ":",
+        "!",
+        "КОНЕЧНАЯ$"
+
+    ]
+}

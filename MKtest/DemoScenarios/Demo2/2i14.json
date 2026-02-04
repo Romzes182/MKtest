@@ -1,0 +1,13 @@
+{
+    "currentStation": "Следующая остановка: ул. Заречная, 11",
+    "destination": " ▲ конечная ▲",
+    "direction": 90,
+    "enabled": true,
+    "nextStation": "",
+    "number": "2",
+    "outdoorTemp": 21,
+    "salonTemp": 18,
+    "speakingCityNumber": "2",
+    "startingPoint": "пр. Старт",
+    "stations": [""]
+}

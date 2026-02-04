@@ -1,0 +1,13 @@
+{
+    "currentStation": "Остановка:  ▲ конечная ▲",
+    "destination": " ▲ конечная ▲",
+    "direction": 125,
+    "enabled": true,
+    "nextStation": "",
+    "number": "2",
+    "outdoorTemp": 17,
+    "salonTemp": 14,
+    "speakingCityNumber": "2",
+    "startingPoint": "пр. Старт",
+    "stations": [""]
+}

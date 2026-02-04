@@ -1,0 +1,12 @@
+{
+      "direction": 45,
+      "hdop": "0.9",
+      "hdopInMeters": "4.5",
+      "isValid": true,
+      "latitude": "59.835100",
+      "longitude": "30.201500",
+      "numSatellites": 9,
+      "speedKmh": "0.00",
+      "state": 2,
+      "timestamp": "22.05.2024 10:32:42"
+}

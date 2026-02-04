@@ -1,0 +1,15 @@
+{
+    "currentStation": "Остановка:       6 пробелов      ",
+    "destination": "Конечная",
+    "direction": 60,
+    "enabled": true,
+    "nextStation": "",
+    "number": "1",
+    "outdoorTemp": 27,
+    "salonTemp": 24,
+    "speakingCityNumber": "1",
+    "startingPoint": "пр. Старт",
+    "stations": [
+        ""
+    ]
+}

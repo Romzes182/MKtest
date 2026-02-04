@@ -1,0 +1,13 @@
+{
+    "currentStation": "Следующая остановка: Территория изъятая из земель подсобного хозяйства Всесоюзного Центрального совета профессиональных союзов для организации крестьянского хозяйства",
+    "destination": " ▲ конечная ▲",
+    "direction": 105,
+    "enabled": true,
+    "nextStation": "",
+    "number": "2",
+    "outdoorTemp": 19,
+    "salonTemp": 16,
+    "speakingCityNumber": "2",
+    "startingPoint": "пр. Старт",
+    "stations": [""]
+}
