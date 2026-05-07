@@ -10,6 +10,7 @@ namespace MKtest.Configs
     {
         public SSHConfig SSHBeelink { get; set; } = new SSHConfig();
         public WebServerConfig WebServer { get; set; } = new WebServerConfig();
+        public USRTransferConfig USRTransfer { get; set; } = new USRTransferConfig();
         // В будущем добавите здесь другие конфиги:
         // public SSHConfig AnotherDevice { get; set; } = new SSHConfig();
     }

@@ -68,6 +68,13 @@
             beelinkLogTextBox = new TextBox();
             beelinkClearLogButton = new Button();
             settingsTabPage = new TabPage();
+            usrTransferGroupBox = new GroupBox();
+            usrTransferResetButton = new Button();
+            usrTransferSaveButton = new Button();
+            usrTransferPortNumeric = new NumericUpDown();
+            usrTransferPortLabel = new Label();
+            usrTransferIpTextBox = new TextBox();
+            usrTransferIpLabel = new Label();
             webServerGroupBox = new GroupBox();
             webServerResetButton = new Button();
             webServerSaveButton = new Button();
@@ -109,6 +116,8 @@
             demoHeaderPanel.SuspendLayout();
             logPanel.SuspendLayout();
             settingsTabPage.SuspendLayout();
+            usrTransferGroupBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)usrTransferPortNumeric).BeginInit();
             webServerGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)webServerPortNumeric).BeginInit();
             sshBeelinkGroupBox.SuspendLayout();
@@ -152,7 +161,6 @@
             // splitContainerMain.Panel2
             // 
             splitContainerMain.Panel2.Controls.Add(panelRight);
-            splitContainerMain.Panel2.Paint += splitContainerMain_Panel2_Paint;
             splitContainerMain.Panel2MinSize = 300;
             splitContainerMain.Size = new Size(994, 576);
             splitContainerMain.SplitterDistance = 401;
@@ -441,7 +449,6 @@
             demoContentPanel.Name = "demoContentPanel";
             demoContentPanel.Size = new Size(242, 77);
             demoContentPanel.TabIndex = 1;
-            demoContentPanel.Paint += demoContentPanel_Paint;
             // 
             // lblDemoStatus
             // 
@@ -500,7 +507,7 @@
             demoHeaderLabel.Name = "demoHeaderLabel";
             demoHeaderLabel.Size = new Size(242, 23);
             demoHeaderLabel.TabIndex = 0;
-            demoHeaderLabel.Text = "Демо-сценарии";
+            demoHeaderLabel.Text = "ЛК-ВИЗ через route.json";
             // 
             // logPanel
             // 
@@ -538,6 +545,7 @@
             // 
             // settingsTabPage
             // 
+            settingsTabPage.Controls.Add(usrTransferGroupBox);
             settingsTabPage.Controls.Add(webServerGroupBox);
             settingsTabPage.Controls.Add(sshBeelinkGroupBox);
             settingsTabPage.Location = new Point(4, 24);
@@ -547,6 +555,77 @@
             settingsTabPage.TabIndex = 1;
             settingsTabPage.Text = "Настройки";
             settingsTabPage.UseVisualStyleBackColor = true;
+            // 
+            // usrTransferGroupBox
+            // 
+            usrTransferGroupBox.Controls.Add(usrTransferResetButton);
+            usrTransferGroupBox.Controls.Add(usrTransferSaveButton);
+            usrTransferGroupBox.Controls.Add(usrTransferPortNumeric);
+            usrTransferGroupBox.Controls.Add(usrTransferPortLabel);
+            usrTransferGroupBox.Controls.Add(usrTransferIpTextBox);
+            usrTransferGroupBox.Controls.Add(usrTransferIpLabel);
+            usrTransferGroupBox.Location = new Point(10, 280);
+            usrTransferGroupBox.Name = "usrTransferGroupBox";
+            usrTransferGroupBox.Size = new Size(319, 80);
+            usrTransferGroupBox.TabIndex = 2;
+            usrTransferGroupBox.TabStop = false;
+            usrTransferGroupBox.Text = "IR-0652";
+            // 
+            // usrTransferResetButton
+            // 
+            usrTransferResetButton.Location = new Point(228, 49);
+            usrTransferResetButton.Name = "usrTransferResetButton";
+            usrTransferResetButton.Size = new Size(80, 25);
+            usrTransferResetButton.TabIndex = 5;
+            usrTransferResetButton.Text = "Сбросить";
+            usrTransferResetButton.UseVisualStyleBackColor = true;
+            usrTransferResetButton.Click += usrTransferResetButton_Click;
+            // 
+            // usrTransferSaveButton
+            // 
+            usrTransferSaveButton.Location = new Point(228, 18);
+            usrTransferSaveButton.Name = "usrTransferSaveButton";
+            usrTransferSaveButton.Size = new Size(80, 25);
+            usrTransferSaveButton.TabIndex = 4;
+            usrTransferSaveButton.Text = "Сохранить";
+            usrTransferSaveButton.UseVisualStyleBackColor = true;
+            usrTransferSaveButton.Click += usrTransferSaveButton_Click;
+            // 
+            // usrTransferPortNumeric
+            // 
+            usrTransferPortNumeric.Location = new Point(121, 49);
+            usrTransferPortNumeric.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
+            usrTransferPortNumeric.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            usrTransferPortNumeric.Name = "usrTransferPortNumeric";
+            usrTransferPortNumeric.Size = new Size(80, 23);
+            usrTransferPortNumeric.TabIndex = 3;
+            usrTransferPortNumeric.Value = new decimal(new int[] { 20108, 0, 0, 0 });
+            // 
+            // usrTransferPortLabel
+            // 
+            usrTransferPortLabel.AutoSize = true;
+            usrTransferPortLabel.Location = new Point(10, 53);
+            usrTransferPortLabel.Name = "usrTransferPortLabel";
+            usrTransferPortLabel.Size = new Size(38, 15);
+            usrTransferPortLabel.TabIndex = 2;
+            usrTransferPortLabel.Text = "Порт:";
+            // 
+            // usrTransferIpTextBox
+            // 
+            usrTransferIpTextBox.Location = new Point(121, 20);
+            usrTransferIpTextBox.Name = "usrTransferIpTextBox";
+            usrTransferIpTextBox.Size = new Size(80, 23);
+            usrTransferIpTextBox.TabIndex = 1;
+            usrTransferIpTextBox.Text = "172.16.8.5";
+            // 
+            // usrTransferIpLabel
+            // 
+            usrTransferIpLabel.AutoSize = true;
+            usrTransferIpLabel.Location = new Point(10, 28);
+            usrTransferIpLabel.Name = "usrTransferIpLabel";
+            usrTransferIpLabel.Size = new Size(54, 15);
+            usrTransferIpLabel.TabIndex = 0;
+            usrTransferIpLabel.Text = "IP адрес:";
             // 
             // webServerGroupBox
             // 
@@ -780,6 +859,9 @@
             logPanel.ResumeLayout(false);
             logPanel.PerformLayout();
             settingsTabPage.ResumeLayout(false);
+            usrTransferGroupBox.ResumeLayout(false);
+            usrTransferGroupBox.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)usrTransferPortNumeric).EndInit();
             webServerGroupBox.ResumeLayout(false);
             webServerGroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)webServerPortNumeric).EndInit();
@@ -868,5 +950,13 @@
         #endregion
 
         #endregion
+
+        private GroupBox usrTransferGroupBox;
+        private TextBox usrTransferIpTextBox;
+        private Label usrTransferIpLabel;
+        private NumericUpDown usrTransferPortNumeric;
+        private Label usrTransferPortLabel;
+        private Button usrTransferSaveButton;
+        private Button usrTransferResetButton;
     }
 }

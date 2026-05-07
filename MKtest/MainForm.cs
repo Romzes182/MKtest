@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Linq;
+using MKtest.Services.Demoscripts;
 
 namespace MKtest
 {
@@ -136,7 +137,9 @@ namespace MKtest
                 passwordUserTextBox,
                 passwordRootTextBox,
                 webServerIpTextBox,
-                webServerPortNumeric
+                webServerPortNumeric,
+                usrTransferIpTextBox,
+                usrTransferPortNumeric
             );
 
             // 4. Менеджер SSH подключения
@@ -514,6 +517,40 @@ namespace MKtest
         }
         #endregion
 
+        #region Обработчики USR Transfer
+        private void usrTransferSaveButton_Click(object sender, EventArgs e)
+        {
+            if (_settingsManager == null || _logManager == null)
+            {
+                MessageBox.Show("Менеджеры не инициализированы",
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (_settingsManager.SaveUSRTransferSettings(_logManager))
+            {
+                MessageBox.Show("Настройки USR Transfer сохранены!",
+                    "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void usrTransferResetButton_Click(object sender, EventArgs e)
+        {
+            if (_settingsManager == null || _logManager == null)
+            {
+                MessageBox.Show("Менеджеры не инициализированы",
+                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (MessageBox.Show("Сбросить настройки USR Transfer к значениям по умолчанию?",
+                "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                _settingsManager.ResetUSRTransferSettings(_logManager);
+            }
+        }
+        #endregion
+
         #region События формы
         private void MainForm_Load(object sender, EventArgs e)
         {
@@ -545,15 +582,5 @@ namespace MKtest
             // Пустая реализация для обработки события
         }
         #endregion
-
-        private void demoContentPanel_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
-        private void splitContainerMain_Panel2_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
     }
 }

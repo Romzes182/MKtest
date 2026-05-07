@@ -18,9 +18,9 @@ namespace MKtest.Managers
         private readonly TextBox _webServerIpTextBox;
         private readonly NumericUpDown _webServerPortNumeric;
 
-        // Кнопки веб-сервера
-        private readonly Button _webServerSaveButton;
-        private readonly Button _webServerResetButton;
+        // USR Transfer
+        private readonly TextBox _usrTransferIpTextBox;
+        private readonly NumericUpDown _usrTransferPortNumeric;
 
         public SettingsManager(
             TextBox ipTextBox,
@@ -30,8 +30,8 @@ namespace MKtest.Managers
             TextBox passwordRootTextBox,
             TextBox webServerIpTextBox = null,
             NumericUpDown webServerPortNumeric = null,
-            Button webServerSaveButton = null,
-            Button webServerResetButton = null)
+            TextBox usrTransferIpTextBox = null,
+            NumericUpDown usrTransferPortNumeric = null)
         {
             _ipTextBox = ipTextBox;
             _portNumeric = portNumeric;
@@ -41,8 +41,9 @@ namespace MKtest.Managers
 
             _webServerIpTextBox = webServerIpTextBox;
             _webServerPortNumeric = webServerPortNumeric;
-            _webServerSaveButton = webServerSaveButton;
-            _webServerResetButton = webServerResetButton;
+
+            _usrTransferIpTextBox = usrTransferIpTextBox;
+            _usrTransferPortNumeric = usrTransferPortNumeric;
         }
 
         public void LoadSettings()
@@ -61,6 +62,14 @@ namespace MKtest.Managers
                 var webConfig = ConfigService.Config.WebServer;
                 _webServerIpTextBox.Text = webConfig.IpAddress;
                 _webServerPortNumeric.Value = webConfig.Port;
+            }
+
+            // USR Transfer
+            if (_usrTransferIpTextBox != null && _usrTransferPortNumeric != null)
+            {
+                var usrConfig = ConfigService.Config.USRTransfer;
+                _usrTransferIpTextBox.Text = usrConfig.IP;
+                _usrTransferPortNumeric.Value = usrConfig.Port;
             }
         }
 
@@ -82,6 +91,13 @@ namespace MKtest.Managers
                     ConfigService.Config.WebServer.Port = (int)_webServerPortNumeric.Value;
                 }
 
+                // USR Transfer
+                if (_usrTransferIpTextBox != null && _usrTransferPortNumeric != null)
+                {
+                    ConfigService.Config.USRTransfer.IP = _usrTransferIpTextBox.Text;
+                    ConfigService.Config.USRTransfer.Port = (int)_usrTransferPortNumeric.Value;
+                }
+
                 ConfigService.Save();
                 logManager.AppendLog("Все настройки сохранены");
                 return true;
@@ -97,7 +113,6 @@ namespace MKtest.Managers
         {
             try
             {
-                // Только SSH Beelink
                 ConfigService.Config.SSHBeelink.IP = _ipTextBox.Text;
                 ConfigService.Config.SSHBeelink.Port = (int)_portNumeric.Value;
                 ConfigService.Config.SSHBeelink.User = _userTextBox.Text;
@@ -119,7 +134,6 @@ namespace MKtest.Managers
         {
             try
             {
-                // Только веб-сервер
                 if (_webServerIpTextBox != null && _webServerPortNumeric != null)
                 {
                     ConfigService.Config.WebServer.IpAddress = _webServerIpTextBox.Text;
@@ -138,12 +152,35 @@ namespace MKtest.Managers
             }
         }
 
+        public bool SaveUSRTransferSettings(LogManager logManager)
+        {
+            try
+            {
+                if (_usrTransferIpTextBox != null && _usrTransferPortNumeric != null)
+                {
+                    ConfigService.Config.USRTransfer.IP = _usrTransferIpTextBox.Text;
+                    ConfigService.Config.USRTransfer.Port = (int)_usrTransferPortNumeric.Value;
+                    ConfigService.Save();
+                    logManager.AppendLog("Настройки USR Transfer сохранены");
+                    return true;
+                }
+                logManager.AppendLog("Элементы управления USR Transfer не найдены");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка сохранения настроек USR Transfer: {ex.Message}");
+                return false;
+            }
+        }
+
         public bool ResetAllSettings(LogManager logManager)
         {
             try
             {
                 ConfigService.Config.SSHBeelink = new SSHConfig();
                 ConfigService.Config.WebServer = new WebServerConfig();
+                ConfigService.Config.USRTransfer = new USRTransferConfig();
                 ConfigService.Save();
                 LoadSettings();
                 logManager.AppendLog("Все настройки сброшены");
@@ -186,6 +223,23 @@ namespace MKtest.Managers
             catch (Exception ex)
             {
                 logManager.AppendLog($"Ошибка сброса настроек веб-сервера: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool ResetUSRTransferSettings(LogManager logManager)
+        {
+            try
+            {
+                ConfigService.Config.USRTransfer = new USRTransferConfig();
+                ConfigService.Save();
+                LoadSettings();
+                logManager.AppendLog("Настройки USR Transfer сброшены");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка сброса настроек USR Transfer: {ex.Message}");
                 return false;
             }
         }

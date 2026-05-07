@@ -1,4 +1,4 @@
-﻿namespace MKtest.Services
+﻿namespace MKtest.Services.Demoscripts
 {
     public enum StepExecutionMode
     {

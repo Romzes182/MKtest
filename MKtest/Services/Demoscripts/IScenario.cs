@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace MKtest.Services
+namespace MKtest.Services.Demoscripts
 {
     public interface IScenario
     {

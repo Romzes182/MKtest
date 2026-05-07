@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace MKtest.Services
+namespace MKtest.Services.Demoscripts
 {
     public interface IDemoFileService
     {

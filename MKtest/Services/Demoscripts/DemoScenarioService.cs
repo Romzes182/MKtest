@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MKtest.Services
+namespace MKtest.Services.Demoscripts
 {
     public class DemoScenarioService : IDemoScenarioService
     {
