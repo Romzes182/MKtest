@@ -56,6 +56,22 @@
             webServerHeaderPanel = new Panel();
             webServerHeaderLabel = new Label();
             panelRight = new Panel();
+            usrTransferCollapsiblePanel = new Panel();
+            usrTransferContentPanel = new Panel();
+            lblUsrCountdown = new Label();
+            lblUsrStep = new Label();
+            lblUsrStatus = new Label();
+            btnUsrTest = new Button();
+            btnUsrStopIn = new Button();
+            btnUsrStartIn = new Button();
+            btnUsrSendSvc = new Button();
+            lstInFiles = new ListBox();
+            lstSvcFiles = new ListBox();
+            cmbUsrRoutes = new ComboBox();
+            cmbInMode = new ComboBox();
+            lblInMode = new Label();
+            usrTransferHeaderPanel = new Panel();
+            usrTransferHeaderLabel = new Label();
             demoCollapsiblePanel = new Panel();
             demoContentPanel = new Panel();
             lblDemoStatus = new Label();
@@ -111,6 +127,9 @@
             webServerContentPanel.SuspendLayout();
             webServerHeaderPanel.SuspendLayout();
             panelRight.SuspendLayout();
+            usrTransferCollapsiblePanel.SuspendLayout();
+            usrTransferContentPanel.SuspendLayout();
+            usrTransferHeaderPanel.SuspendLayout();
             demoCollapsiblePanel.SuspendLayout();
             demoContentPanel.SuspendLayout();
             demoHeaderPanel.SuspendLayout();
@@ -420,22 +439,188 @@
             // 
             // panelRight
             // 
+            panelRight.Controls.Add(usrTransferCollapsiblePanel);
             panelRight.Controls.Add(demoCollapsiblePanel);
             panelRight.Location = new Point(3, 10);
             panelRight.Name = "panelRight";
             panelRight.Padding = new Padding(10);
-            panelRight.Size = new Size(581, 187);
+            panelRight.Size = new Size(581, 221);
             panelRight.TabIndex = 0;
+            panelRight.Paint += panelRight_Paint;
+            // 
+            // usrTransferCollapsiblePanel
+            // 
+            usrTransferCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            usrTransferCollapsiblePanel.Controls.Add(usrTransferContentPanel);
+            usrTransferCollapsiblePanel.Controls.Add(usrTransferHeaderPanel);
+            usrTransferCollapsiblePanel.Location = new Point(249, 4);
+            usrTransferCollapsiblePanel.Name = "usrTransferCollapsiblePanel";
+            usrTransferCollapsiblePanel.Size = new Size(319, 208);
+            usrTransferCollapsiblePanel.TabIndex = 9;
+            // 
+            // usrTransferContentPanel
+            // 
+            usrTransferContentPanel.Controls.Add(lblUsrCountdown);
+            usrTransferContentPanel.Controls.Add(lblUsrStep);
+            usrTransferContentPanel.Controls.Add(lblUsrStatus);
+            usrTransferContentPanel.Controls.Add(btnUsrTest);
+            usrTransferContentPanel.Controls.Add(btnUsrStopIn);
+            usrTransferContentPanel.Controls.Add(btnUsrStartIn);
+            usrTransferContentPanel.Controls.Add(btnUsrSendSvc);
+            usrTransferContentPanel.Controls.Add(lstInFiles);
+            usrTransferContentPanel.Controls.Add(lstSvcFiles);
+            usrTransferContentPanel.Controls.Add(cmbUsrRoutes);
+            usrTransferContentPanel.Controls.Add(cmbInMode);
+            usrTransferContentPanel.Controls.Add(lblInMode);
+            usrTransferContentPanel.Dock = DockStyle.Fill;
+            usrTransferContentPanel.Location = new Point(0, 24);
+            usrTransferContentPanel.Name = "usrTransferContentPanel";
+            usrTransferContentPanel.Size = new Size(317, 182);
+            usrTransferContentPanel.TabIndex = 1;
+            // 
+            // lblUsrCountdown
+            // 
+            lblUsrCountdown.AutoSize = true;
+            lblUsrCountdown.Location = new Point(182, 141);
+            lblUsrCountdown.Name = "lblUsrCountdown";
+            lblUsrCountdown.Size = new Size(108, 15);
+            lblUsrCountdown.TabIndex = 9;
+            lblUsrCountdown.Text = "След. через: -- сек";
+            // 
+            // lblUsrStep
+            // 
+            lblUsrStep.AutoSize = true;
+            lblUsrStep.Location = new Point(124, 141);
+            lblUsrStep.Name = "lblUsrStep";
+            lblUsrStep.Size = new Size(52, 15);
+            lblUsrStep.TabIndex = 8;
+            lblUsrStep.Text = "Шаг: 0/0";
+            // 
+            // lblUsrStatus
+            // 
+            lblUsrStatus.AutoSize = true;
+            lblUsrStatus.Location = new Point(124, 165);
+            lblUsrStatus.Name = "lblUsrStatus";
+            lblUsrStatus.Size = new Size(115, 15);
+            lblUsrStatus.TabIndex = 7;
+            lblUsrStatus.Text = "Статус: Остановлен";
+            // 
+            // btnUsrTest
+            // 
+            btnUsrTest.Location = new Point(236, 98);
+            btnUsrTest.Name = "btnUsrTest";
+            btnUsrTest.Size = new Size(67, 23);
+            btnUsrTest.TabIndex = 1;
+            btnUsrTest.Text = "Тест";
+            btnUsrTest.UseVisualStyleBackColor = true;
+            btnUsrTest.Click += btnUsrTest_Click;
+            // 
+            // btnUsrStopIn
+            // 
+            btnUsrStopIn.Enabled = false;
+            btnUsrStopIn.Location = new Point(10, 141);
+            btnUsrStopIn.Name = "btnUsrStopIn";
+            btnUsrStopIn.Size = new Size(100, 28);
+            btnUsrStopIn.TabIndex = 6;
+            btnUsrStopIn.Text = "Стоп";
+            btnUsrStopIn.UseVisualStyleBackColor = true;
+            btnUsrStopIn.Click += btnUsrStopIn_Click;
+            // 
+            // btnUsrStartIn
+            // 
+            btnUsrStartIn.Location = new Point(130, 95);
+            btnUsrStartIn.Name = "btnUsrStartIn";
+            btnUsrStartIn.Size = new Size(100, 28);
+            btnUsrStartIn.TabIndex = 5;
+            btnUsrStartIn.Text = "Отправка IN";
+            btnUsrStartIn.UseVisualStyleBackColor = true;
+            btnUsrStartIn.Click += btnUsrStartIn_Click;
+            // 
+            // btnUsrSendSvc
+            // 
+            btnUsrSendSvc.Location = new Point(10, 97);
+            btnUsrSendSvc.Name = "btnUsrSendSvc";
+            btnUsrSendSvc.Size = new Size(100, 28);
+            btnUsrSendSvc.TabIndex = 4;
+            btnUsrSendSvc.Text = "Отправка SVC";
+            btnUsrSendSvc.UseVisualStyleBackColor = true;
+            btnUsrSendSvc.Click += btnUsrSendSvc_Click;
+            // 
+            // lstInFiles
+            // 
+            lstInFiles.FormattingEnabled = true;
+            lstInFiles.Location = new Point(124, 40);
+            lstInFiles.Name = "lstInFiles";
+            lstInFiles.Size = new Size(166, 49);
+            lstInFiles.TabIndex = 3;
+            // 
+            // lstSvcFiles
+            // 
+            lstSvcFiles.FormattingEnabled = true;
+            lstSvcFiles.Location = new Point(10, 40);
+            lstSvcFiles.Name = "lstSvcFiles";
+            lstSvcFiles.Size = new Size(108, 49);
+            lstSvcFiles.TabIndex = 2;
+            // 
+            // cmbUsrRoutes
+            // 
+            cmbUsrRoutes.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbUsrRoutes.FormattingEnabled = true;
+            cmbUsrRoutes.Location = new Point(3, 7);
+            cmbUsrRoutes.Name = "cmbUsrRoutes";
+            cmbUsrRoutes.Size = new Size(179, 23);
+            cmbUsrRoutes.TabIndex = 0;
+            cmbUsrRoutes.SelectedIndexChanged += cmbUsrRoutes_SelectedIndexChanged;
+            // 
+            // cmbInMode
+            // 
+            cmbInMode.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbInMode.FormattingEnabled = true;
+            cmbInMode.Location = new Point(188, 7);
+            cmbInMode.Name = "cmbInMode";
+            cmbInMode.Size = new Size(115, 23);
+            cmbInMode.TabIndex = 10;
+            // 
+            // lblInMode
+            // 
+            lblInMode.AutoSize = true;
+            lblInMode.Location = new Point(124, 13);
+            lblInMode.Name = "lblInMode";
+            lblInMode.Size = new Size(63, 15);
+            lblInMode.TabIndex = 11;
+            lblInMode.Text = "Режим IN:";
+            // 
+            // usrTransferHeaderPanel
+            // 
+            usrTransferHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            usrTransferHeaderPanel.Controls.Add(usrTransferHeaderLabel);
+            usrTransferHeaderPanel.Cursor = Cursors.Hand;
+            usrTransferHeaderPanel.Dock = DockStyle.Top;
+            usrTransferHeaderPanel.Location = new Point(0, 0);
+            usrTransferHeaderPanel.Name = "usrTransferHeaderPanel";
+            usrTransferHeaderPanel.Size = new Size(317, 24);
+            usrTransferHeaderPanel.TabIndex = 0;
+            usrTransferHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            // 
+            // usrTransferHeaderLabel
+            // 
+            usrTransferHeaderLabel.Dock = DockStyle.Fill;
+            usrTransferHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            usrTransferHeaderLabel.Location = new Point(0, 0);
+            usrTransferHeaderLabel.Name = "usrTransferHeaderLabel";
+            usrTransferHeaderLabel.Size = new Size(317, 24);
+            usrTransferHeaderLabel.TabIndex = 0;
+            usrTransferHeaderLabel.Text = "ИР-0652";
             // 
             // demoCollapsiblePanel
             // 
             demoCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             demoCollapsiblePanel.Controls.Add(demoContentPanel);
             demoCollapsiblePanel.Controls.Add(demoHeaderPanel);
-            demoCollapsiblePanel.Location = new Point(10, 4);
+            demoCollapsiblePanel.Location = new Point(0, 4);
             demoCollapsiblePanel.Margin = new Padding(0, 0, 0, 10);
             demoCollapsiblePanel.Name = "demoCollapsiblePanel";
-            demoCollapsiblePanel.Size = new Size(244, 102);
+            demoCollapsiblePanel.Size = new Size(244, 94);
             demoCollapsiblePanel.TabIndex = 8;
             // 
             // demoContentPanel
@@ -447,8 +632,9 @@
             demoContentPanel.Dock = DockStyle.Fill;
             demoContentPanel.Location = new Point(0, 23);
             demoContentPanel.Name = "demoContentPanel";
-            demoContentPanel.Size = new Size(242, 77);
+            demoContentPanel.Size = new Size(242, 69);
             demoContentPanel.TabIndex = 1;
+            demoContentPanel.Paint += demoContentPanel_Paint;
             // 
             // lblDemoStatus
             // 
@@ -508,6 +694,7 @@
             demoHeaderLabel.Size = new Size(242, 23);
             demoHeaderLabel.TabIndex = 0;
             demoHeaderLabel.Text = "ЛК-ВИЗ через route.json";
+            demoHeaderLabel.Click += demoHeaderLabel_Click;
             // 
             // logPanel
             // 
@@ -852,6 +1039,10 @@
             webServerContentPanel.PerformLayout();
             webServerHeaderPanel.ResumeLayout(false);
             panelRight.ResumeLayout(false);
+            usrTransferCollapsiblePanel.ResumeLayout(false);
+            usrTransferContentPanel.ResumeLayout(false);
+            usrTransferContentPanel.PerformLayout();
+            usrTransferHeaderPanel.ResumeLayout(false);
             demoCollapsiblePanel.ResumeLayout(false);
             demoContentPanel.ResumeLayout(false);
             demoContentPanel.PerformLayout();
@@ -958,5 +1149,26 @@
         private Label usrTransferPortLabel;
         private Button usrTransferSaveButton;
         private Button usrTransferResetButton;
+
+        // USR блок на главной
+        private Panel usrTransferCollapsiblePanel;
+        private Label usrTransferHeaderLabel;
+        private Panel usrTransferContentPanel;
+
+        private ComboBox cmbUsrRoutes;
+        private ListBox lstSvcFiles;
+        private ListBox lstInFiles;
+
+        private Button btnUsrSendSvc;
+        private Button btnUsrStartIn;
+        private Button btnUsrStopIn;
+        private Button btnUsrTest;
+
+        private Label lblUsrStatus;
+        private Label lblUsrStep;
+        private Label lblUsrCountdown;
+        private Panel usrTransferHeaderPanel;
+        private ComboBox cmbInMode;
+        private Label lblInMode;
     }
 }

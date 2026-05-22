@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Linq;
 using MKtest.Services.Demoscripts;
+using MKtest.Services.USRTransfer;
 
 namespace MKtest
 {
@@ -19,6 +20,9 @@ namespace MKtest
         private TimeCommandsManager? _timeManager;
         private SettingsManager? _settingsManager;
         private DemoScenarioManager? _demoManager;
+        private USRTransferManager? _usrTransferManager;
+        private IRouteService? _routeService;
+        private IUSRTransferService? _usrTransferService;
         #endregion
 
         #region Сервисы (объявляем как nullable)
@@ -51,14 +55,10 @@ namespace MKtest
         {
             try
             {
-                // Перемещаем logPanel в mainTabPage (нижняя часть)
                 RepositionLogPanel();
-
-                // Инициализируем всё в правильном порядке
                 InitializeServices();
                 InitializeManagers();
                 SetupUI();
-
                 _logManager?.AppendLog("Приложение инициализировано");
             }
             catch (Exception ex)
@@ -70,125 +70,77 @@ namespace MKtest
 
         private void RepositionLogPanel()
         {
-            // Убедимся, что logPanel находится в правильном месте
-            if (logPanel.Parent != mainTabPage)
-            {
-                // Удаляем logPanel из текущего родителя
-                if (logPanel.Parent != null)
-                {
-                    logPanel.Parent.Controls.Remove(logPanel);
-                }
-
-                // Добавляем logPanel в mainTabPage внизу
-                mainTabPage.Controls.Add(logPanel);
-                logPanel.Dock = DockStyle.Bottom;
-                logPanel.Height = 200;
-                logPanel.BringToFront();
-
-                // Устанавливаем splitContainerMain для заполнения оставшегося пространства
-                splitContainerMain.Dock = DockStyle.Fill;
-                splitContainerMain.BringToFront();
-            }
+            if (logPanel.Parent == mainTabPage) return;
+            if (logPanel.Parent != null) logPanel.Parent.Controls.Remove(logPanel);
+            mainTabPage.Controls.Add(logPanel);
+            logPanel.Dock = DockStyle.Bottom;
+            logPanel.Height = 200;
+            logPanel.BringToFront();
+            splitContainerMain.Dock = DockStyle.Fill;
+            splitContainerMain.BringToFront();
         }
         #endregion
 
         #region Инициализация сервисов
         private void InitializeServices()
         {
-            // Лог менеджер должен быть первым
             _logManager = new LogManager(beelinkLogTextBox);
-
             _sshService = new SSHService();
             _timeService = new TimeCommandsService(_sshService);
             _webServerService = new WebServerService(_logManager);
+            _routeService = new RouteService();
+            _usrTransferService = new USRTransferService(_logManager);
         }
         #endregion
 
         #region Инициализация менеджеров
         private void InitializeManagers()
         {
-            // 1. Менеджер состояния SSH UI
             _stateManager = new ConnectionStateManager(
-                beelinkConnectButton,
-                beelinkDisconnectButton,
-                beelinkTestButton,
-                beelinkStatusLabel,
-                timeCheckButton,
-                timeEnableNTPButton,
-                timeDisableNTPButton,
-                timeSetButton,
-                manualDatePicker,
-                manualTimePicker,
-                timeGroupBox
+                beelinkConnectButton, beelinkDisconnectButton, beelinkTestButton, beelinkStatusLabel,
+                timeCheckButton, timeEnableNTPButton, timeDisableNTPButton, timeSetButton,
+                manualDatePicker, manualTimePicker, timeGroupBox
             );
 
-            // 2. Менеджер состояния веб-сервера
             _webServerStateManager = new WebServerStateManager(
-                webServerStartButton,
-                webServerStopButton,
-                webServerStatusLabel
+                webServerStartButton, webServerStopButton, webServerStatusLabel
             );
 
-            // 3. Менеджер настроек
             _settingsManager = new SettingsManager(
-                ipTextBox,
-                portNumeric,
-                userTextBox,
-                passwordUserTextBox,
-                passwordRootTextBox,
-                webServerIpTextBox,
-                webServerPortNumeric,
-                usrTransferIpTextBox,
-                usrTransferPortNumeric
+                ipTextBox, portNumeric, userTextBox, passwordUserTextBox, passwordRootTextBox,
+                webServerIpTextBox, webServerPortNumeric, usrTransferIpTextBox, usrTransferPortNumeric
             );
 
-            // 4. Менеджер SSH подключения
             if (_sshService == null || _logManager == null || _stateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
-
             _sshManager = new SSHConnectionManager(_sshService, _logManager, _stateManager);
 
-            // 5. Менеджер веб-сервера
             if (_webServerService == null || _logManager == null || _webServerStateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
-
             _webServerManager = new WebServerManager(_webServerService, _logManager, _webServerStateManager);
 
-            // 6. Менеджер команд времени
             if (_timeService == null || _logManager == null || _sshManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
+            _timeManager = new TimeCommandsManager(_timeService, _logManager, () => _sshManager.IsConnected());
 
-            _timeManager = new TimeCommandsManager(_timeService, _logManager, () =>
-                _sshManager.IsConnected()
-            );
-
-            // 7. Инициализация демо-сервисов
             InitializeDemoServices();
+
+            if (_routeService == null || _usrTransferService == null || _logManager == null)
+                throw new InvalidOperationException("USR сервисы не инициализированы");
+            _usrTransferManager = new USRTransferManager(_routeService, _usrTransferService, _logManager);
+            InitializeUsrTransferUi();
         }
 
         private void InitializeDemoServices()
         {
             try
             {
-                // Создаем демо-конфигурацию
                 var demoConfig = new DemoConfig();
-
-                // Создаем файловый сервис
                 _demoFileService = new DemoFileService(demoConfig);
-
-                // Создаем сервис сценариев
                 _demoScenarioService = new DemoScenarioService(_demoFileService, _logManager!);
-
-                // Создаем менеджер UI для демо-сценариев
                 _demoManager = new DemoScenarioManager(
-                    cmbDemoScenarios,
-                    btnStartDemo,
-                    btnStopDemo,
-                    lblDemoStatus,
-                    beelinkLogTextBox,
-                    _demoScenarioService
+                    cmbDemoScenarios, btnStartDemo, btnStopDemo, lblDemoStatus, beelinkLogTextBox, _demoScenarioService
                 );
-
                 _logManager?.AppendLog("Демо-сервисы инициализированы");
             }
             catch (Exception ex)
@@ -201,40 +153,33 @@ namespace MKtest
         #region Настройка UI
         private void SetupUI()
         {
-            // Настройка контролов времени
             manualDatePicker.Format = DateTimePickerFormat.Short;
             manualTimePicker.Format = DateTimePickerFormat.Time;
             manualTimePicker.ShowUpDown = true;
 
-            // Сохраняем исходные высоты сворачиваемых панелей
             SaveOriginalHeights();
 
-            // Настройка сворачиваемой панели SSH Beelink
             beelinkHeaderPanel.Click += CollapsiblePanelHeader_Click;
             beelinkHeaderLabel.Click += CollapsiblePanelHeader_Click;
             beelinkCollapsiblePanel.Tag = "beelink";
 
-            // Настройка сворачиваемой панели веб-сервера
             webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
             webServerHeaderLabel.Click += CollapsiblePanelHeader_Click;
             webServerCollapsiblePanel.Tag = "webserver";
 
-            // Настройка сворачиваемой панели демо-сценариев
             demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
             demoHeaderLabel.Click += CollapsiblePanelHeader_Click;
             demoCollapsiblePanel.Tag = "demo";
 
-            // Обработчики кнопок веб-сервера
+            usrTransferHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            usrTransferHeaderLabel.Click += CollapsiblePanelHeader_Click;
+            usrTransferCollapsiblePanel.Tag = "usrtransfer";
+
             webServerStartButton.Click += WebServerStartButton_Click;
             webServerStopButton.Click += WebServerStopButton_Click;
 
-            // Загрузка настроек
             _settingsManager?.LoadSettings();
-
-            // Добавляем обработчик для обновления расположения при изменении размера формы
-            this.Resize += MainForm_Resize;
-
-            // Сворачиваем все панели при запуске
+            Resize += MainForm_Resize;
             CollapseAllPanels();
         }
 
@@ -243,92 +188,65 @@ namespace MKtest
             _originalHeights[beelinkCollapsiblePanel] = beelinkCollapsiblePanel.Height;
             _originalHeights[webServerCollapsiblePanel] = webServerCollapsiblePanel.Height;
             _originalHeights[demoCollapsiblePanel] = demoCollapsiblePanel.Height;
+            _originalHeights[usrTransferCollapsiblePanel] = usrTransferCollapsiblePanel.Height;
         }
 
         private void CollapseAllPanels()
         {
-            // Сворачиваем SSH Beelink
             beelinkContentPanel.Visible = false;
             beelinkCollapsiblePanel.Height = beelinkHeaderPanel.Height;
             beelinkHeaderLabel.Text = "SSH Beelink ▶";
 
-            // Сворачиваем веб-сервер
             webServerContentPanel.Visible = false;
             webServerCollapsiblePanel.Height = webServerHeaderPanel.Height;
             webServerHeaderLabel.Text = "Веб-сервер ▶";
 
-            // Сворачиваем демо-сценарии
             demoContentPanel.Visible = false;
             demoCollapsiblePanel.Height = demoHeaderPanel.Height;
             demoHeaderLabel.Text = "Демо-сценарии ▶";
 
-            // Обновляем layout
+            usrTransferContentPanel.Visible = false;
+            usrTransferCollapsiblePanel.Height = usrTransferHeaderPanel.Height;
+            usrTransferHeaderLabel.Text = "ИР-0652 ▶";
+
             UpdateLayout();
         }
 
         private void MainForm_Resize(object? sender, EventArgs e)
         {
-            // Обновляем расположение при изменении размера формы
-            if (mainTabControl.SelectedTab == mainTabPage)
-            {
-                UpdateLayout();
-            }
+            if (mainTabControl.SelectedTab == mainTabPage) UpdateLayout();
         }
         #endregion
 
         #region Обработчики сворачиваемых панелей
         private void CollapsiblePanelHeader_Click(object sender, EventArgs e)
         {
-            Panel headerPanel;
-
-            if (sender is Panel panel)
-            {
-                headerPanel = panel;
-            }
-            else if (sender is Label label)
-            {
-                headerPanel = label.Parent as Panel ?? new Panel();
-            }
-            else
-            {
-                return;
-            }
-
+            Panel? headerPanel = sender as Panel ?? (sender as Label)?.Parent as Panel;
+            if (headerPanel == null) return;
             ToggleCollapsiblePanel(headerPanel);
         }
 
         private void ToggleCollapsiblePanel(Panel headerPanel)
         {
             var collapsiblePanel = headerPanel.Parent as Panel;
-            if (collapsiblePanel == null || !_originalHeights.ContainsKey(collapsiblePanel))
-                return;
+            if (collapsiblePanel == null || !_originalHeights.ContainsKey(collapsiblePanel)) return;
 
-            var contentPanel = collapsiblePanel.Controls.OfType<Panel>()
-                .FirstOrDefault(p => p != headerPanel);
-
-            if (contentPanel == null)
-                return;
+            var contentPanel = collapsiblePanel.Controls.OfType<Panel>().FirstOrDefault(p => p != headerPanel);
+            if (contentPanel == null) return;
 
             if (contentPanel.Visible)
             {
-                // Сворачиваем
                 contentPanel.Visible = false;
                 collapsiblePanel.Height = headerPanel.Height;
-
-                // Обновляем текст заголовка
                 UpdateHeaderLabel(headerPanel, false);
             }
             else
             {
-                // Разворачиваем
                 contentPanel.Visible = true;
                 collapsiblePanel.Height = _originalHeights[collapsiblePanel];
-
-                // Обновляем текст заголовка
                 UpdateHeaderLabel(headerPanel, true);
             }
 
-            // Обновляем layout
             UpdateLayout();
         }
 
@@ -337,9 +255,7 @@ namespace MKtest
             var label = headerPanel.Controls.OfType<Label>().FirstOrDefault();
             if (label == null) return;
 
-            var collapsiblePanel = headerPanel.Parent as Panel;
-            var panelType = collapsiblePanel?.Tag?.ToString() ?? "";
-
+            var panelType = (headerPanel.Parent as Panel)?.Tag?.ToString() ?? "";
             switch (panelType)
             {
                 case "beelink":
@@ -351,12 +267,15 @@ namespace MKtest
                 case "demo":
                     label.Text = isExpanded ? "Демо-сценарии ▼" : "Демо-сценарии ▶";
                     break;
+
+                case "usrtransfer":
+                    label.Text = isExpanded ? "ИР-0652 ▼" : "ИР-0652 ▶";
+                    break;
             }
         }
 
         private void UpdateLayout()
         {
-            // Обновляем расположение всех панелей
             leftFlowLayout?.PerformLayout();
             panelRight?.PerformLayout();
         }
@@ -376,51 +295,24 @@ namespace MKtest
             await _sshManager.ConnectAsync(config);
         }
 
-        private void beelinkDisconnectButton_Click(object sender, EventArgs e)
-        {
-            _sshManager?.Disconnect();
-        }
+        private void beelinkDisconnectButton_Click(object sender, EventArgs e) => _sshManager?.Disconnect();
 
         private void beelinkTestButton_Click(object sender, EventArgs e)
         {
-            if (_sshManager?.IsConnected() == true)
-            {
-                _sshManager.TestConnection();
-            }
-            else
-            {
-                beelinkConnectButton_Click(sender, e);
-            }
+            if (_sshManager?.IsConnected() == true) _sshManager.TestConnection();
+            else beelinkConnectButton_Click(sender, e);
         }
         #endregion
 
         #region Обработчики команд времени
-        private void timeCheckButton_Click(object sender, EventArgs e)
-        {
-            _timeManager?.CheckTimeStatus();
-        }
-
-        private void timeEnableNTPButton_Click(object sender, EventArgs e)
-        {
-            _timeManager?.EnableNTP();
-        }
-
-        private void timeDisableNTPButton_Click(object sender, EventArgs e)
-        {
-            _timeManager?.DisableNTP();
-        }
-
-        private void timeSetButton_Click(object sender, EventArgs e)
-        {
-            _timeManager?.SetManualDateTime(manualDatePicker.Value, manualTimePicker.Value);
-        }
+        private void timeCheckButton_Click(object sender, EventArgs e) => _timeManager?.CheckTimeStatus();
+        private void timeEnableNTPButton_Click(object sender, EventArgs e) => _timeManager?.EnableNTP();
+        private void timeDisableNTPButton_Click(object sender, EventArgs e) => _timeManager?.DisableNTP();
+        private void timeSetButton_Click(object sender, EventArgs e) => _timeManager?.SetManualDateTime(manualDatePicker.Value, manualTimePicker.Value);
         #endregion
 
         #region Обработчики UI
-        private void beelinkClearLogButton_Click(object sender, EventArgs e)
-        {
-            _logManager?.ClearLog();
-        }
+        private void beelinkClearLogButton_Click(object sender, EventArgs e) => _logManager?.ClearLog();
 
         private void beelinkLogTextBox_TextChanged(object sender, EventArgs e)
         {
@@ -434,32 +326,25 @@ namespace MKtest
         {
             if (_settingsManager == null || _logManager == null)
             {
-                MessageBox.Show("Менеджеры не инициализированы",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Менеджеры не инициализированы", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (_settingsManager.SaveSshSettings(_logManager))
-            {
-                MessageBox.Show("Настройки SSH Beelink сохранены!",
-                    "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+                MessageBox.Show("Настройки SSH Beelink сохранены!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void resetButton_Click(object sender, EventArgs e)
         {
             if (_settingsManager == null || _logManager == null)
             {
-                MessageBox.Show("Менеджеры не инициализированы",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Менеджеры не инициализированы", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (MessageBox.Show("Сбросить настройки SSH Beelink к значениям по умолчанию?",
                 "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-            {
                 _settingsManager.ResetSshSettings(_logManager);
-            }
         }
         #endregion
 
@@ -468,32 +353,25 @@ namespace MKtest
         {
             if (_settingsManager == null || _logManager == null)
             {
-                MessageBox.Show("Менеджеры не инициализированы",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Менеджеры не инициализированы", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (_settingsManager.SaveWebServerSettings(_logManager))
-            {
-                MessageBox.Show("Настройки веб-сервера сохранены!",
-                    "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+                MessageBox.Show("Настройки веб-сервера сохранены!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void webServerResetButton_Click(object sender, EventArgs e)
         {
             if (_settingsManager == null || _logManager == null)
             {
-                MessageBox.Show("Менеджеры не инициализированы",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Менеджеры не инициализированы", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (MessageBox.Show("Сбросить настройки веб-сервера к значениям по умолчанию?",
                 "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-            {
                 _settingsManager.ResetWebServerSettings(_logManager);
-            }
         }
         #endregion
 
@@ -507,60 +385,186 @@ namespace MKtest
                 return;
             }
 
-            var config = ConfigService.Config.WebServer;
-            _webServerManager.StartServer(config);
+            _webServerManager.StartServer(ConfigService.Config.WebServer);
         }
 
-        private void WebServerStopButton_Click(object sender, EventArgs e)
+        private void WebServerStopButton_Click(object sender, EventArgs e) => _webServerManager?.StopServer();
+        #endregion
+
+        #region USR Transfer
+        private void InitializeUsrTransferUi()
         {
-            _webServerManager?.StopServer();
+            if (_usrTransferManager == null) return;
+
+            _usrTransferManager.ProgressChanged += UsrTransferManager_ProgressChanged;
+            LoadUsrRoutesToUi();
+            SetUsrButtons(false);
+
+            if (lblUsrStatus != null) lblUsrStatus.Text = "Статус: Остановлен";
+            if (lblUsrStep != null) lblUsrStep.Text = "Шаг: 0/0";
+            if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
+
+            cmbInMode.Items.Clear();
+            cmbInMode.Items.Add("Все подряд");
+            cmbInMode.Items.Add("С выбранного");
+            cmbInMode.Items.Add("Только выбранный");
+            cmbInMode.SelectedIndex = 0;
+        }
+
+        private void LoadUsrRoutesToUi()
+        {
+            if (_usrTransferManager == null || cmbUsrRoutes == null) return;
+
+            cmbUsrRoutes.Items.Clear();
+            foreach (var route in _usrTransferManager.LoadRoutes())
+                cmbUsrRoutes.Items.Add(route.RouteNumber);
+
+            if (cmbUsrRoutes.Items.Count > 0) cmbUsrRoutes.SelectedIndex = 0;
+        }
+
+        private void cmbUsrRoutes_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null) return;
+
+            var selected = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
+            var route = _usrTransferManager.LoadRoutes().FirstOrDefault(r => r.RouteNumber == selected);
+
+            lstSvcFiles?.Items.Clear();
+            lstInFiles?.Items.Clear();
+            if (route == null) return;
+
+            foreach (var svc in route.SvcFilePaths) lstSvcFiles?.Items.Add(System.IO.Path.GetFileName(svc));
+            foreach (var inf in route.InFilePaths) lstInFiles?.Items.Add(System.IO.Path.GetFileName(inf));
+
+            if (lblUsrStatus != null) lblUsrStatus.Text = $"Статус: Маршрут {route.RouteNumber}";
+            if (lblUsrStep != null) lblUsrStep.Text = $"Шаг: 0/{route.InFilePaths.Count}";
+            if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
+        }
+
+        private async void btnUsrTest_Click(object? sender, EventArgs e)
+        {
+            if (_usrTransferManager == null || _logManager == null) return;
+            var ok = await _usrTransferManager.TestConnectionAsync();
+            _logManager.AppendLog(ok ? "USR: подключение установлено" : "USR: тест не пройден (timeout/ошибка)");
+        }
+
+        private async void btnUsrSendSvc_Click(object? sender, EventArgs e)
+        {
+            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null || lstSvcFiles?.SelectedItem == null)
+            {
+                _logManager?.AppendLog("Выберите маршрут и SVC файл");
+                return;
+            }
+
+            var routeNumber = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
+            var svcFileName = lstSvcFiles.SelectedItem.ToString() ?? string.Empty;
+            await _usrTransferManager.SendSelectedSvcAsync(routeNumber, svcFileName);
+        }
+
+        private async void btnUsrStartIn_Click(object? sender, EventArgs e)
+        {
+            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null) return;
+            if (_usrTransferManager.IsSequenceRunning) return;
+
+            var routeNumber = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
+            var mode = cmbInMode?.SelectedItem?.ToString() ?? "Все подряд";
+            var selectedIn = lstInFiles?.SelectedItem?.ToString() ?? string.Empty;
+
+            SetUsrButtons(true);
+            try
+            {
+                if (mode == "Все подряд")
+                {
+                    await _usrTransferManager.StartInSequenceAsync(routeNumber);
+                }
+                else if (mode == "С выбранного")
+                {
+                    if (string.IsNullOrWhiteSpace(selectedIn))
+                    {
+                        _logManager?.AppendLog("Выберите IN файл для режима 'С выбранного'");
+                        return;
+                    }
+                    await _usrTransferManager.StartInFromSelectedAsync(routeNumber, selectedIn);
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(selectedIn))
+                    {
+                        _logManager?.AppendLog("Выберите IN файл для режима 'Только выбранный'");
+                        return;
+                    }
+                    await _usrTransferManager.SendSingleInAsync(routeNumber, selectedIn);
+                }
+            }
+            finally
+            {
+                SetUsrButtons(false);
+                if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
+            }
+        }
+
+        private void btnUsrStopIn_Click(object? sender, EventArgs e) => _usrTransferManager?.StopInSequence();
+
+        private void UsrTransferManager_ProgressChanged(object? sender, TransferProgressEventArgs e)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => UsrTransferManager_ProgressChanged(sender, e)));
+                return;
+            }
+
+            if (lblUsrStatus != null) lblUsrStatus.Text = $"Статус: {e.Status}";
+            if (lblUsrStep != null) lblUsrStep.Text = $"Шаг: {e.CurrentStep}/{e.TotalSteps}";
+            if (lblUsrCountdown != null)
+                lblUsrCountdown.Text = e.CountdownSeconds > 0
+                    ? $"След. через: {e.CountdownSeconds} сек"
+                    : "След. через: -- сек";
+        }
+
+        private void SetUsrButtons(bool isRunning)
+        {
+            if (btnUsrStartIn != null) btnUsrStartIn.Enabled = !isRunning;
+            if (btnUsrSendSvc != null) btnUsrSendSvc.Enabled = !isRunning;
+            if (btnUsrStopIn != null) btnUsrStopIn.Enabled = isRunning;
+            if (btnUsrTest != null) btnUsrTest.Enabled = !isRunning;
         }
         #endregion
 
-        #region Обработчики USR Transfer
+        #region Обработчики настроек USR Transfer
         private void usrTransferSaveButton_Click(object sender, EventArgs e)
         {
             if (_settingsManager == null || _logManager == null)
             {
-                MessageBox.Show("Менеджеры не инициализированы",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Менеджеры не инициализированы", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (_settingsManager.SaveUSRTransferSettings(_logManager))
-            {
-                MessageBox.Show("Настройки USR Transfer сохранены!",
-                    "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+                MessageBox.Show("Настройки USR Transfer сохранены!", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void usrTransferResetButton_Click(object sender, EventArgs e)
         {
             if (_settingsManager == null || _logManager == null)
             {
-                MessageBox.Show("Менеджеры не инициализированы",
-                    "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Менеджеры не инициализированы", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (MessageBox.Show("Сбросить настройки USR Transfer к значениям по умолчанию?",
                 "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-            {
                 _settingsManager.ResetUSRTransferSettings(_logManager);
-            }
         }
         #endregion
 
         #region События формы
-        private void MainForm_Load(object sender, EventArgs e)
-        {
-            _logManager?.AppendLog("Приложение запущено");
-        }
+        private void MainForm_Load(object sender, EventArgs e) => _logManager?.AppendLog("Приложение запущено");
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
             {
+                _usrTransferManager?.StopInSequence();
                 _sshService?.Dispose();
                 _webServerService?.Dispose();
                 _demoManager?.Cleanup();
@@ -572,15 +576,26 @@ namespace MKtest
             }
         }
 
-        private void flowLayoutPanel_Paint(object sender, PaintEventArgs e)
+        private void flowLayoutPanel_Paint(object sender, PaintEventArgs e) { }
+        private void webServerContentPanel_Paint(object sender, PaintEventArgs e) { }
+        #endregion
+
+
+
+
+        private void demoContentPanel_Paint(object sender, PaintEventArgs e)
         {
-            // Пустая реализация для обработки события
+
         }
 
-        private void webServerContentPanel_Paint(object sender, PaintEventArgs e)
+        private void demoHeaderLabel_Click(object sender, EventArgs e)
         {
-            // Пустая реализация для обработки события
+
         }
-        #endregion
+
+        private void panelRight_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
     }
 }

@@ -18,8 +18,11 @@
     <None Update="JsonTemplates\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+      <None Include="Routes\**\*.*">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Services\USRTransfer\" />
+    <Folder Include="Routes\71-631-02 Вол\SVC\" />
   </ItemGroup>
 </Project>
