@@ -8,7 +8,7 @@ namespace MKtest.Managers
     {
         private TextBox _logTextBox;
         private LoggerService _loggerService;
-
+        public LoggerService LoggerService => _loggerService;
         public LogManager(TextBox logTextBox)
         {
             _logTextBox = logTextBox;

@@ -1,4 +1,5 @@
 ﻿using MKtest.Configs;
+using MKtest.Managers.Settings;
 using MKtest.Services;
 using System;
 using System.Windows.Forms;
@@ -22,16 +23,25 @@ namespace MKtest.Managers
         private readonly TextBox _usrTransferIpTextBox;
         private readonly NumericUpDown _usrTransferPortNumeric;
 
-        public SettingsManager(
-            TextBox ipTextBox,
-            NumericUpDown portNumeric,
-            TextBox userTextBox,
-            TextBox passwordUserTextBox,
-            TextBox passwordRootTextBox,
-            TextBox webServerIpTextBox = null,
-            NumericUpDown webServerPortNumeric = null,
-            TextBox usrTransferIpTextBox = null,
-            NumericUpDown usrTransferPortNumeric = null)
+        private readonly HermesSettingsSection _hermesSection;
+
+        private readonly TextBox _httpProtokolIpTextBox;
+        private readonly NumericUpDown _httpProtokolPortNumeric;
+
+
+        private readonly TextBox _httpPayIpTextBox;
+        private readonly NumericUpDown _httpPayPortNumeric;
+        private readonly TextBox _httpPayTerminalTextBox;
+        private readonly TextBox _httpPayRouteTextBox;
+        private readonly NumericUpDown _httpPayTripNumeric;
+        private readonly DateTimePicker _httpPayTripDatePicker;
+        private readonly NumericUpDown _httpPayCurrentNumeric;
+        private readonly NumericUpDown _httpPayIntervalNumeric;
+        public SettingsManager(TextBox ipTextBox, NumericUpDown portNumeric, TextBox userTextBox, TextBox passwordUserTextBox, TextBox passwordRootTextBox,
+            TextBox webServerIpTextBox, NumericUpDown webServerPortNumeric, TextBox usrTransferIpTextBox, NumericUpDown usrTransferPortNumeric,
+            TextBox hermesIpTextBox, NumericUpDown hermesPortNumeric, TextBox hermesUserTextBox, TextBox hermesPasswordTextBox, TextBox httpProtokolIpTextBox,
+            NumericUpDown httpProtokolPortNumeric, TextBox httpPayIpTextBox, NumericUpDown httpPayPortNumeric, TextBox httpPayTerminalTextBox, TextBox httpPayRouteTextBox,
+            NumericUpDown httpPayTripNumeric, DateTimePicker httpPayTripDatePicker, NumericUpDown httpPayCurrentNumeric, NumericUpDown httpPayIntervalNumeric)
         {
             _ipTextBox = ipTextBox;
             _portNumeric = portNumeric;
@@ -44,6 +54,20 @@ namespace MKtest.Managers
 
             _usrTransferIpTextBox = usrTransferIpTextBox;
             _usrTransferPortNumeric = usrTransferPortNumeric;
+
+            _hermesSection = new HermesSettingsSection(hermesIpTextBox, hermesPortNumeric, hermesUserTextBox, hermesPasswordTextBox );
+
+            _httpProtokolIpTextBox = httpProtokolIpTextBox;
+            _httpProtokolPortNumeric = httpProtokolPortNumeric;
+
+            _httpPayIpTextBox = httpPayIpTextBox;
+            _httpPayPortNumeric = httpPayPortNumeric;
+            _httpPayTerminalTextBox = httpPayTerminalTextBox;
+            _httpPayRouteTextBox = httpPayRouteTextBox;
+            _httpPayTripNumeric = httpPayTripNumeric;
+            _httpPayTripDatePicker = httpPayTripDatePicker;
+            _httpPayCurrentNumeric = httpPayCurrentNumeric;
+            _httpPayIntervalNumeric = httpPayIntervalNumeric;
         }
 
         public void LoadSettings()
@@ -71,6 +95,41 @@ namespace MKtest.Managers
                 _usrTransferIpTextBox.Text = usrConfig.IP;
                 _usrTransferPortNumeric.Value = usrConfig.Port;
             }
+
+            // Hermes SSH
+            _hermesSection.Load();
+
+            //httpprotokol
+
+            if (_httpProtokolIpTextBox != null && _httpProtokolPortNumeric != null)
+            {
+                var httpConfig = ConfigService.Config.HTTPprotokol;
+                _httpProtokolIpTextBox.Text = httpConfig.IP;
+                _httpProtokolPortNumeric.Value = httpConfig.Port;
+            }
+
+            // HTTPpay
+            if (_httpPayIpTextBox != null &&
+                _httpPayPortNumeric != null &&
+                _httpPayTerminalTextBox != null &&
+                _httpPayRouteTextBox != null &&
+                _httpPayTripNumeric != null &&
+                _httpPayTripDatePicker != null &&
+                _httpPayCurrentNumeric != null &&
+                _httpPayIntervalNumeric != null)
+            {
+                var cfg = ConfigService.Config.HTTPpay;
+
+                _httpPayIpTextBox.Text = cfg.IP;
+                _httpPayPortNumeric.Value = cfg.Port;
+                _httpPayTerminalTextBox.Text = cfg.Terminal;
+                _httpPayRouteTextBox.Text = cfg.Route;
+                _httpPayTripNumeric.Value = cfg.Trip;
+                _httpPayTripDatePicker.Value = cfg.TripDate;
+                _httpPayCurrentNumeric.Value = cfg.CurrentPayments;
+                _httpPayIntervalNumeric.Value = cfg.IntervalSeconds;
+            }
+
         }
 
         public bool SaveSettings(LogManager logManager)
@@ -96,6 +155,33 @@ namespace MKtest.Managers
                 {
                     ConfigService.Config.USRTransfer.IP = _usrTransferIpTextBox.Text;
                     ConfigService.Config.USRTransfer.Port = (int)_usrTransferPortNumeric.Value;
+                }
+
+                if (_httpProtokolIpTextBox != null && _httpProtokolPortNumeric != null)
+                {
+                    ConfigService.Config.HTTPprotokol.IP = _httpProtokolIpTextBox.Text;
+                    ConfigService.Config.HTTPprotokol.Port = (int)_httpProtokolPortNumeric.Value;
+                }
+
+                // HTTPpay
+                if (_httpPayIpTextBox != null &&
+                    _httpPayPortNumeric != null &&
+                    _httpPayTerminalTextBox != null &&
+                    _httpPayRouteTextBox != null &&
+                    _httpPayTripNumeric != null &&
+                    _httpPayTripDatePicker != null &&
+                    _httpPayCurrentNumeric != null &&
+                    _httpPayIntervalNumeric != null)
+                {
+                    var cfg = ConfigService.Config.HTTPpay;
+                    cfg.IP = _httpPayIpTextBox.Text;
+                    cfg.Port = (int)_httpPayPortNumeric.Value;
+                    cfg.Terminal = _httpPayTerminalTextBox.Text;
+                    cfg.Route = _httpPayRouteTextBox.Text;
+                    cfg.Trip = (int)_httpPayTripNumeric.Value;
+                    cfg.TripDate = _httpPayTripDatePicker.Value;
+                    cfg.CurrentPayments = (int)_httpPayCurrentNumeric.Value;
+                    cfg.IntervalSeconds = (int)_httpPayIntervalNumeric.Value;
                 }
 
                 ConfigService.Save();
@@ -174,6 +260,39 @@ namespace MKtest.Managers
             }
         }
 
+        public bool SaveHermesSettings(LogManager log)
+        {
+            return _hermesSection.Save(log);
+        }
+
+        public bool SaveHTTPpaySettings(LogManager logManager)
+        {
+            try
+            {
+                var cfg = ConfigService.Config.HTTPpay;
+                cfg.IP = _httpPayIpTextBox.Text;
+                cfg.Port = (int)_httpPayPortNumeric.Value;
+                cfg.Terminal = _httpPayTerminalTextBox.Text;
+                cfg.Route = _httpPayRouteTextBox.Text;
+                cfg.Trip = (int)_httpPayTripNumeric.Value;
+                cfg.TripDate = _httpPayTripDatePicker.Value;
+                cfg.CurrentPayments = (int)_httpPayCurrentNumeric.Value;
+                cfg.IntervalSeconds = (int)_httpPayIntervalNumeric.Value;
+                ConfigService.Save();
+                logManager.AppendLog("Настройки HTTPpay сохранены");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка HTTPpay: {ex.Message}");
+                return false;
+            }
+        }
+        public void ResetHermesSettings(LogManager log)
+        {
+            _hermesSection.Reset(log);
+        }
+
         public bool ResetAllSettings(LogManager logManager)
         {
             try
@@ -240,6 +359,43 @@ namespace MKtest.Managers
             catch (Exception ex)
             {
                 logManager.AppendLog($"Ошибка сброса настроек USR Transfer: {ex.Message}");
+                return false;
+            }
+        }
+
+        public bool ResetHTTPProtokolSettings(LogManager logManager)
+        {
+            try
+            {
+                ConfigService.Config.HTTPprotokol = new JSONRPCprotokolConfig();
+                ConfigService.Save();
+                LoadSettings();
+                logManager.AppendLog("Настройки JSONRPC протокола сброшены");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка сброса JSONRPC протокол: {ex.Message}");
+                return false;
+            }
+        }
+        public bool ResetHTTPpaySettings(LogManager logManager)
+        {
+            try
+            {
+                ConfigService.Config.HTTPpay = new HTTPpayConfig();
+
+                ConfigService.Save();
+
+                LoadSettings();
+
+                logManager.AppendLog("Настройки HTTPpay сброшены");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog($"Ошибка сброса HTTPpay: {ex.Message}");
                 return false;
             }
         }
