@@ -7,27 +7,29 @@ namespace MKtest.Services.HTTPpay
     public static class HTTPpayBuilder
     {
         public static string BuildUrl(
-            HTTPpayConfig config,
-            int pTotal)
+        HTTPpayConfig config,
+        int pTotal)
         {
             var tripDate =
                 WebUtility.UrlEncode(
-                    "2021-01-01 05:00:00");
+                    config.TripDate.ToString("yyyy-MM-dd HH:mm:ss"));
 
-            var timestamp =
-                WebUtility.UrlEncode(
-                    DateTime.Now.ToString(
-                        "yyyy-MM-dd HH:mm:ss"));
-
-            return
+            var url =
                 $"http://{config.IP}:{config.Port}/payments?" +
-                $"terminal=51000200030004&" +
-                $"route=4000000000020016&" +
-                $"trip=2&" +
+                $"terminal={WebUtility.UrlEncode(config.Terminal)}&" +
+                $"route={WebUtility.UrlEncode(config.Route)}&" +
+                $"trip={config.Trip}&" +
                 $"tripDate={tripDate}&" +
                 $"pTotal={pTotal}&" +
-                $"pCurrent=6&" +
-                $"timestamp={timestamp}";
+                $"pCurrent={config.CurrentPayments}";
+
+            if (config.IncludeTimestamp)
+            {
+                url +=
+                    $"&timestamp={WebUtility.UrlEncode(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))}";
+            }
+
+            return url;
         }
     }
 }

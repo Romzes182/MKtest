@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MKtest.Services.JSONRPCprotokol;
+using MKtest.Services.HTTPpay;
 
 namespace MKtest
 {
@@ -23,9 +24,9 @@ namespace MKtest
         private TimeCommandsManager? _timeManager;
         private SettingsManager? _settingsManager;
         private DemoScenarioManager? _demoManager;
-        private USRTransferManager? _usrTransferManager;
-        private IRouteService? _routeService;
-        private IUSRTransferService? _usrTransferService;
+        private USRTransferManager? _usrTransferManager;        
+        private JSONRPCprotokolManager? _httpProtokolManager;
+        private HTTPpayManager? _httpPayManager;
         #endregion
 
         #region Сервисы (объявляем как nullable)
@@ -35,7 +36,9 @@ namespace MKtest
         private DemoFileService? _demoFileService;
         private DemoScenarioService? _demoScenarioService;
         private JSONRPCprotokolService? _httpProtokolService;
-        private JSONRPCprotokolManager? _httpProtokolManager;
+        private HTTPpayService? _httpPayService;
+        private IRouteService? _routeService;
+        private IUSRTransferService? _usrTransferService;
         #endregion
 
         #region Веб-сервер менеджеры
@@ -96,6 +99,7 @@ namespace MKtest
             _routeService = new RouteService();
             _usrTransferService = new USRTransferService(_logManager);
             _httpProtokolService = new JSONRPCprotokolService(ConfigService.Config.HTTPprotokol);
+            _httpPayService = new HTTPpayService(ConfigService.Config.HTTPpay);
 
         }
         #endregion
@@ -139,6 +143,7 @@ namespace MKtest
             _usrTransferManager = new USRTransferManager(_routeService, _usrTransferService, _logManager);
             InitializeUsrTransferUi();
             InitializeHermesMain();
+            InitializeHTTPpayMain();
             InitializeHTTPprotokol();
         }
 
@@ -192,9 +197,12 @@ namespace MKtest
 
             hermesCollapsiblePanel.Tag = "hermes";
 
+            httpPayHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            httpPayHeaderLabel.Click += CollapsiblePanelHeader_Click;
+            httpPayCollapsiblePanel.Tag = "httppay";
+
             httpProtokolHeaderPanel.Click += CollapsiblePanelHeader_Click;
             httpProtokolHeaderLabel.Click += CollapsiblePanelHeader_Click;
-
             httpProtokolCollapsiblePanel.Tag = "httpprotokol";
 
             btnHttpProtokolStart.Click += btnHttpProtokolStart_Click;
@@ -214,6 +222,7 @@ namespace MKtest
             _originalHeights[demoCollapsiblePanel] = demoCollapsiblePanel.Height;
             _originalHeights[usrTransferCollapsiblePanel] = usrTransferCollapsiblePanel.Height;
             _originalHeights[hermesCollapsiblePanel] = hermesCollapsiblePanel.Height;
+            _originalHeights[httpPayCollapsiblePanel] = httpPayCollapsiblePanel.Height;
             _originalHeights[httpProtokolCollapsiblePanel] = httpProtokolCollapsiblePanel.Height;
         }
 
@@ -238,6 +247,10 @@ namespace MKtest
             hermesContentPanel.Visible = false;
             hermesCollapsiblePanel.Height = hermesHeaderPanel.Height;
             hermesHeaderLabel.Text = "Гермес ▶";
+
+            httpPayContentPanel.Visible = false;
+            httpPayCollapsiblePanel.Height = httpPayHeaderPanel.Height;
+            httpPayHeaderLabel.Text = "Протокол HTTP ▶";
 
             httpProtokolContentPanel.Visible = false;
             httpProtokolCollapsiblePanel.Height = httpProtokolHeaderPanel.Height;
@@ -307,6 +320,9 @@ namespace MKtest
                     break;
                 case "hermes":
                     label.Text = isExpanded ? "Гермес ▼" : "Гермес ▶";
+                    break;
+                case "httppay":
+                    label.Text = isExpanded ? "Протокол HTTP ▼" : "Протокол HTTP ▶";
                     break;
                 case "httpprotokol":
                     label.Text = isExpanded
@@ -747,6 +763,8 @@ namespace MKtest
                 _usrTransferManager?.StopInSequence();
                 _sshService?.Dispose();
                 _webServerService?.Dispose();
+                _httpPayManager?.Stop();
+                _httpPayService?.Dispose();
                 _demoManager?.Cleanup();
                 _logManager?.AppendLog("Приложение закрывается");
                 if (_hermesManager != null)
@@ -912,6 +930,84 @@ namespace MKtest
                 _logManager?.AppendLog(ex.Message);
             }
         }
+        #endregion
+
+        #region HTTPpay Main
+
+        private void InitializeHTTPpayMain()
+        {
+            if (_httpPayService == null || _logManager == null)
+                return;
+
+            _httpPayManager =
+                new HTTPpayManager(
+                    _httpPayService,
+                    _logManager);
+
+            httpPayTotalNumeric.Value =
+                Math.Min(
+                    httpPayTotalNumeric.Maximum,
+                    (decimal)ConfigService.Config.HTTPpay.TotalPayments);
+
+            lblHttpPayStatus.Text = "Статус: Остановлено";
+            SetHttpPayButtons(false);
+        }
+
+        private void btnHttpPayStart_Click(object sender, EventArgs e)
+        {
+            if (_httpPayManager == null || _logManager == null)
+                return;
+
+            if (_httpPayManager.IsRunning)
+                return;
+
+            var intervalSeconds =
+                ConfigService.Config.HTTPpay.IntervalSeconds;
+
+            // ВАЖНО:
+            // передаём метод чтения, а не готовое число.
+            // Поэтому pTotal читается заново перед каждой отправкой.
+            _httpPayManager.Start(
+                ReadHttpPayTotal,
+                intervalSeconds);
+
+            lblHttpPayStatus.Text = "Статус: Запущено";
+            SetHttpPayButtons(true);
+
+            _logManager.AppendLog(
+                $"HTTPpay запущен, интервал {intervalSeconds} сек");
+        }
+
+        private void btnHttpPayStop_Click(object sender, EventArgs e)
+        {
+            _httpPayManager?.Stop();
+
+            lblHttpPayStatus.Text = "Статус: Остановлено";
+            SetHttpPayButtons(false);
+        }
+
+        private int ReadHttpPayTotal()
+        {
+            if (httpPayTotalNumeric.InvokeRequired)
+            {
+                return (int)httpPayTotalNumeric.Invoke(
+                    new Func<int>(() => (int)httpPayTotalNumeric.Value));
+            }
+
+            return (int)httpPayTotalNumeric.Value;
+        }
+
+        private void SetHttpPayButtons(bool running)
+        {
+            btnHttpPayStart.Enabled = !running;
+            btnHttpPayStop.Enabled = running;
+
+            // ВАЖНО:
+            // pTotal не отключаем во время работы,
+            // чтобы его можно было менять на лету.
+            httpPayTotalNumeric.Enabled = true;
+        }
+
         #endregion
 
         private void httpPaySaveButton_Click(object sender, EventArgs e)

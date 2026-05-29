@@ -55,19 +55,6 @@
             webServerStartButton = new Button();
             webServerHeaderPanel = new Panel();
             webServerHeaderLabel = new Label();
-            hermesCollapsiblePanel = new Panel();
-            hermesContentPanel = new Panel();
-            lblHermesEntered = new Label();
-            hermesEnteredTextBox = new TextBox();
-            lblHermesExited = new Label();
-            hermesExitedTextBox = new TextBox();
-            btnHermesStart = new Button();
-            btnHermesStop = new Button();
-            btnHermesTest = new Button();
-            btnHermesUpdate = new Button();
-            lblHermesStatus = new Label();
-            hermesHeaderPanel = new Panel();
-            hermesHeaderLabel = new Label();
             panelRight = new Panel();
             usrTransferCollapsiblePanel = new Panel();
             usrTransferContentPanel = new Panel();
@@ -107,6 +94,28 @@
             lblHttpTr = new Label();
             httpProtokolHeaderPanel = new Panel();
             httpProtokolHeaderLabel = new Label();
+            httpPayCollapsiblePanel = new Panel();
+            httpPayContentPanel = new Panel();
+            lblHttpPayTotal = new Label();
+            httpPayTotalNumeric = new NumericUpDown();
+            btnHttpPayStart = new Button();
+            btnHttpPayStop = new Button();
+            lblHttpPayStatus = new Label();
+            httpPayHeaderPanel = new Panel();
+            httpPayHeaderLabel = new Label();
+            hermesCollapsiblePanel = new Panel();
+            hermesContentPanel = new Panel();
+            lblHermesEntered = new Label();
+            hermesEnteredTextBox = new TextBox();
+            lblHermesExited = new Label();
+            hermesExitedTextBox = new TextBox();
+            btnHermesStart = new Button();
+            btnHermesStop = new Button();
+            btnHermesTest = new Button();
+            btnHermesUpdate = new Button();
+            lblHermesStatus = new Label();
+            hermesHeaderPanel = new Panel();
+            hermesHeaderLabel = new Label();
             logPanel = new Panel();
             beelinkLogTextBox = new TextBox();
             beelinkClearLogButton = new Button();
@@ -190,9 +199,6 @@
             webServerCollapsiblePanel.SuspendLayout();
             webServerContentPanel.SuspendLayout();
             webServerHeaderPanel.SuspendLayout();
-            hermesCollapsiblePanel.SuspendLayout();
-            hermesContentPanel.SuspendLayout();
-            hermesHeaderPanel.SuspendLayout();
             panelRight.SuspendLayout();
             usrTransferCollapsiblePanel.SuspendLayout();
             usrTransferContentPanel.SuspendLayout();
@@ -204,6 +210,13 @@
             httpProtokolCollapsiblePanel.SuspendLayout();
             httpProtokolContentPanel.SuspendLayout();
             httpProtokolHeaderPanel.SuspendLayout();
+            httpPayCollapsiblePanel.SuspendLayout();
+            httpPayContentPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)httpPayTotalNumeric).BeginInit();
+            httpPayHeaderPanel.SuspendLayout();
+            hermesCollapsiblePanel.SuspendLayout();
+            hermesContentPanel.SuspendLayout();
+            hermesHeaderPanel.SuspendLayout();
             logPanel.SuspendLayout();
             settingsTabPage.SuspendLayout();
             httpPayGroupBox.SuspendLayout();
@@ -279,9 +292,7 @@
             // 
             leftFlowLayout.AutoScroll = true;
             leftFlowLayout.BorderStyle = BorderStyle.FixedSingle;
-            leftFlowLayout.Controls.Add(beelinkCollapsiblePanel);
             leftFlowLayout.Controls.Add(webServerCollapsiblePanel);
-            leftFlowLayout.Controls.Add(hermesCollapsiblePanel);
             leftFlowLayout.FlowDirection = FlowDirection.TopDown;
             leftFlowLayout.Location = new Point(1, 10);
             leftFlowLayout.Name = "leftFlowLayout";
@@ -294,7 +305,7 @@
             beelinkCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             beelinkCollapsiblePanel.Controls.Add(beelinkContentPanel);
             beelinkCollapsiblePanel.Controls.Add(beelinkHeaderPanel);
-            beelinkCollapsiblePanel.Location = new Point(3, 3);
+            beelinkCollapsiblePanel.Location = new Point(4, 327);
             beelinkCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             beelinkCollapsiblePanel.Name = "beelinkCollapsiblePanel";
             beelinkCollapsiblePanel.Size = new Size(367, 190);
@@ -453,7 +464,7 @@
             webServerCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             webServerCollapsiblePanel.Controls.Add(webServerContentPanel);
             webServerCollapsiblePanel.Controls.Add(webServerHeaderPanel);
-            webServerCollapsiblePanel.Location = new Point(3, 206);
+            webServerCollapsiblePanel.Location = new Point(3, 3);
             webServerCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             webServerCollapsiblePanel.Name = "webServerCollapsiblePanel";
             webServerCollapsiblePanel.Size = new Size(366, 81);
@@ -519,141 +530,6 @@
             webServerHeaderLabel.Size = new Size(364, 24);
             webServerHeaderLabel.TabIndex = 0;
             webServerHeaderLabel.Text = "Веб-сервер";
-            // 
-            // hermesCollapsiblePanel
-            // 
-            hermesCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
-            hermesCollapsiblePanel.Controls.Add(hermesContentPanel);
-            hermesCollapsiblePanel.Controls.Add(hermesHeaderPanel);
-            hermesCollapsiblePanel.Location = new Point(3, 300);
-            hermesCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
-            hermesCollapsiblePanel.Name = "hermesCollapsiblePanel";
-            hermesCollapsiblePanel.Size = new Size(366, 97);
-            hermesCollapsiblePanel.TabIndex = 3;
-            // 
-            // hermesContentPanel
-            // 
-            hermesContentPanel.Controls.Add(lblHermesEntered);
-            hermesContentPanel.Controls.Add(hermesEnteredTextBox);
-            hermesContentPanel.Controls.Add(lblHermesExited);
-            hermesContentPanel.Controls.Add(hermesExitedTextBox);
-            hermesContentPanel.Controls.Add(btnHermesStart);
-            hermesContentPanel.Controls.Add(btnHermesStop);
-            hermesContentPanel.Controls.Add(btnHermesTest);
-            hermesContentPanel.Controls.Add(btnHermesUpdate);
-            hermesContentPanel.Controls.Add(lblHermesStatus);
-            hermesContentPanel.Dock = DockStyle.Fill;
-            hermesContentPanel.Location = new Point(0, 24);
-            hermesContentPanel.Name = "hermesContentPanel";
-            hermesContentPanel.Size = new Size(364, 71);
-            hermesContentPanel.TabIndex = 1;
-            // 
-            // lblHermesEntered
-            // 
-            lblHermesEntered.AutoSize = true;
-            lblHermesEntered.Location = new Point(10, 12);
-            lblHermesEntered.Name = "lblHermesEntered";
-            lblHermesEntered.Size = new Size(49, 15);
-            lblHermesEntered.TabIndex = 0;
-            lblHermesEntered.Text = "Вошло:";
-            // 
-            // hermesEnteredTextBox
-            // 
-            hermesEnteredTextBox.Location = new Point(64, 9);
-            hermesEnteredTextBox.Name = "hermesEnteredTextBox";
-            hermesEnteredTextBox.Size = new Size(40, 23);
-            hermesEnteredTextBox.TabIndex = 1;
-            hermesEnteredTextBox.Text = "0";
-            // 
-            // lblHermesExited
-            // 
-            lblHermesExited.AutoSize = true;
-            lblHermesExited.Location = new Point(10, 45);
-            lblHermesExited.Name = "lblHermesExited";
-            lblHermesExited.Size = new Size(51, 15);
-            lblHermesExited.TabIndex = 2;
-            lblHermesExited.Text = "Вышло:";
-            // 
-            // hermesExitedTextBox
-            // 
-            hermesExitedTextBox.Location = new Point(64, 38);
-            hermesExitedTextBox.Name = "hermesExitedTextBox";
-            hermesExitedTextBox.Size = new Size(40, 23);
-            hermesExitedTextBox.TabIndex = 3;
-            hermesExitedTextBox.Text = "1";
-            // 
-            // btnHermesStart
-            // 
-            btnHermesStart.Location = new Point(110, 6);
-            btnHermesStart.Name = "btnHermesStart";
-            btnHermesStart.Size = new Size(63, 25);
-            btnHermesStart.TabIndex = 4;
-            btnHermesStart.Text = "Старт";
-            btnHermesStart.UseVisualStyleBackColor = true;
-            btnHermesStart.Click += btnHermesStart_Click;
-            // 
-            // btnHermesStop
-            // 
-            btnHermesStop.Enabled = false;
-            btnHermesStop.Location = new Point(110, 35);
-            btnHermesStop.Name = "btnHermesStop";
-            btnHermesStop.Size = new Size(63, 25);
-            btnHermesStop.TabIndex = 5;
-            btnHermesStop.Text = "Стоп";
-            btnHermesStop.UseVisualStyleBackColor = true;
-            btnHermesStop.Click += btnHermesStop_Click;
-            // 
-            // btnHermesTest
-            // 
-            btnHermesTest.Location = new Point(291, 6);
-            btnHermesTest.Name = "btnHermesTest";
-            btnHermesTest.Size = new Size(41, 25);
-            btnHermesTest.TabIndex = 6;
-            btnHermesTest.Text = "Тест";
-            btnHermesTest.UseVisualStyleBackColor = true;
-            btnHermesTest.Click += btnHermesTest_Click;
-            // 
-            // btnHermesUpdate
-            // 
-            btnHermesUpdate.Location = new Point(195, 9);
-            btnHermesUpdate.Name = "btnHermesUpdate";
-            btnHermesUpdate.Size = new Size(72, 26);
-            btnHermesUpdate.TabIndex = 7;
-            btnHermesUpdate.Text = "Обновить";
-            btnHermesUpdate.UseVisualStyleBackColor = true;
-            btnHermesUpdate.Click += btnHermesUpdate_Click;
-            // 
-            // lblHermesStatus
-            // 
-            lblHermesStatus.AutoSize = true;
-            lblHermesStatus.Location = new Point(179, 46);
-            lblHermesStatus.Name = "lblHermesStatus";
-            lblHermesStatus.Size = new Size(122, 15);
-            lblHermesStatus.TabIndex = 8;
-            lblHermesStatus.Text = "Статус: Остановлено";
-            // 
-            // hermesHeaderPanel
-            // 
-            hermesHeaderPanel.BackColor = SystemColors.ActiveCaption;
-            hermesHeaderPanel.Controls.Add(hermesHeaderLabel);
-            hermesHeaderPanel.Cursor = Cursors.Hand;
-            hermesHeaderPanel.Dock = DockStyle.Top;
-            hermesHeaderPanel.Location = new Point(0, 0);
-            hermesHeaderPanel.Name = "hermesHeaderPanel";
-            hermesHeaderPanel.Size = new Size(364, 24);
-            hermesHeaderPanel.TabIndex = 0;
-            hermesHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            // 
-            // hermesHeaderLabel
-            // 
-            hermesHeaderLabel.Dock = DockStyle.Fill;
-            hermesHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            hermesHeaderLabel.Location = new Point(0, 0);
-            hermesHeaderLabel.Name = "hermesHeaderLabel";
-            hermesHeaderLabel.Size = new Size(364, 24);
-            hermesHeaderLabel.TabIndex = 0;
-            hermesHeaderLabel.Text = "Гермес";
-            hermesHeaderLabel.Click += CollapsiblePanelHeader_Click;
             // 
             // panelRight
             // 
@@ -915,7 +791,10 @@
             // panelDownRight
             // 
             panelDownRight.BorderStyle = BorderStyle.FixedSingle;
+            panelDownRight.Controls.Add(beelinkCollapsiblePanel);
             panelDownRight.Controls.Add(httpProtokolCollapsiblePanel);
+            panelDownRight.Controls.Add(httpPayCollapsiblePanel);
+            panelDownRight.Controls.Add(hermesCollapsiblePanel);
             panelDownRight.Location = new Point(9, 10);
             panelDownRight.Name = "panelDownRight";
             panelDownRight.Size = new Size(580, 566);
@@ -1055,6 +934,234 @@
             httpProtokolHeaderLabel.TabIndex = 0;
             httpProtokolHeaderLabel.Text = "Протокол JSON RPC";
             httpProtokolHeaderLabel.TextAlign = ContentAlignment.MiddleLeft;
+            // 
+            // httpPayCollapsiblePanel
+            // 
+            httpPayCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            httpPayCollapsiblePanel.Controls.Add(httpPayContentPanel);
+            httpPayCollapsiblePanel.Controls.Add(httpPayHeaderPanel);
+            httpPayCollapsiblePanel.Location = new Point(309, 4);
+            httpPayCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
+            httpPayCollapsiblePanel.Name = "httpPayCollapsiblePanel";
+            httpPayCollapsiblePanel.Size = new Size(248, 97);
+            httpPayCollapsiblePanel.TabIndex = 1;
+            // 
+            // httpPayContentPanel
+            // 
+            httpPayContentPanel.Controls.Add(lblHttpPayTotal);
+            httpPayContentPanel.Controls.Add(httpPayTotalNumeric);
+            httpPayContentPanel.Controls.Add(btnHttpPayStart);
+            httpPayContentPanel.Controls.Add(btnHttpPayStop);
+            httpPayContentPanel.Controls.Add(lblHttpPayStatus);
+            httpPayContentPanel.Dock = DockStyle.Fill;
+            httpPayContentPanel.Location = new Point(0, 24);
+            httpPayContentPanel.Name = "httpPayContentPanel";
+            httpPayContentPanel.Size = new Size(246, 71);
+            httpPayContentPanel.TabIndex = 1;
+            // 
+            // lblHttpPayTotal
+            // 
+            lblHttpPayTotal.AutoSize = true;
+            lblHttpPayTotal.Location = new Point(10, 12);
+            lblHttpPayTotal.Name = "lblHttpPayTotal";
+            lblHttpPayTotal.Size = new Size(42, 15);
+            lblHttpPayTotal.TabIndex = 0;
+            lblHttpPayTotal.Text = "pTotal:";
+            // 
+            // httpPayTotalNumeric
+            // 
+            httpPayTotalNumeric.Location = new Point(64, 9);
+            httpPayTotalNumeric.Maximum = new decimal(new int[] { 1000000, 0, 0, 0 });
+            httpPayTotalNumeric.Name = "httpPayTotalNumeric";
+            httpPayTotalNumeric.Size = new Size(80, 23);
+            httpPayTotalNumeric.TabIndex = 1;
+            httpPayTotalNumeric.Value = new decimal(new int[] { 35, 0, 0, 0 });
+            // 
+            // btnHttpPayStart
+            // 
+            btnHttpPayStart.Location = new Point(156, 7);
+            btnHttpPayStart.Name = "btnHttpPayStart";
+            btnHttpPayStart.Size = new Size(63, 25);
+            btnHttpPayStart.TabIndex = 2;
+            btnHttpPayStart.Text = "Старт";
+            btnHttpPayStart.UseVisualStyleBackColor = true;
+            btnHttpPayStart.Click += btnHttpPayStart_Click;
+            // 
+            // btnHttpPayStop
+            // 
+            btnHttpPayStop.Enabled = false;
+            btnHttpPayStop.Location = new Point(156, 40);
+            btnHttpPayStop.Name = "btnHttpPayStop";
+            btnHttpPayStop.Size = new Size(63, 25);
+            btnHttpPayStop.TabIndex = 3;
+            btnHttpPayStop.Text = "Стоп";
+            btnHttpPayStop.UseVisualStyleBackColor = true;
+            btnHttpPayStop.Click += btnHttpPayStop_Click;
+            // 
+            // lblHttpPayStatus
+            // 
+            lblHttpPayStatus.AutoSize = true;
+            lblHttpPayStatus.Location = new Point(10, 45);
+            lblHttpPayStatus.Name = "lblHttpPayStatus";
+            lblHttpPayStatus.Size = new Size(122, 15);
+            lblHttpPayStatus.TabIndex = 4;
+            lblHttpPayStatus.Text = "Статус: Остановлено";
+            // 
+            // httpPayHeaderPanel
+            // 
+            httpPayHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            httpPayHeaderPanel.Controls.Add(httpPayHeaderLabel);
+            httpPayHeaderPanel.Cursor = Cursors.Hand;
+            httpPayHeaderPanel.Dock = DockStyle.Top;
+            httpPayHeaderPanel.Location = new Point(0, 0);
+            httpPayHeaderPanel.Name = "httpPayHeaderPanel";
+            httpPayHeaderPanel.Size = new Size(246, 24);
+            httpPayHeaderPanel.TabIndex = 0;
+            // 
+            // httpPayHeaderLabel
+            // 
+            httpPayHeaderLabel.Dock = DockStyle.Fill;
+            httpPayHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            httpPayHeaderLabel.Location = new Point(0, 0);
+            httpPayHeaderLabel.Name = "httpPayHeaderLabel";
+            httpPayHeaderLabel.Size = new Size(246, 24);
+            httpPayHeaderLabel.TabIndex = 0;
+            httpPayHeaderLabel.Text = "Протокол HTTP";
+            // 
+            // hermesCollapsiblePanel
+            // 
+            hermesCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            hermesCollapsiblePanel.Controls.Add(hermesContentPanel);
+            hermesCollapsiblePanel.Controls.Add(hermesHeaderPanel);
+            hermesCollapsiblePanel.Location = new Point(3, 217);
+            hermesCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
+            hermesCollapsiblePanel.Name = "hermesCollapsiblePanel";
+            hermesCollapsiblePanel.Size = new Size(366, 97);
+            hermesCollapsiblePanel.TabIndex = 3;
+            // 
+            // hermesContentPanel
+            // 
+            hermesContentPanel.Controls.Add(lblHermesEntered);
+            hermesContentPanel.Controls.Add(hermesEnteredTextBox);
+            hermesContentPanel.Controls.Add(lblHermesExited);
+            hermesContentPanel.Controls.Add(hermesExitedTextBox);
+            hermesContentPanel.Controls.Add(btnHermesStart);
+            hermesContentPanel.Controls.Add(btnHermesStop);
+            hermesContentPanel.Controls.Add(btnHermesTest);
+            hermesContentPanel.Controls.Add(btnHermesUpdate);
+            hermesContentPanel.Controls.Add(lblHermesStatus);
+            hermesContentPanel.Dock = DockStyle.Fill;
+            hermesContentPanel.Location = new Point(0, 24);
+            hermesContentPanel.Name = "hermesContentPanel";
+            hermesContentPanel.Size = new Size(364, 71);
+            hermesContentPanel.TabIndex = 1;
+            // 
+            // lblHermesEntered
+            // 
+            lblHermesEntered.AutoSize = true;
+            lblHermesEntered.Location = new Point(10, 12);
+            lblHermesEntered.Name = "lblHermesEntered";
+            lblHermesEntered.Size = new Size(49, 15);
+            lblHermesEntered.TabIndex = 0;
+            lblHermesEntered.Text = "Вошло:";
+            // 
+            // hermesEnteredTextBox
+            // 
+            hermesEnteredTextBox.Location = new Point(64, 9);
+            hermesEnteredTextBox.Name = "hermesEnteredTextBox";
+            hermesEnteredTextBox.Size = new Size(40, 23);
+            hermesEnteredTextBox.TabIndex = 1;
+            hermesEnteredTextBox.Text = "0";
+            // 
+            // lblHermesExited
+            // 
+            lblHermesExited.AutoSize = true;
+            lblHermesExited.Location = new Point(10, 45);
+            lblHermesExited.Name = "lblHermesExited";
+            lblHermesExited.Size = new Size(51, 15);
+            lblHermesExited.TabIndex = 2;
+            lblHermesExited.Text = "Вышло:";
+            // 
+            // hermesExitedTextBox
+            // 
+            hermesExitedTextBox.Location = new Point(64, 38);
+            hermesExitedTextBox.Name = "hermesExitedTextBox";
+            hermesExitedTextBox.Size = new Size(40, 23);
+            hermesExitedTextBox.TabIndex = 3;
+            hermesExitedTextBox.Text = "1";
+            // 
+            // btnHermesStart
+            // 
+            btnHermesStart.Location = new Point(110, 6);
+            btnHermesStart.Name = "btnHermesStart";
+            btnHermesStart.Size = new Size(63, 25);
+            btnHermesStart.TabIndex = 4;
+            btnHermesStart.Text = "Старт";
+            btnHermesStart.UseVisualStyleBackColor = true;
+            btnHermesStart.Click += btnHermesStart_Click;
+            // 
+            // btnHermesStop
+            // 
+            btnHermesStop.Enabled = false;
+            btnHermesStop.Location = new Point(110, 35);
+            btnHermesStop.Name = "btnHermesStop";
+            btnHermesStop.Size = new Size(63, 25);
+            btnHermesStop.TabIndex = 5;
+            btnHermesStop.Text = "Стоп";
+            btnHermesStop.UseVisualStyleBackColor = true;
+            btnHermesStop.Click += btnHermesStop_Click;
+            // 
+            // btnHermesTest
+            // 
+            btnHermesTest.Location = new Point(291, 6);
+            btnHermesTest.Name = "btnHermesTest";
+            btnHermesTest.Size = new Size(41, 25);
+            btnHermesTest.TabIndex = 6;
+            btnHermesTest.Text = "Тест";
+            btnHermesTest.UseVisualStyleBackColor = true;
+            btnHermesTest.Click += btnHermesTest_Click;
+            // 
+            // btnHermesUpdate
+            // 
+            btnHermesUpdate.Location = new Point(195, 9);
+            btnHermesUpdate.Name = "btnHermesUpdate";
+            btnHermesUpdate.Size = new Size(72, 26);
+            btnHermesUpdate.TabIndex = 7;
+            btnHermesUpdate.Text = "Обновить";
+            btnHermesUpdate.UseVisualStyleBackColor = true;
+            btnHermesUpdate.Click += btnHermesUpdate_Click;
+            // 
+            // lblHermesStatus
+            // 
+            lblHermesStatus.AutoSize = true;
+            lblHermesStatus.Location = new Point(179, 46);
+            lblHermesStatus.Name = "lblHermesStatus";
+            lblHermesStatus.Size = new Size(122, 15);
+            lblHermesStatus.TabIndex = 8;
+            lblHermesStatus.Text = "Статус: Остановлено";
+            // 
+            // hermesHeaderPanel
+            // 
+            hermesHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            hermesHeaderPanel.Controls.Add(hermesHeaderLabel);
+            hermesHeaderPanel.Cursor = Cursors.Hand;
+            hermesHeaderPanel.Dock = DockStyle.Top;
+            hermesHeaderPanel.Location = new Point(0, 0);
+            hermesHeaderPanel.Name = "hermesHeaderPanel";
+            hermesHeaderPanel.Size = new Size(364, 24);
+            hermesHeaderPanel.TabIndex = 0;
+            hermesHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            // 
+            // hermesHeaderLabel
+            // 
+            hermesHeaderLabel.Dock = DockStyle.Fill;
+            hermesHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            hermesHeaderLabel.Location = new Point(0, 0);
+            hermesHeaderLabel.Name = "hermesHeaderLabel";
+            hermesHeaderLabel.Size = new Size(364, 24);
+            hermesHeaderLabel.TabIndex = 0;
+            hermesHeaderLabel.Text = "Гермес";
+            hermesHeaderLabel.Click += CollapsiblePanelHeader_Click;
             // 
             // logPanel
             // 
@@ -1762,10 +1869,6 @@
             webServerContentPanel.ResumeLayout(false);
             webServerContentPanel.PerformLayout();
             webServerHeaderPanel.ResumeLayout(false);
-            hermesCollapsiblePanel.ResumeLayout(false);
-            hermesContentPanel.ResumeLayout(false);
-            hermesContentPanel.PerformLayout();
-            hermesHeaderPanel.ResumeLayout(false);
             panelRight.ResumeLayout(false);
             usrTransferCollapsiblePanel.ResumeLayout(false);
             usrTransferContentPanel.ResumeLayout(false);
@@ -1781,6 +1884,15 @@
             httpProtokolContentPanel.PerformLayout();
             httpProtokolHeaderPanel.ResumeLayout(false);
             httpProtokolHeaderPanel.PerformLayout();
+            httpPayCollapsiblePanel.ResumeLayout(false);
+            httpPayContentPanel.ResumeLayout(false);
+            httpPayContentPanel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)httpPayTotalNumeric).EndInit();
+            httpPayHeaderPanel.ResumeLayout(false);
+            hermesCollapsiblePanel.ResumeLayout(false);
+            hermesContentPanel.ResumeLayout(false);
+            hermesContentPanel.PerformLayout();
+            hermesHeaderPanel.ResumeLayout(false);
             logPanel.ResumeLayout(false);
             logPanel.PerformLayout();
             settingsTabPage.ResumeLayout(false);
@@ -1992,5 +2104,16 @@
         private Label httpPayIntervalLabel;
         private Button httpPayResetButton;
         private Button httpPaySaveButton;
+        private Panel httpPayCollapsiblePanel;
+        private Panel httpPayContentPanel;
+        private Panel httpPayHeaderPanel;
+        private Label httpPayHeaderLabel;
+
+        private Label lblHttpPayTotal;
+        private NumericUpDown httpPayTotalNumeric;
+
+        private Button btnHttpPayStart;
+        private Button btnHttpPayStop;
+        private Label lblHttpPayStatus;
     }
 }
