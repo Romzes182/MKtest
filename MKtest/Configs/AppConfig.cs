@@ -13,7 +13,8 @@ namespace MKtest.Configs
         public USRTransferConfig USRTransfer { get; set; } = new USRTransferConfig();
         public HermesSSHConfig HermesSSH { get; set; } = new HermesSSHConfig();
         public JSONRPCprotokolConfig HTTPprotokol { get; set; } = new JSONRPCprotokolConfig();
-                public HTTPpayConfig HTTPpay { get; set; } = new HTTPpayConfig();
+        public HTTPpayConfig HTTPpay { get; set; } = new HTTPpayConfig();
+        public SekopProtocolConfig SekopProtocol { get; set; } = new SekopProtocolConfig();
         // В будущем добавите здесь другие конфиги:
         // public SSHConfig AnotherDevice { get; set; } = new SSHConfig();
     }

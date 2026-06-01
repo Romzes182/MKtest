@@ -37,11 +37,17 @@ namespace MKtest.Managers
         private readonly DateTimePicker _httpPayTripDatePicker;
         private readonly NumericUpDown _httpPayCurrentNumeric;
         private readonly NumericUpDown _httpPayIntervalNumeric;
+
+        //Сэкоп
+        private readonly TextBox _sekopIpTextBox;
+        private readonly NumericUpDown _sekopPortNumeric;
+
         public SettingsManager(TextBox ipTextBox, NumericUpDown portNumeric, TextBox userTextBox, TextBox passwordUserTextBox, TextBox passwordRootTextBox,
             TextBox webServerIpTextBox, NumericUpDown webServerPortNumeric, TextBox usrTransferIpTextBox, NumericUpDown usrTransferPortNumeric,
             TextBox hermesIpTextBox, NumericUpDown hermesPortNumeric, TextBox hermesUserTextBox, TextBox hermesPasswordTextBox, TextBox httpProtokolIpTextBox,
             NumericUpDown httpProtokolPortNumeric, TextBox httpPayIpTextBox, NumericUpDown httpPayPortNumeric, TextBox httpPayTerminalTextBox, TextBox httpPayRouteTextBox,
-            NumericUpDown httpPayTripNumeric, DateTimePicker httpPayTripDatePicker, NumericUpDown httpPayCurrentNumeric, NumericUpDown httpPayIntervalNumeric)
+            NumericUpDown httpPayTripNumeric, DateTimePicker httpPayTripDatePicker, NumericUpDown httpPayCurrentNumeric, NumericUpDown httpPayIntervalNumeric, 
+            TextBox sekopIpTextBox,NumericUpDown sekopPortNumeric)
         {
             _ipTextBox = ipTextBox;
             _portNumeric = portNumeric;
@@ -68,6 +74,10 @@ namespace MKtest.Managers
             _httpPayTripDatePicker = httpPayTripDatePicker;
             _httpPayCurrentNumeric = httpPayCurrentNumeric;
             _httpPayIntervalNumeric = httpPayIntervalNumeric;
+
+
+            _sekopIpTextBox = sekopIpTextBox;
+            _sekopPortNumeric = sekopPortNumeric;
         }
 
         public void LoadSettings()
@@ -99,7 +109,7 @@ namespace MKtest.Managers
             // Hermes SSH
             _hermesSection.Load();
 
-            //httpprotokol
+            //JSONRPCpprotokol
 
             if (_httpProtokolIpTextBox != null && _httpProtokolPortNumeric != null)
             {
@@ -128,6 +138,16 @@ namespace MKtest.Managers
                 _httpPayTripDatePicker.Value = cfg.TripDate;
                 _httpPayCurrentNumeric.Value = cfg.CurrentPayments;
                 _httpPayIntervalNumeric.Value = cfg.IntervalSeconds;
+            }
+
+         
+            // Протокол СЭКОП
+            if (_sekopIpTextBox != null && _sekopPortNumeric != null)
+            {
+                var cfg = ConfigService.Config.SekopProtocol;
+
+                _sekopIpTextBox.Text = cfg.IpAddress;
+                _sekopPortNumeric.Value = cfg.Port;
             }
 
         }
@@ -182,6 +202,14 @@ namespace MKtest.Managers
                     cfg.TripDate = _httpPayTripDatePicker.Value;
                     cfg.CurrentPayments = (int)_httpPayCurrentNumeric.Value;
                     cfg.IntervalSeconds = (int)_httpPayIntervalNumeric.Value;
+                }
+                // Протокол СЭКОП
+                if (_sekopIpTextBox != null && _sekopPortNumeric != null)
+                {
+                    var cfg = ConfigService.Config.SekopProtocol;
+
+                    cfg.IpAddress = _sekopIpTextBox.Text;
+                    cfg.Port = (int)_sekopPortNumeric.Value;
                 }
 
                 ConfigService.Save();
@@ -288,9 +316,60 @@ namespace MKtest.Managers
                 return false;
             }
         }
+
+
+        public bool SaveSekopProtocolSettings(LogManager logManager)
+        {
+            try
+            {
+                var cfg = ConfigService.Config.SekopProtocol;
+
+                cfg.IpAddress = _sekopIpTextBox.Text;
+                cfg.Port = (int)_sekopPortNumeric.Value;
+
+                ConfigService.Save();
+
+                logManager.AppendLog(
+                    "Настройки протокола СЭКОП сохранены");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog(
+                    $"Ошибка сохранения настроек протокола СЭКОП: {ex.Message}");
+
+                return false;
+            }
+        }
+
         public void ResetHermesSettings(LogManager log)
         {
             _hermesSection.Reset(log);
+        }
+
+        public bool ResetSekopProtocolSettings(LogManager logManager)
+        {
+            try
+            {
+                ConfigService.Config.SekopProtocol = new SekopProtocolConfig();
+
+                ConfigService.Save();
+
+                LoadSettings();
+
+                logManager.AppendLog(
+                    "Настройки протокола СЭКОП сброшены");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                logManager.AppendLog(
+                    $"Ошибка сброса настроек протокола СЭКОП: {ex.Message}");
+
+                return false;
+            }
         }
 
         public bool ResetAllSettings(LogManager logManager)

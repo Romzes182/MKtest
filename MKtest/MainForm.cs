@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using MKtest.Services.JSONRPCprotokol;
 using MKtest.Services.HTTPpay;
+using MKtest.Services.SekopProtocol;
 
 namespace MKtest
 {
@@ -24,9 +25,10 @@ namespace MKtest
         private TimeCommandsManager? _timeManager;
         private SettingsManager? _settingsManager;
         private DemoScenarioManager? _demoManager;
-        private USRTransferManager? _usrTransferManager;        
+        private USRTransferManager? _usrTransferManager;
         private JSONRPCprotokolManager? _httpProtokolManager;
         private HTTPpayManager? _httpPayManager;
+        private SekopProtocolManager? _sekopProtocolManager;
         #endregion
 
         #region Сервисы (объявляем как nullable)
@@ -39,6 +41,8 @@ namespace MKtest
         private HTTPpayService? _httpPayService;
         private IRouteService? _routeService;
         private IUSRTransferService? _usrTransferService;
+        private SekopPacketSenderService? _sekopPacketSenderService;
+        private SekopProtocolService? _sekopProtocolService;
         #endregion
 
         #region Веб-сервер менеджеры
@@ -100,6 +104,8 @@ namespace MKtest
             _usrTransferService = new USRTransferService(_logManager);
             _httpProtokolService = new JSONRPCprotokolService(ConfigService.Config.HTTPprotokol);
             _httpPayService = new HTTPpayService(ConfigService.Config.HTTPpay);
+            _sekopPacketSenderService = new SekopPacketSenderService();
+            _sekopProtocolService = new SekopProtocolService(ConfigService.Config.SekopProtocol,_sekopPacketSenderService);
 
         }
         #endregion
@@ -121,7 +127,8 @@ namespace MKtest
                 ipTextBox, portNumeric, userTextBox, passwordUserTextBox, passwordRootTextBox,
                 webServerIpTextBox, webServerPortNumeric, usrTransferIpTextBox, usrTransferPortNumeric, hermesIpTextBox, hermesPortNumeric,
                 hermesUserTextBox, hermesPasswordTextBox, httpProtokolIpTextBox, httpProtokolPortNumeric, httpPayIpTextBox, httpPayPortNumeric,
-                httpPayTerminalTextBox, httpPayRouteTextBox, httpPayTripNumeric, httpPayTripDatePicker, httpPayCurrentNumeric, httpPayIntervalNumeric
+                httpPayTerminalTextBox, httpPayRouteTextBox, httpPayTripNumeric, httpPayTripDatePicker, httpPayCurrentNumeric, httpPayIntervalNumeric,
+                sekopIpTextBox, sekopPortNumeric
             );
 
             if (_sshService == null || _logManager == null || _stateManager == null)
@@ -135,6 +142,11 @@ namespace MKtest
             if (_timeService == null || _logManager == null || _sshManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
             _timeManager = new TimeCommandsManager(_timeService, _logManager, () => _sshManager.IsConnected());
+            if (_sekopProtocolService == null || _logManager == null)
+                throw new InvalidOperationException("Сервисы протокола СЭКОП не инициализированы");
+            _sekopProtocolManager = new SekopProtocolManager(_sekopProtocolService,_logManager);
+
+            InitializeSekopProtocolMain();
 
             InitializeDemoServices();
 
@@ -164,6 +176,8 @@ namespace MKtest
                 _logManager?.AppendLog($"Ошибка инициализации демо-сервисов: {ex.Message}");
             }
         }
+
+      
         #endregion
 
         #region Настройка UI
@@ -334,7 +348,7 @@ namespace MKtest
         private void UpdateLayout()
         {
             leftFlowLayout?.PerformLayout();
-            panelRight?.PerformLayout();
+            panelDownRight?.PerformLayout();
         }
         #endregion
 
@@ -1023,7 +1037,7 @@ namespace MKtest
                 MessageBox.Show("Настройки HTTP протокола сохранены!", "Успех",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-         
+
         }
         private void httpPayResetButton_Click(object sender, EventArgs e)
         {
@@ -1038,8 +1052,112 @@ namespace MKtest
             {
                 _settingsManager.ResetHTTPpaySettings(_logManager);
             }
-           
+
         }
+
+
+
+        #region Сэкоп Протокол
+
+        private void InitializeSekopProtocolMain()
+        {
+            sekopTransactionsNumeric.Value = 0;
+            sekopPassengersNumeric.Value = 0;
+
+            sekopStatusLabel.Text = "Статус: Остановлено";
+
+            sekopStartButton.Enabled = true;
+            sekopStopButton.Enabled = false;
+        }
+        private async void sekopStartButton_Click(object sender, EventArgs e)
+        {
+            if (_sekopProtocolManager == null)
+                return;
+
+            try
+            {
+                int transactions = (int)sekopTransactionsNumeric.Value;
+                int passengers = (int)sekopPassengersNumeric.Value;
+
+                await _sekopProtocolManager.StartAsync(
+                    transactions,
+                    passengers);
+
+                sekopStartButton.Enabled = false;
+                sekopStopButton.Enabled = true;
+
+                sekopStatusLabel.Text = "Статус: Запущено";
+            }
+            catch (Exception ex)
+            {
+                sekopStatusLabel.Text = "Статус: Ошибка";
+
+                _logManager?.AppendLog(
+                    $"Ошибка запуска протокола СЭКОП: {ex.Message}");
+
+            }
+        }
+
+        private void sekopStopButton_Click(object sender, EventArgs e)
+        {
+            if (_sekopProtocolManager == null)
+                return;
+
+            _sekopProtocolManager.Stop();
+
+            sekopStartButton.Enabled = true;
+            sekopStopButton.Enabled = false;
+
+            sekopStatusLabel.Text = "Статус: Остановлено";
+        }
+
+        private void sekopSaveButton_Click(object sender, EventArgs e)
+        {
+            if (_settingsManager == null || _logManager == null)
+            {
+                MessageBox.Show(
+                    "Менеджеры не инициализированы",
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return;
+            }
+
+            if (_settingsManager.SaveSekopProtocolSettings(_logManager))
+            {
+                MessageBox.Show(
+                    "Настройки протокола СЭКОП сохранены!",
+                    "Успех",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+        }
+        private void sekopResetButton_Click(object sender, EventArgs e)
+        {
+            if (_settingsManager == null || _logManager == null)
+            {
+                MessageBox.Show(
+                    "Менеджеры не инициализированы",
+                    "Ошибка",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return;
+            }
+
+            if (MessageBox.Show(
+                    "Сбросить настройки протокола СЭКОП к значениям по умолчанию?",
+                    "Подтверждение",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                _settingsManager.ResetSekopProtocolSettings(_logManager);
+            }
+        }
+
+        #endregion
+
 
     }
 }

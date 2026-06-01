@@ -33,21 +33,6 @@
             splitContainerMain = new SplitContainer();
             panelLeft = new Panel();
             leftFlowLayout = new FlowLayoutPanel();
-            beelinkCollapsiblePanel = new Panel();
-            beelinkContentPanel = new Panel();
-            timeGroupBox = new GroupBox();
-            timeSetButton = new Button();
-            manualTimePicker = new DateTimePicker();
-            manualDatePicker = new DateTimePicker();
-            timeDisableNTPButton = new Button();
-            timeEnableNTPButton = new Button();
-            timeCheckButton = new Button();
-            beelinkTestButton = new Button();
-            beelinkDisconnectButton = new Button();
-            beelinkConnectButton = new Button();
-            beelinkStatusLabel = new Label();
-            beelinkHeaderPanel = new Panel();
-            beelinkHeaderLabel = new Label();
             webServerCollapsiblePanel = new Panel();
             webServerContentPanel = new Panel();
             webServerStatusLabel = new Label();
@@ -55,7 +40,14 @@
             webServerStartButton = new Button();
             webServerHeaderPanel = new Panel();
             webServerHeaderLabel = new Label();
-            panelRight = new Panel();
+            demoCollapsiblePanel = new Panel();
+            demoContentPanel = new Panel();
+            lblDemoStatus = new Label();
+            btnStopDemo = new Button();
+            btnStartDemo = new Button();
+            cmbDemoScenarios = new ComboBox();
+            demoHeaderPanel = new Panel();
+            demoHeaderLabel = new Label();
             usrTransferCollapsiblePanel = new Panel();
             usrTransferContentPanel = new Panel();
             lblUsrCountdown = new Label();
@@ -72,15 +64,33 @@
             lblInMode = new Label();
             usrTransferHeaderPanel = new Panel();
             usrTransferHeaderLabel = new Label();
-            demoCollapsiblePanel = new Panel();
-            demoContentPanel = new Panel();
-            lblDemoStatus = new Label();
-            btnStopDemo = new Button();
-            btnStartDemo = new Button();
-            cmbDemoScenarios = new ComboBox();
-            demoHeaderPanel = new Panel();
-            demoHeaderLabel = new Label();
             panelDownRight = new Panel();
+            sekopCollapsiblePanel = new Panel();
+            sekopContentPanel = new Panel();
+            sekopPassengersNumeric = new NumericUpDown();
+            sekopPassengersLabel = new Label();
+            sekopTransactionsLabel = new Label();
+            sekopTransactionsNumeric = new NumericUpDown();
+            sekopStartButton = new Button();
+            sekopStopButton = new Button();
+            sekopStatusLabel = new Label();
+            panel3 = new Panel();
+            sekopHeaderPanel = new Label();
+            beelinkCollapsiblePanel = new Panel();
+            beelinkContentPanel = new Panel();
+            timeGroupBox = new GroupBox();
+            timeSetButton = new Button();
+            manualTimePicker = new DateTimePicker();
+            manualDatePicker = new DateTimePicker();
+            timeDisableNTPButton = new Button();
+            timeEnableNTPButton = new Button();
+            timeCheckButton = new Button();
+            beelinkTestButton = new Button();
+            beelinkDisconnectButton = new Button();
+            beelinkConnectButton = new Button();
+            beelinkStatusLabel = new Label();
+            beelinkHeaderPanel = new Panel();
+            beelinkHeaderLabel = new Label();
             httpProtokolCollapsiblePanel = new Panel();
             httpProtokolContentPanel = new Panel();
             lblHttpStatus = new Label();
@@ -120,6 +130,13 @@
             beelinkLogTextBox = new TextBox();
             beelinkClearLogButton = new Button();
             settingsTabPage = new TabPage();
+            sekopSettingsGroupBox = new GroupBox();
+            sekopResetButton = new Button();
+            sekopSaveButton = new Button();
+            sekopPortNumeric = new NumericUpDown();
+            sekopPortLabel = new Label();
+            sekopIpTextBox = new TextBox();
+            sekopIpLabel = new Label();
             httpPayGroupBox = new GroupBox();
             httpPayResetButton = new Button();
             httpPaySaveButton = new Button();
@@ -184,6 +201,7 @@
             portLabel = new Label();
             ipTextBox = new TextBox();
             ipLabel = new Label();
+            backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             mainTabControl.SuspendLayout();
             mainTabPage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)splitContainerMain).BeginInit();
@@ -192,21 +210,25 @@
             splitContainerMain.SuspendLayout();
             panelLeft.SuspendLayout();
             leftFlowLayout.SuspendLayout();
+            webServerCollapsiblePanel.SuspendLayout();
+            webServerContentPanel.SuspendLayout();
+            webServerHeaderPanel.SuspendLayout();
+            demoCollapsiblePanel.SuspendLayout();
+            demoContentPanel.SuspendLayout();
+            demoHeaderPanel.SuspendLayout();
+            usrTransferCollapsiblePanel.SuspendLayout();
+            usrTransferContentPanel.SuspendLayout();
+            usrTransferHeaderPanel.SuspendLayout();
+            panelDownRight.SuspendLayout();
+            sekopCollapsiblePanel.SuspendLayout();
+            sekopContentPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)sekopPassengersNumeric).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)sekopTransactionsNumeric).BeginInit();
+            panel3.SuspendLayout();
             beelinkCollapsiblePanel.SuspendLayout();
             beelinkContentPanel.SuspendLayout();
             timeGroupBox.SuspendLayout();
             beelinkHeaderPanel.SuspendLayout();
-            webServerCollapsiblePanel.SuspendLayout();
-            webServerContentPanel.SuspendLayout();
-            webServerHeaderPanel.SuspendLayout();
-            panelRight.SuspendLayout();
-            usrTransferCollapsiblePanel.SuspendLayout();
-            usrTransferContentPanel.SuspendLayout();
-            usrTransferHeaderPanel.SuspendLayout();
-            demoCollapsiblePanel.SuspendLayout();
-            demoContentPanel.SuspendLayout();
-            demoHeaderPanel.SuspendLayout();
-            panelDownRight.SuspendLayout();
             httpProtokolCollapsiblePanel.SuspendLayout();
             httpProtokolContentPanel.SuspendLayout();
             httpProtokolHeaderPanel.SuspendLayout();
@@ -219,6 +241,8 @@
             hermesHeaderPanel.SuspendLayout();
             logPanel.SuspendLayout();
             settingsTabPage.SuspendLayout();
+            sekopSettingsGroupBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)sekopPortNumeric).BeginInit();
             httpPayGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)httpPayIntervalNumeric).BeginInit();
             ((System.ComponentModel.ISupportInitialize)httpPayCurrentNumeric).BeginInit();
@@ -281,7 +305,6 @@
             // panelLeft
             // 
             panelLeft.Controls.Add(leftFlowLayout);
-            panelLeft.Controls.Add(panelRight);
             panelLeft.Location = new Point(0, 0);
             panelLeft.Name = "panelLeft";
             panelLeft.Padding = new Padding(10);
@@ -293,12 +316,456 @@
             leftFlowLayout.AutoScroll = true;
             leftFlowLayout.BorderStyle = BorderStyle.FixedSingle;
             leftFlowLayout.Controls.Add(webServerCollapsiblePanel);
+            leftFlowLayout.Controls.Add(demoCollapsiblePanel);
+            leftFlowLayout.Controls.Add(usrTransferCollapsiblePanel);
             leftFlowLayout.FlowDirection = FlowDirection.TopDown;
             leftFlowLayout.Location = new Point(1, 10);
             leftFlowLayout.Name = "leftFlowLayout";
-            leftFlowLayout.Size = new Size(394, 210);
+            leftFlowLayout.Size = new Size(394, 566);
             leftFlowLayout.TabIndex = 0;
             leftFlowLayout.WrapContents = false;
+            // 
+            // webServerCollapsiblePanel
+            // 
+            webServerCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            webServerCollapsiblePanel.Controls.Add(webServerContentPanel);
+            webServerCollapsiblePanel.Controls.Add(webServerHeaderPanel);
+            webServerCollapsiblePanel.Location = new Point(3, 3);
+            webServerCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
+            webServerCollapsiblePanel.Name = "webServerCollapsiblePanel";
+            webServerCollapsiblePanel.Size = new Size(358, 81);
+            webServerCollapsiblePanel.TabIndex = 2;
+            // 
+            // webServerContentPanel
+            // 
+            webServerContentPanel.Controls.Add(webServerStatusLabel);
+            webServerContentPanel.Controls.Add(webServerStopButton);
+            webServerContentPanel.Controls.Add(webServerStartButton);
+            webServerContentPanel.Dock = DockStyle.Fill;
+            webServerContentPanel.Location = new Point(0, 24);
+            webServerContentPanel.Name = "webServerContentPanel";
+            webServerContentPanel.Size = new Size(356, 55);
+            webServerContentPanel.TabIndex = 1;
+            // 
+            // webServerStatusLabel
+            // 
+            webServerStatusLabel.AutoSize = true;
+            webServerStatusLabel.Location = new Point(208, 15);
+            webServerStatusLabel.Name = "webServerStatusLabel";
+            webServerStatusLabel.Size = new Size(115, 15);
+            webServerStatusLabel.TabIndex = 2;
+            webServerStatusLabel.Text = "Статус: Остановлен";
+            // 
+            // webServerStopButton
+            // 
+            webServerStopButton.Enabled = false;
+            webServerStopButton.Location = new Point(110, 10);
+            webServerStopButton.Name = "webServerStopButton";
+            webServerStopButton.Size = new Size(79, 25);
+            webServerStopButton.TabIndex = 1;
+            webServerStopButton.Text = "Остановить";
+            webServerStopButton.UseVisualStyleBackColor = true;
+            // 
+            // webServerStartButton
+            // 
+            webServerStartButton.Location = new Point(10, 10);
+            webServerStartButton.Name = "webServerStartButton";
+            webServerStartButton.Size = new Size(73, 25);
+            webServerStartButton.TabIndex = 0;
+            webServerStartButton.Text = "Запустить";
+            webServerStartButton.UseVisualStyleBackColor = true;
+            // 
+            // webServerHeaderPanel
+            // 
+            webServerHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            webServerHeaderPanel.Controls.Add(webServerHeaderLabel);
+            webServerHeaderPanel.Cursor = Cursors.Hand;
+            webServerHeaderPanel.Dock = DockStyle.Top;
+            webServerHeaderPanel.Location = new Point(0, 0);
+            webServerHeaderPanel.Name = "webServerHeaderPanel";
+            webServerHeaderPanel.Size = new Size(356, 24);
+            webServerHeaderPanel.TabIndex = 0;
+            webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            // 
+            // webServerHeaderLabel
+            // 
+            webServerHeaderLabel.Dock = DockStyle.Fill;
+            webServerHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            webServerHeaderLabel.Location = new Point(0, 0);
+            webServerHeaderLabel.Name = "webServerHeaderLabel";
+            webServerHeaderLabel.Size = new Size(356, 24);
+            webServerHeaderLabel.TabIndex = 0;
+            webServerHeaderLabel.Text = "Веб-сервер";
+            // 
+            // demoCollapsiblePanel
+            // 
+            demoCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            demoCollapsiblePanel.Controls.Add(demoContentPanel);
+            demoCollapsiblePanel.Controls.Add(demoHeaderPanel);
+            demoCollapsiblePanel.Location = new Point(0, 94);
+            demoCollapsiblePanel.Margin = new Padding(0, 0, 0, 10);
+            demoCollapsiblePanel.Name = "demoCollapsiblePanel";
+            demoCollapsiblePanel.Size = new Size(361, 86);
+            demoCollapsiblePanel.TabIndex = 8;
+            // 
+            // demoContentPanel
+            // 
+            demoContentPanel.Controls.Add(lblDemoStatus);
+            demoContentPanel.Controls.Add(btnStopDemo);
+            demoContentPanel.Controls.Add(btnStartDemo);
+            demoContentPanel.Controls.Add(cmbDemoScenarios);
+            demoContentPanel.Dock = DockStyle.Fill;
+            demoContentPanel.Location = new Point(0, 23);
+            demoContentPanel.Name = "demoContentPanel";
+            demoContentPanel.Size = new Size(359, 61);
+            demoContentPanel.TabIndex = 1;
+            // 
+            // lblDemoStatus
+            // 
+            lblDemoStatus.AutoSize = true;
+            lblDemoStatus.Location = new Point(162, 34);
+            lblDemoStatus.Name = "lblDemoStatus";
+            lblDemoStatus.Size = new Size(115, 15);
+            lblDemoStatus.TabIndex = 3;
+            lblDemoStatus.Text = "Статус: Остановлен";
+            // 
+            // btnStopDemo
+            // 
+            btnStopDemo.Enabled = false;
+            btnStopDemo.Location = new Point(246, 6);
+            btnStopDemo.Name = "btnStopDemo";
+            btnStopDemo.Size = new Size(71, 25);
+            btnStopDemo.TabIndex = 2;
+            btnStopDemo.Text = "Остановить";
+            btnStopDemo.UseVisualStyleBackColor = true;
+            // 
+            // btnStartDemo
+            // 
+            btnStartDemo.Location = new Point(162, 6);
+            btnStartDemo.Name = "btnStartDemo";
+            btnStartDemo.Size = new Size(71, 25);
+            btnStartDemo.TabIndex = 1;
+            btnStartDemo.Text = "Запустить";
+            btnStartDemo.UseVisualStyleBackColor = true;
+            // 
+            // cmbDemoScenarios
+            // 
+            cmbDemoScenarios.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbDemoScenarios.FormattingEnabled = true;
+            cmbDemoScenarios.Location = new Point(10, 6);
+            cmbDemoScenarios.Name = "cmbDemoScenarios";
+            cmbDemoScenarios.Size = new Size(135, 23);
+            cmbDemoScenarios.TabIndex = 0;
+            // 
+            // demoHeaderPanel
+            // 
+            demoHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            demoHeaderPanel.Controls.Add(demoHeaderLabel);
+            demoHeaderPanel.Cursor = Cursors.Hand;
+            demoHeaderPanel.Dock = DockStyle.Top;
+            demoHeaderPanel.Location = new Point(0, 0);
+            demoHeaderPanel.Name = "demoHeaderPanel";
+            demoHeaderPanel.Size = new Size(359, 23);
+            demoHeaderPanel.TabIndex = 0;
+            demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            // 
+            // demoHeaderLabel
+            // 
+            demoHeaderLabel.Dock = DockStyle.Fill;
+            demoHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            demoHeaderLabel.Location = new Point(0, 0);
+            demoHeaderLabel.Name = "demoHeaderLabel";
+            demoHeaderLabel.Size = new Size(359, 23);
+            demoHeaderLabel.TabIndex = 0;
+            demoHeaderLabel.Text = "ЛК-ВИЗ через route.json";
+            // 
+            // usrTransferCollapsiblePanel
+            // 
+            usrTransferCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            usrTransferCollapsiblePanel.Controls.Add(usrTransferContentPanel);
+            usrTransferCollapsiblePanel.Controls.Add(usrTransferHeaderPanel);
+            usrTransferCollapsiblePanel.Location = new Point(3, 193);
+            usrTransferCollapsiblePanel.Name = "usrTransferCollapsiblePanel";
+            usrTransferCollapsiblePanel.Size = new Size(361, 208);
+            usrTransferCollapsiblePanel.TabIndex = 9;
+            // 
+            // usrTransferContentPanel
+            // 
+            usrTransferContentPanel.Controls.Add(lblUsrCountdown);
+            usrTransferContentPanel.Controls.Add(lblUsrStep);
+            usrTransferContentPanel.Controls.Add(lblUsrStatus);
+            usrTransferContentPanel.Controls.Add(btnUsrTest);
+            usrTransferContentPanel.Controls.Add(btnUsrStopIn);
+            usrTransferContentPanel.Controls.Add(btnUsrStartIn);
+            usrTransferContentPanel.Controls.Add(btnUsrSendSvc);
+            usrTransferContentPanel.Controls.Add(lstInFiles);
+            usrTransferContentPanel.Controls.Add(lstSvcFiles);
+            usrTransferContentPanel.Controls.Add(cmbUsrRoutes);
+            usrTransferContentPanel.Controls.Add(cmbInMode);
+            usrTransferContentPanel.Controls.Add(lblInMode);
+            usrTransferContentPanel.Dock = DockStyle.Fill;
+            usrTransferContentPanel.Location = new Point(0, 24);
+            usrTransferContentPanel.Name = "usrTransferContentPanel";
+            usrTransferContentPanel.Size = new Size(359, 182);
+            usrTransferContentPanel.TabIndex = 1;
+            // 
+            // lblUsrCountdown
+            // 
+            lblUsrCountdown.AutoSize = true;
+            lblUsrCountdown.Location = new Point(182, 141);
+            lblUsrCountdown.Name = "lblUsrCountdown";
+            lblUsrCountdown.Size = new Size(108, 15);
+            lblUsrCountdown.TabIndex = 9;
+            lblUsrCountdown.Text = "След. через: -- сек";
+            // 
+            // lblUsrStep
+            // 
+            lblUsrStep.AutoSize = true;
+            lblUsrStep.Location = new Point(124, 141);
+            lblUsrStep.Name = "lblUsrStep";
+            lblUsrStep.Size = new Size(52, 15);
+            lblUsrStep.TabIndex = 8;
+            lblUsrStep.Text = "Шаг: 0/0";
+            // 
+            // lblUsrStatus
+            // 
+            lblUsrStatus.AutoSize = true;
+            lblUsrStatus.Location = new Point(124, 165);
+            lblUsrStatus.Name = "lblUsrStatus";
+            lblUsrStatus.Size = new Size(115, 15);
+            lblUsrStatus.TabIndex = 7;
+            lblUsrStatus.Text = "Статус: Остановлен";
+            // 
+            // btnUsrTest
+            // 
+            btnUsrTest.Location = new Point(281, 102);
+            btnUsrTest.Name = "btnUsrTest";
+            btnUsrTest.Size = new Size(67, 23);
+            btnUsrTest.TabIndex = 1;
+            btnUsrTest.Text = "Тест";
+            btnUsrTest.UseVisualStyleBackColor = true;
+            btnUsrTest.Click += btnUsrTest_Click;
+            // 
+            // btnUsrStopIn
+            // 
+            btnUsrStopIn.Enabled = false;
+            btnUsrStopIn.Location = new Point(10, 141);
+            btnUsrStopIn.Name = "btnUsrStopIn";
+            btnUsrStopIn.Size = new Size(100, 28);
+            btnUsrStopIn.TabIndex = 6;
+            btnUsrStopIn.Text = "Стоп";
+            btnUsrStopIn.UseVisualStyleBackColor = true;
+            btnUsrStopIn.Click += btnUsrStopIn_Click;
+            // 
+            // btnUsrStartIn
+            // 
+            btnUsrStartIn.Location = new Point(162, 99);
+            btnUsrStartIn.Name = "btnUsrStartIn";
+            btnUsrStartIn.Size = new Size(100, 28);
+            btnUsrStartIn.TabIndex = 5;
+            btnUsrStartIn.Text = "Отправка IN";
+            btnUsrStartIn.UseVisualStyleBackColor = true;
+            btnUsrStartIn.Click += btnUsrStartIn_Click;
+            // 
+            // btnUsrSendSvc
+            // 
+            btnUsrSendSvc.Location = new Point(10, 97);
+            btnUsrSendSvc.Name = "btnUsrSendSvc";
+            btnUsrSendSvc.Size = new Size(100, 28);
+            btnUsrSendSvc.TabIndex = 4;
+            btnUsrSendSvc.Text = "Отправка SVC";
+            btnUsrSendSvc.UseVisualStyleBackColor = true;
+            btnUsrSendSvc.Click += btnUsrSendSvc_Click;
+            // 
+            // lstInFiles
+            // 
+            lstInFiles.FormattingEnabled = true;
+            lstInFiles.Location = new Point(189, 40);
+            lstInFiles.Name = "lstInFiles";
+            lstInFiles.Size = new Size(166, 49);
+            lstInFiles.TabIndex = 3;
+            // 
+            // lstSvcFiles
+            // 
+            lstSvcFiles.FormattingEnabled = true;
+            lstSvcFiles.Location = new Point(10, 40);
+            lstSvcFiles.Name = "lstSvcFiles";
+            lstSvcFiles.Size = new Size(108, 49);
+            lstSvcFiles.TabIndex = 2;
+            // 
+            // cmbUsrRoutes
+            // 
+            cmbUsrRoutes.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbUsrRoutes.FormattingEnabled = true;
+            cmbUsrRoutes.Location = new Point(3, 7);
+            cmbUsrRoutes.Name = "cmbUsrRoutes";
+            cmbUsrRoutes.Size = new Size(179, 23);
+            cmbUsrRoutes.TabIndex = 0;
+            cmbUsrRoutes.SelectedIndexChanged += cmbUsrRoutes_SelectedIndexChanged;
+            // 
+            // cmbInMode
+            // 
+            cmbInMode.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbInMode.FormattingEnabled = true;
+            cmbInMode.Location = new Point(233, 7);
+            cmbInMode.Name = "cmbInMode";
+            cmbInMode.Size = new Size(115, 23);
+            cmbInMode.TabIndex = 10;
+            // 
+            // lblInMode
+            // 
+            lblInMode.AutoSize = true;
+            lblInMode.Location = new Point(124, 13);
+            lblInMode.Name = "lblInMode";
+            lblInMode.Size = new Size(63, 15);
+            lblInMode.TabIndex = 11;
+            lblInMode.Text = "Режим IN:";
+            // 
+            // usrTransferHeaderPanel
+            // 
+            usrTransferHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            usrTransferHeaderPanel.Controls.Add(usrTransferHeaderLabel);
+            usrTransferHeaderPanel.Cursor = Cursors.Hand;
+            usrTransferHeaderPanel.Dock = DockStyle.Top;
+            usrTransferHeaderPanel.Location = new Point(0, 0);
+            usrTransferHeaderPanel.Name = "usrTransferHeaderPanel";
+            usrTransferHeaderPanel.Size = new Size(359, 24);
+            usrTransferHeaderPanel.TabIndex = 0;
+            usrTransferHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            // 
+            // usrTransferHeaderLabel
+            // 
+            usrTransferHeaderLabel.Dock = DockStyle.Fill;
+            usrTransferHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            usrTransferHeaderLabel.Location = new Point(0, 0);
+            usrTransferHeaderLabel.Name = "usrTransferHeaderLabel";
+            usrTransferHeaderLabel.Size = new Size(359, 24);
+            usrTransferHeaderLabel.TabIndex = 0;
+            usrTransferHeaderLabel.Text = "ИР-0652";
+            // 
+            // panelDownRight
+            // 
+            panelDownRight.BorderStyle = BorderStyle.FixedSingle;
+            panelDownRight.Controls.Add(sekopCollapsiblePanel);
+            panelDownRight.Controls.Add(beelinkCollapsiblePanel);
+            panelDownRight.Controls.Add(httpProtokolCollapsiblePanel);
+            panelDownRight.Controls.Add(httpPayCollapsiblePanel);
+            panelDownRight.Controls.Add(hermesCollapsiblePanel);
+            panelDownRight.Location = new Point(9, 10);
+            panelDownRight.Name = "panelDownRight";
+            panelDownRight.Size = new Size(580, 566);
+            panelDownRight.TabIndex = 1;
+            // 
+            // sekopCollapsiblePanel
+            // 
+            sekopCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            sekopCollapsiblePanel.Controls.Add(sekopContentPanel);
+            sekopCollapsiblePanel.Controls.Add(panel3);
+            sekopCollapsiblePanel.Location = new Point(3, 111);
+            sekopCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
+            sekopCollapsiblePanel.Name = "sekopCollapsiblePanel";
+            sekopCollapsiblePanel.Size = new Size(368, 97);
+            sekopCollapsiblePanel.TabIndex = 4;
+            // 
+            // sekopContentPanel
+            // 
+            sekopContentPanel.Controls.Add(sekopPassengersNumeric);
+            sekopContentPanel.Controls.Add(sekopPassengersLabel);
+            sekopContentPanel.Controls.Add(sekopTransactionsLabel);
+            sekopContentPanel.Controls.Add(sekopTransactionsNumeric);
+            sekopContentPanel.Controls.Add(sekopStartButton);
+            sekopContentPanel.Controls.Add(sekopStopButton);
+            sekopContentPanel.Controls.Add(sekopStatusLabel);
+            sekopContentPanel.Dock = DockStyle.Fill;
+            sekopContentPanel.Location = new Point(0, 24);
+            sekopContentPanel.Name = "sekopContentPanel";
+            sekopContentPanel.Size = new Size(366, 71);
+            sekopContentPanel.TabIndex = 1;
+            // 
+            // sekopPassengersNumeric
+            // 
+            sekopPassengersNumeric.Location = new Point(228, 12);
+            sekopPassengersNumeric.Maximum = new decimal(new int[] { 1000000, 0, 0, 0 });
+            sekopPassengersNumeric.Name = "sekopPassengersNumeric";
+            sekopPassengersNumeric.Size = new Size(43, 23);
+            sekopPassengersNumeric.TabIndex = 6;
+            // 
+            // sekopPassengersLabel
+            // 
+            sekopPassengersLabel.AutoSize = true;
+            sekopPassengersLabel.Location = new Point(147, 12);
+            sekopPassengersLabel.Name = "sekopPassengersLabel";
+            sekopPassengersLabel.Size = new Size(75, 15);
+            sekopPassengersLabel.TabIndex = 5;
+            sekopPassengersLabel.Text = "Пассажиры:";
+            // 
+            // sekopTransactionsLabel
+            // 
+            sekopTransactionsLabel.AutoSize = true;
+            sekopTransactionsLabel.Location = new Point(10, 12);
+            sekopTransactionsLabel.Name = "sekopTransactionsLabel";
+            sekopTransactionsLabel.Size = new Size(74, 15);
+            sekopTransactionsLabel.TabIndex = 0;
+            sekopTransactionsLabel.Text = "Транзакции:";
+            // 
+            // sekopTransactionsNumeric
+            // 
+            sekopTransactionsNumeric.Location = new Point(89, 12);
+            sekopTransactionsNumeric.Maximum = new decimal(new int[] { 1000000, 0, 0, 0 });
+            sekopTransactionsNumeric.Name = "sekopTransactionsNumeric";
+            sekopTransactionsNumeric.Size = new Size(43, 23);
+            sekopTransactionsNumeric.TabIndex = 1;
+            // 
+            // sekopStartButton
+            // 
+            sekopStartButton.Location = new Point(287, 6);
+            sekopStartButton.Name = "sekopStartButton";
+            sekopStartButton.Size = new Size(63, 25);
+            sekopStartButton.TabIndex = 2;
+            sekopStartButton.Text = "Старт";
+            sekopStartButton.UseVisualStyleBackColor = true;
+            sekopStartButton.Click += sekopStartButton_Click;
+            // 
+            // sekopStopButton
+            // 
+            sekopStopButton.Enabled = false;
+            sekopStopButton.Location = new Point(287, 39);
+            sekopStopButton.Name = "sekopStopButton";
+            sekopStopButton.Size = new Size(63, 25);
+            sekopStopButton.TabIndex = 3;
+            sekopStopButton.Text = "Стоп";
+            sekopStopButton.UseVisualStyleBackColor = true;
+            sekopStopButton.Click += sekopStopButton_Click;
+            // 
+            // sekopStatusLabel
+            // 
+            sekopStatusLabel.AutoSize = true;
+            sekopStatusLabel.Location = new Point(10, 45);
+            sekopStatusLabel.Name = "sekopStatusLabel";
+            sekopStatusLabel.Size = new Size(122, 15);
+            sekopStatusLabel.TabIndex = 4;
+            sekopStatusLabel.Text = "Статус: Остановлено";
+            // 
+            // panel3
+            // 
+            panel3.BackColor = SystemColors.ActiveCaption;
+            panel3.Controls.Add(sekopHeaderPanel);
+            panel3.Cursor = Cursors.Hand;
+            panel3.Dock = DockStyle.Top;
+            panel3.Location = new Point(0, 0);
+            panel3.Name = "panel3";
+            panel3.Size = new Size(366, 24);
+            panel3.TabIndex = 0;
+            // 
+            // sekopHeaderPanel
+            // 
+            sekopHeaderPanel.Dock = DockStyle.Fill;
+            sekopHeaderPanel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            sekopHeaderPanel.Location = new Point(0, 0);
+            sekopHeaderPanel.Name = "sekopHeaderPanel";
+            sekopHeaderPanel.Size = new Size(366, 24);
+            sekopHeaderPanel.TabIndex = 0;
+            sekopHeaderPanel.Text = "Протокол СЭКОП";
             // 
             // beelinkCollapsiblePanel
             // 
@@ -459,347 +926,6 @@
             beelinkHeaderLabel.TabIndex = 0;
             beelinkHeaderLabel.Text = "SSH Beelink";
             // 
-            // webServerCollapsiblePanel
-            // 
-            webServerCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
-            webServerCollapsiblePanel.Controls.Add(webServerContentPanel);
-            webServerCollapsiblePanel.Controls.Add(webServerHeaderPanel);
-            webServerCollapsiblePanel.Location = new Point(3, 3);
-            webServerCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
-            webServerCollapsiblePanel.Name = "webServerCollapsiblePanel";
-            webServerCollapsiblePanel.Size = new Size(366, 81);
-            webServerCollapsiblePanel.TabIndex = 2;
-            // 
-            // webServerContentPanel
-            // 
-            webServerContentPanel.Controls.Add(webServerStatusLabel);
-            webServerContentPanel.Controls.Add(webServerStopButton);
-            webServerContentPanel.Controls.Add(webServerStartButton);
-            webServerContentPanel.Dock = DockStyle.Fill;
-            webServerContentPanel.Location = new Point(0, 24);
-            webServerContentPanel.Name = "webServerContentPanel";
-            webServerContentPanel.Size = new Size(364, 55);
-            webServerContentPanel.TabIndex = 1;
-            // 
-            // webServerStatusLabel
-            // 
-            webServerStatusLabel.AutoSize = true;
-            webServerStatusLabel.Location = new Point(208, 15);
-            webServerStatusLabel.Name = "webServerStatusLabel";
-            webServerStatusLabel.Size = new Size(115, 15);
-            webServerStatusLabel.TabIndex = 2;
-            webServerStatusLabel.Text = "Статус: Остановлен";
-            // 
-            // webServerStopButton
-            // 
-            webServerStopButton.Enabled = false;
-            webServerStopButton.Location = new Point(110, 10);
-            webServerStopButton.Name = "webServerStopButton";
-            webServerStopButton.Size = new Size(79, 25);
-            webServerStopButton.TabIndex = 1;
-            webServerStopButton.Text = "Остановить";
-            webServerStopButton.UseVisualStyleBackColor = true;
-            // 
-            // webServerStartButton
-            // 
-            webServerStartButton.Location = new Point(10, 10);
-            webServerStartButton.Name = "webServerStartButton";
-            webServerStartButton.Size = new Size(73, 25);
-            webServerStartButton.TabIndex = 0;
-            webServerStartButton.Text = "Запустить";
-            webServerStartButton.UseVisualStyleBackColor = true;
-            // 
-            // webServerHeaderPanel
-            // 
-            webServerHeaderPanel.BackColor = SystemColors.ActiveCaption;
-            webServerHeaderPanel.Controls.Add(webServerHeaderLabel);
-            webServerHeaderPanel.Cursor = Cursors.Hand;
-            webServerHeaderPanel.Dock = DockStyle.Top;
-            webServerHeaderPanel.Location = new Point(0, 0);
-            webServerHeaderPanel.Name = "webServerHeaderPanel";
-            webServerHeaderPanel.Size = new Size(364, 24);
-            webServerHeaderPanel.TabIndex = 0;
-            webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            // 
-            // webServerHeaderLabel
-            // 
-            webServerHeaderLabel.Dock = DockStyle.Fill;
-            webServerHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            webServerHeaderLabel.Location = new Point(0, 0);
-            webServerHeaderLabel.Name = "webServerHeaderLabel";
-            webServerHeaderLabel.Size = new Size(364, 24);
-            webServerHeaderLabel.TabIndex = 0;
-            webServerHeaderLabel.Text = "Веб-сервер";
-            // 
-            // panelRight
-            // 
-            panelRight.BorderStyle = BorderStyle.FixedSingle;
-            panelRight.Controls.Add(usrTransferCollapsiblePanel);
-            panelRight.Controls.Add(demoCollapsiblePanel);
-            panelRight.Location = new Point(1, 228);
-            panelRight.Name = "panelRight";
-            panelRight.Padding = new Padding(10);
-            panelRight.Size = new Size(394, 348);
-            panelRight.TabIndex = 0;
-            // 
-            // usrTransferCollapsiblePanel
-            // 
-            usrTransferCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
-            usrTransferCollapsiblePanel.Controls.Add(usrTransferContentPanel);
-            usrTransferCollapsiblePanel.Controls.Add(usrTransferHeaderPanel);
-            usrTransferCollapsiblePanel.Location = new Point(10, 102);
-            usrTransferCollapsiblePanel.Name = "usrTransferCollapsiblePanel";
-            usrTransferCollapsiblePanel.Size = new Size(361, 208);
-            usrTransferCollapsiblePanel.TabIndex = 9;
-            // 
-            // usrTransferContentPanel
-            // 
-            usrTransferContentPanel.Controls.Add(lblUsrCountdown);
-            usrTransferContentPanel.Controls.Add(lblUsrStep);
-            usrTransferContentPanel.Controls.Add(lblUsrStatus);
-            usrTransferContentPanel.Controls.Add(btnUsrTest);
-            usrTransferContentPanel.Controls.Add(btnUsrStopIn);
-            usrTransferContentPanel.Controls.Add(btnUsrStartIn);
-            usrTransferContentPanel.Controls.Add(btnUsrSendSvc);
-            usrTransferContentPanel.Controls.Add(lstInFiles);
-            usrTransferContentPanel.Controls.Add(lstSvcFiles);
-            usrTransferContentPanel.Controls.Add(cmbUsrRoutes);
-            usrTransferContentPanel.Controls.Add(cmbInMode);
-            usrTransferContentPanel.Controls.Add(lblInMode);
-            usrTransferContentPanel.Dock = DockStyle.Fill;
-            usrTransferContentPanel.Location = new Point(0, 24);
-            usrTransferContentPanel.Name = "usrTransferContentPanel";
-            usrTransferContentPanel.Size = new Size(359, 182);
-            usrTransferContentPanel.TabIndex = 1;
-            // 
-            // lblUsrCountdown
-            // 
-            lblUsrCountdown.AutoSize = true;
-            lblUsrCountdown.Location = new Point(182, 141);
-            lblUsrCountdown.Name = "lblUsrCountdown";
-            lblUsrCountdown.Size = new Size(108, 15);
-            lblUsrCountdown.TabIndex = 9;
-            lblUsrCountdown.Text = "След. через: -- сек";
-            // 
-            // lblUsrStep
-            // 
-            lblUsrStep.AutoSize = true;
-            lblUsrStep.Location = new Point(124, 141);
-            lblUsrStep.Name = "lblUsrStep";
-            lblUsrStep.Size = new Size(52, 15);
-            lblUsrStep.TabIndex = 8;
-            lblUsrStep.Text = "Шаг: 0/0";
-            // 
-            // lblUsrStatus
-            // 
-            lblUsrStatus.AutoSize = true;
-            lblUsrStatus.Location = new Point(124, 165);
-            lblUsrStatus.Name = "lblUsrStatus";
-            lblUsrStatus.Size = new Size(115, 15);
-            lblUsrStatus.TabIndex = 7;
-            lblUsrStatus.Text = "Статус: Остановлен";
-            // 
-            // btnUsrTest
-            // 
-            btnUsrTest.Location = new Point(281, 102);
-            btnUsrTest.Name = "btnUsrTest";
-            btnUsrTest.Size = new Size(67, 23);
-            btnUsrTest.TabIndex = 1;
-            btnUsrTest.Text = "Тест";
-            btnUsrTest.UseVisualStyleBackColor = true;
-            btnUsrTest.Click += btnUsrTest_Click;
-            // 
-            // btnUsrStopIn
-            // 
-            btnUsrStopIn.Enabled = false;
-            btnUsrStopIn.Location = new Point(10, 141);
-            btnUsrStopIn.Name = "btnUsrStopIn";
-            btnUsrStopIn.Size = new Size(100, 28);
-            btnUsrStopIn.TabIndex = 6;
-            btnUsrStopIn.Text = "Стоп";
-            btnUsrStopIn.UseVisualStyleBackColor = true;
-            btnUsrStopIn.Click += btnUsrStopIn_Click;
-            // 
-            // btnUsrStartIn
-            // 
-            btnUsrStartIn.Location = new Point(162, 99);
-            btnUsrStartIn.Name = "btnUsrStartIn";
-            btnUsrStartIn.Size = new Size(100, 28);
-            btnUsrStartIn.TabIndex = 5;
-            btnUsrStartIn.Text = "Отправка IN";
-            btnUsrStartIn.UseVisualStyleBackColor = true;
-            btnUsrStartIn.Click += btnUsrStartIn_Click;
-            // 
-            // btnUsrSendSvc
-            // 
-            btnUsrSendSvc.Location = new Point(10, 97);
-            btnUsrSendSvc.Name = "btnUsrSendSvc";
-            btnUsrSendSvc.Size = new Size(100, 28);
-            btnUsrSendSvc.TabIndex = 4;
-            btnUsrSendSvc.Text = "Отправка SVC";
-            btnUsrSendSvc.UseVisualStyleBackColor = true;
-            btnUsrSendSvc.Click += btnUsrSendSvc_Click;
-            // 
-            // lstInFiles
-            // 
-            lstInFiles.FormattingEnabled = true;
-            lstInFiles.Location = new Point(189, 40);
-            lstInFiles.Name = "lstInFiles";
-            lstInFiles.Size = new Size(166, 49);
-            lstInFiles.TabIndex = 3;
-            // 
-            // lstSvcFiles
-            // 
-            lstSvcFiles.FormattingEnabled = true;
-            lstSvcFiles.Location = new Point(10, 40);
-            lstSvcFiles.Name = "lstSvcFiles";
-            lstSvcFiles.Size = new Size(108, 49);
-            lstSvcFiles.TabIndex = 2;
-            // 
-            // cmbUsrRoutes
-            // 
-            cmbUsrRoutes.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbUsrRoutes.FormattingEnabled = true;
-            cmbUsrRoutes.Location = new Point(3, 7);
-            cmbUsrRoutes.Name = "cmbUsrRoutes";
-            cmbUsrRoutes.Size = new Size(179, 23);
-            cmbUsrRoutes.TabIndex = 0;
-            cmbUsrRoutes.SelectedIndexChanged += cmbUsrRoutes_SelectedIndexChanged;
-            // 
-            // cmbInMode
-            // 
-            cmbInMode.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbInMode.FormattingEnabled = true;
-            cmbInMode.Location = new Point(233, 7);
-            cmbInMode.Name = "cmbInMode";
-            cmbInMode.Size = new Size(115, 23);
-            cmbInMode.TabIndex = 10;
-            // 
-            // lblInMode
-            // 
-            lblInMode.AutoSize = true;
-            lblInMode.Location = new Point(124, 13);
-            lblInMode.Name = "lblInMode";
-            lblInMode.Size = new Size(63, 15);
-            lblInMode.TabIndex = 11;
-            lblInMode.Text = "Режим IN:";
-            // 
-            // usrTransferHeaderPanel
-            // 
-            usrTransferHeaderPanel.BackColor = SystemColors.ActiveCaption;
-            usrTransferHeaderPanel.Controls.Add(usrTransferHeaderLabel);
-            usrTransferHeaderPanel.Cursor = Cursors.Hand;
-            usrTransferHeaderPanel.Dock = DockStyle.Top;
-            usrTransferHeaderPanel.Location = new Point(0, 0);
-            usrTransferHeaderPanel.Name = "usrTransferHeaderPanel";
-            usrTransferHeaderPanel.Size = new Size(359, 24);
-            usrTransferHeaderPanel.TabIndex = 0;
-            usrTransferHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            // 
-            // usrTransferHeaderLabel
-            // 
-            usrTransferHeaderLabel.Dock = DockStyle.Fill;
-            usrTransferHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            usrTransferHeaderLabel.Location = new Point(0, 0);
-            usrTransferHeaderLabel.Name = "usrTransferHeaderLabel";
-            usrTransferHeaderLabel.Size = new Size(359, 24);
-            usrTransferHeaderLabel.TabIndex = 0;
-            usrTransferHeaderLabel.Text = "ИР-0652";
-            // 
-            // demoCollapsiblePanel
-            // 
-            demoCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
-            demoCollapsiblePanel.Controls.Add(demoContentPanel);
-            demoCollapsiblePanel.Controls.Add(demoHeaderPanel);
-            demoCollapsiblePanel.Location = new Point(10, 3);
-            demoCollapsiblePanel.Margin = new Padding(0, 0, 0, 10);
-            demoCollapsiblePanel.Name = "demoCollapsiblePanel";
-            demoCollapsiblePanel.Size = new Size(361, 86);
-            demoCollapsiblePanel.TabIndex = 8;
-            // 
-            // demoContentPanel
-            // 
-            demoContentPanel.Controls.Add(lblDemoStatus);
-            demoContentPanel.Controls.Add(btnStopDemo);
-            demoContentPanel.Controls.Add(btnStartDemo);
-            demoContentPanel.Controls.Add(cmbDemoScenarios);
-            demoContentPanel.Dock = DockStyle.Fill;
-            demoContentPanel.Location = new Point(0, 23);
-            demoContentPanel.Name = "demoContentPanel";
-            demoContentPanel.Size = new Size(359, 61);
-            demoContentPanel.TabIndex = 1;
-            // 
-            // lblDemoStatus
-            // 
-            lblDemoStatus.AutoSize = true;
-            lblDemoStatus.Location = new Point(162, 34);
-            lblDemoStatus.Name = "lblDemoStatus";
-            lblDemoStatus.Size = new Size(115, 15);
-            lblDemoStatus.TabIndex = 3;
-            lblDemoStatus.Text = "Статус: Остановлен";
-            // 
-            // btnStopDemo
-            // 
-            btnStopDemo.Enabled = false;
-            btnStopDemo.Location = new Point(246, 6);
-            btnStopDemo.Name = "btnStopDemo";
-            btnStopDemo.Size = new Size(71, 25);
-            btnStopDemo.TabIndex = 2;
-            btnStopDemo.Text = "Остановить";
-            btnStopDemo.UseVisualStyleBackColor = true;
-            // 
-            // btnStartDemo
-            // 
-            btnStartDemo.Location = new Point(162, 6);
-            btnStartDemo.Name = "btnStartDemo";
-            btnStartDemo.Size = new Size(71, 25);
-            btnStartDemo.TabIndex = 1;
-            btnStartDemo.Text = "Запустить";
-            btnStartDemo.UseVisualStyleBackColor = true;
-            // 
-            // cmbDemoScenarios
-            // 
-            cmbDemoScenarios.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbDemoScenarios.FormattingEnabled = true;
-            cmbDemoScenarios.Location = new Point(10, 6);
-            cmbDemoScenarios.Name = "cmbDemoScenarios";
-            cmbDemoScenarios.Size = new Size(135, 23);
-            cmbDemoScenarios.TabIndex = 0;
-            // 
-            // demoHeaderPanel
-            // 
-            demoHeaderPanel.BackColor = SystemColors.ActiveCaption;
-            demoHeaderPanel.Controls.Add(demoHeaderLabel);
-            demoHeaderPanel.Cursor = Cursors.Hand;
-            demoHeaderPanel.Dock = DockStyle.Top;
-            demoHeaderPanel.Location = new Point(0, 0);
-            demoHeaderPanel.Name = "demoHeaderPanel";
-            demoHeaderPanel.Size = new Size(359, 23);
-            demoHeaderPanel.TabIndex = 0;
-            demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            // 
-            // demoHeaderLabel
-            // 
-            demoHeaderLabel.Dock = DockStyle.Fill;
-            demoHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            demoHeaderLabel.Location = new Point(0, 0);
-            demoHeaderLabel.Name = "demoHeaderLabel";
-            demoHeaderLabel.Size = new Size(359, 23);
-            demoHeaderLabel.TabIndex = 0;
-            demoHeaderLabel.Text = "ЛК-ВИЗ через route.json";
-            // 
-            // panelDownRight
-            // 
-            panelDownRight.BorderStyle = BorderStyle.FixedSingle;
-            panelDownRight.Controls.Add(beelinkCollapsiblePanel);
-            panelDownRight.Controls.Add(httpProtokolCollapsiblePanel);
-            panelDownRight.Controls.Add(httpPayCollapsiblePanel);
-            panelDownRight.Controls.Add(hermesCollapsiblePanel);
-            panelDownRight.Location = new Point(9, 10);
-            panelDownRight.Name = "panelDownRight";
-            panelDownRight.Size = new Size(580, 566);
-            panelDownRight.TabIndex = 1;
-            // 
             // httpProtokolCollapsiblePanel
             // 
             httpProtokolCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
@@ -839,9 +965,9 @@
             // 
             // btnHttpProtokolUpdate
             // 
-            btnHttpProtokolUpdate.Location = new Point(200, 4);
+            btnHttpProtokolUpdate.Location = new Point(126, 33);
             btnHttpProtokolUpdate.Name = "btnHttpProtokolUpdate";
-            btnHttpProtokolUpdate.Size = new Size(70, 20);
+            btnHttpProtokolUpdate.Size = new Size(70, 22);
             btnHttpProtokolUpdate.TabIndex = 7;
             btnHttpProtokolUpdate.Text = "Обновить";
             btnHttpProtokolUpdate.UseVisualStyleBackColor = true;
@@ -849,9 +975,9 @@
             // 
             // btnHttpProtokolTest
             // 
-            btnHttpProtokolTest.Location = new Point(200, 27);
+            btnHttpProtokolTest.Location = new Point(220, 36);
             btnHttpProtokolTest.Name = "btnHttpProtokolTest";
-            btnHttpProtokolTest.Size = new Size(47, 23);
+            btnHttpProtokolTest.Size = new Size(47, 20);
             btnHttpProtokolTest.TabIndex = 6;
             btnHttpProtokolTest.Text = "Тест";
             btnHttpProtokolTest.UseVisualStyleBackColor = true;
@@ -860,9 +986,9 @@
             // btnHttpProtokolStop
             // 
             btnHttpProtokolStop.Enabled = false;
-            btnHttpProtokolStop.Location = new Point(126, 28);
+            btnHttpProtokolStop.Location = new Point(200, 4);
             btnHttpProtokolStop.Name = "btnHttpProtokolStop";
-            btnHttpProtokolStop.Size = new Size(67, 20);
+            btnHttpProtokolStop.Size = new Size(67, 25);
             btnHttpProtokolStop.TabIndex = 5;
             btnHttpProtokolStop.Text = "Стоп";
             btnHttpProtokolStop.UseVisualStyleBackColor = true;
@@ -872,7 +998,7 @@
             // 
             btnHttpProtokolStart.Location = new Point(126, 4);
             btnHttpProtokolStart.Name = "btnHttpProtokolStart";
-            btnHttpProtokolStart.Size = new Size(67, 20);
+            btnHttpProtokolStart.Size = new Size(67, 25);
             btnHttpProtokolStart.TabIndex = 4;
             btnHttpProtokolStart.Text = "Старт";
             btnHttpProtokolStart.UseVisualStyleBackColor = true;
@@ -1036,7 +1162,7 @@
             hermesCollapsiblePanel.Location = new Point(3, 217);
             hermesCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             hermesCollapsiblePanel.Name = "hermesCollapsiblePanel";
-            hermesCollapsiblePanel.Size = new Size(366, 97);
+            hermesCollapsiblePanel.Size = new Size(368, 97);
             hermesCollapsiblePanel.TabIndex = 3;
             // 
             // hermesContentPanel
@@ -1053,7 +1179,7 @@
             hermesContentPanel.Dock = DockStyle.Fill;
             hermesContentPanel.Location = new Point(0, 24);
             hermesContentPanel.Name = "hermesContentPanel";
-            hermesContentPanel.Size = new Size(364, 71);
+            hermesContentPanel.Size = new Size(366, 71);
             hermesContentPanel.TabIndex = 1;
             // 
             // lblHermesEntered
@@ -1148,7 +1274,7 @@
             hermesHeaderPanel.Dock = DockStyle.Top;
             hermesHeaderPanel.Location = new Point(0, 0);
             hermesHeaderPanel.Name = "hermesHeaderPanel";
-            hermesHeaderPanel.Size = new Size(364, 24);
+            hermesHeaderPanel.Size = new Size(366, 24);
             hermesHeaderPanel.TabIndex = 0;
             hermesHeaderPanel.Click += CollapsiblePanelHeader_Click;
             // 
@@ -1158,7 +1284,7 @@
             hermesHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             hermesHeaderLabel.Location = new Point(0, 0);
             hermesHeaderLabel.Name = "hermesHeaderLabel";
-            hermesHeaderLabel.Size = new Size(364, 24);
+            hermesHeaderLabel.Size = new Size(366, 24);
             hermesHeaderLabel.TabIndex = 0;
             hermesHeaderLabel.Text = "Гермес";
             hermesHeaderLabel.Click += CollapsiblePanelHeader_Click;
@@ -1199,6 +1325,7 @@
             // 
             // settingsTabPage
             // 
+            settingsTabPage.Controls.Add(sekopSettingsGroupBox);
             settingsTabPage.Controls.Add(httpPayGroupBox);
             settingsTabPage.Controls.Add(httpProtokolGroupBox);
             settingsTabPage.Controls.Add(hermesGroupBox);
@@ -1212,6 +1339,77 @@
             settingsTabPage.TabIndex = 1;
             settingsTabPage.Text = "Настройки";
             settingsTabPage.UseVisualStyleBackColor = true;
+            // 
+            // sekopSettingsGroupBox
+            // 
+            sekopSettingsGroupBox.Controls.Add(sekopResetButton);
+            sekopSettingsGroupBox.Controls.Add(sekopSaveButton);
+            sekopSettingsGroupBox.Controls.Add(sekopPortNumeric);
+            sekopSettingsGroupBox.Controls.Add(sekopPortLabel);
+            sekopSettingsGroupBox.Controls.Add(sekopIpTextBox);
+            sekopSettingsGroupBox.Controls.Add(sekopIpLabel);
+            sekopSettingsGroupBox.Location = new Point(382, 190);
+            sekopSettingsGroupBox.Name = "sekopSettingsGroupBox";
+            sekopSettingsGroupBox.Size = new Size(262, 93);
+            sekopSettingsGroupBox.TabIndex = 6;
+            sekopSettingsGroupBox.TabStop = false;
+            sekopSettingsGroupBox.Text = "Протокол СЭКОП";
+            // 
+            // sekopResetButton
+            // 
+            sekopResetButton.Location = new Point(160, 57);
+            sekopResetButton.Name = "sekopResetButton";
+            sekopResetButton.Size = new Size(75, 23);
+            sekopResetButton.TabIndex = 6;
+            sekopResetButton.Text = "Сбросить";
+            sekopResetButton.UseVisualStyleBackColor = true;
+            sekopResetButton.Click += sekopResetButton_Click;
+            // 
+            // sekopSaveButton
+            // 
+            sekopSaveButton.Location = new Point(160, 29);
+            sekopSaveButton.Name = "sekopSaveButton";
+            sekopSaveButton.Size = new Size(75, 23);
+            sekopSaveButton.TabIndex = 5;
+            sekopSaveButton.Text = "Сохранить";
+            sekopSaveButton.UseVisualStyleBackColor = true;
+            sekopSaveButton.Click += sekopSaveButton_Click;
+            // 
+            // sekopPortNumeric
+            // 
+            sekopPortNumeric.Location = new Point(82, 58);
+            sekopPortNumeric.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
+            sekopPortNumeric.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            sekopPortNumeric.Name = "sekopPortNumeric";
+            sekopPortNumeric.Size = new Size(68, 23);
+            sekopPortNumeric.TabIndex = 4;
+            sekopPortNumeric.Value = new decimal(new int[] { 13181, 0, 0, 0 });
+            // 
+            // sekopPortLabel
+            // 
+            sekopPortLabel.AutoSize = true;
+            sekopPortLabel.Location = new Point(16, 64);
+            sekopPortLabel.Name = "sekopPortLabel";
+            sekopPortLabel.Size = new Size(38, 15);
+            sekopPortLabel.TabIndex = 2;
+            sekopPortLabel.Text = "Порт:";
+            // 
+            // sekopIpTextBox
+            // 
+            sekopIpTextBox.Location = new Point(82, 29);
+            sekopIpTextBox.Name = "sekopIpTextBox";
+            sekopIpTextBox.Size = new Size(68, 23);
+            sekopIpTextBox.TabIndex = 1;
+            sekopIpTextBox.Text = "172.16.8.12";
+            // 
+            // sekopIpLabel
+            // 
+            sekopIpLabel.AutoSize = true;
+            sekopIpLabel.Location = new Point(16, 27);
+            sekopIpLabel.Name = "sekopIpLabel";
+            sekopIpLabel.Size = new Size(54, 15);
+            sekopIpLabel.TabIndex = 0;
+            sekopIpLabel.Text = "IP адрес:";
             // 
             // httpPayGroupBox
             // 
@@ -1233,9 +1431,9 @@
             httpPayGroupBox.Controls.Add(httpPayPortLabel);
             httpPayGroupBox.Controls.Add(httpPayIpTextBox);
             httpPayGroupBox.Controls.Add(httpPayIpLabel);
-            httpPayGroupBox.Location = new Point(436, 166);
+            httpPayGroupBox.Location = new Point(382, 10);
             httpPayGroupBox.Name = "httpPayGroupBox";
-            httpPayGroupBox.Size = new Size(369, 194);
+            httpPayGroupBox.Size = new Size(369, 174);
             httpPayGroupBox.TabIndex = 5;
             httpPayGroupBox.TabStop = false;
             httpPayGroupBox.Text = "Протокол HTTP";
@@ -1404,9 +1602,9 @@
             httpProtokolGroupBox.Controls.Add(httpProtokolPortLabel);
             httpProtokolGroupBox.Controls.Add(httpProtokolIpTextBox);
             httpProtokolGroupBox.Controls.Add(httpProtokolIpLabel);
-            httpProtokolGroupBox.Location = new Point(10, 366);
+            httpProtokolGroupBox.Location = new Point(650, 190);
             httpProtokolGroupBox.Name = "httpProtokolGroupBox";
-            httpProtokolGroupBox.Size = new Size(319, 80);
+            httpProtokolGroupBox.Size = new Size(319, 93);
             httpProtokolGroupBox.TabIndex = 4;
             httpProtokolGroupBox.TabStop = false;
             httpProtokolGroupBox.Text = "Протокол JSON RPC";
@@ -1479,16 +1677,16 @@
             hermesGroupBox.Controls.Add(hermesPortLabel);
             hermesGroupBox.Controls.Add(hermesIpTextBox);
             hermesGroupBox.Controls.Add(hermesIpLabel);
-            hermesGroupBox.Location = new Point(436, 10);
+            hermesGroupBox.Location = new Point(10, 366);
             hermesGroupBox.Name = "hermesGroupBox";
-            hermesGroupBox.Size = new Size(369, 150);
+            hermesGroupBox.Size = new Size(319, 150);
             hermesGroupBox.TabIndex = 3;
             hermesGroupBox.TabStop = false;
             hermesGroupBox.Text = "Гермес SSH";
             // 
             // hermesResetButton
             // 
-            hermesResetButton.Location = new Point(280, 52);
+            hermesResetButton.Location = new Point(228, 50);
             hermesResetButton.Name = "hermesResetButton";
             hermesResetButton.Size = new Size(80, 25);
             hermesResetButton.TabIndex = 11;
@@ -1498,7 +1696,7 @@
             // 
             // hermesSaveButton
             // 
-            hermesSaveButton.Location = new Point(280, 22);
+            hermesSaveButton.Location = new Point(228, 22);
             hermesSaveButton.Name = "hermesSaveButton";
             hermesSaveButton.Size = new Size(80, 25);
             hermesSaveButton.TabIndex = 10;
@@ -1545,7 +1743,7 @@
             hermesPortNumeric.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
             hermesPortNumeric.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             hermesPortNumeric.Name = "hermesPortNumeric";
-            hermesPortNumeric.Size = new Size(150, 23);
+            hermesPortNumeric.Size = new Size(80, 23);
             hermesPortNumeric.TabIndex = 3;
             hermesPortNumeric.Value = new decimal(new int[] { 2323, 0, 0, 0 });
             // 
@@ -1562,7 +1760,7 @@
             // 
             hermesIpTextBox.Location = new Point(121, 25);
             hermesIpTextBox.Name = "hermesIpTextBox";
-            hermesIpTextBox.Size = new Size(150, 23);
+            hermesIpTextBox.Size = new Size(80, 23);
             hermesIpTextBox.TabIndex = 1;
             // 
             // hermesIpLabel
@@ -1732,16 +1930,16 @@
             sshBeelinkGroupBox.Controls.Add(ipLabel);
             sshBeelinkGroupBox.Location = new Point(10, 10);
             sshBeelinkGroupBox.Name = "sshBeelinkGroupBox";
-            sshBeelinkGroupBox.Size = new Size(369, 174);
+            sshBeelinkGroupBox.Size = new Size(319, 174);
             sshBeelinkGroupBox.TabIndex = 0;
             sshBeelinkGroupBox.TabStop = false;
             sshBeelinkGroupBox.Text = "SSH Beelink";
             // 
             // resetButton
             // 
-            resetButton.Location = new Point(280, 52);
+            resetButton.Location = new Point(219, 48);
             resetButton.Name = "resetButton";
-            resetButton.Size = new Size(80, 25);
+            resetButton.Size = new Size(80, 26);
             resetButton.TabIndex = 11;
             resetButton.Text = "Сбросить";
             resetButton.UseVisualStyleBackColor = true;
@@ -1749,9 +1947,9 @@
             // 
             // saveButton
             // 
-            saveButton.Location = new Point(280, 22);
+            saveButton.Location = new Point(219, 18);
             saveButton.Name = "saveButton";
-            saveButton.Size = new Size(80, 25);
+            saveButton.Size = new Size(80, 26);
             saveButton.TabIndex = 10;
             saveButton.Text = "Сохранить";
             saveButton.UseVisualStyleBackColor = true;
@@ -1813,7 +2011,7 @@
             portNumeric.Maximum = new decimal(new int[] { 65535, 0, 0, 0 });
             portNumeric.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             portNumeric.Name = "portNumeric";
-            portNumeric.Size = new Size(150, 23);
+            portNumeric.Size = new Size(80, 23);
             portNumeric.TabIndex = 3;
             portNumeric.Value = new decimal(new int[] { 2323, 0, 0, 0 });
             // 
@@ -1830,7 +2028,7 @@
             // 
             ipTextBox.Location = new Point(121, 25);
             ipTextBox.Name = "ipTextBox";
-            ipTextBox.Size = new Size(150, 23);
+            ipTextBox.Size = new Size(80, 23);
             ipTextBox.TabIndex = 1;
             // 
             // ipLabel
@@ -1860,25 +2058,30 @@
             splitContainerMain.ResumeLayout(false);
             panelLeft.ResumeLayout(false);
             leftFlowLayout.ResumeLayout(false);
+            webServerCollapsiblePanel.ResumeLayout(false);
+            webServerContentPanel.ResumeLayout(false);
+            webServerContentPanel.PerformLayout();
+            webServerHeaderPanel.ResumeLayout(false);
+            demoCollapsiblePanel.ResumeLayout(false);
+            demoContentPanel.ResumeLayout(false);
+            demoContentPanel.PerformLayout();
+            demoHeaderPanel.ResumeLayout(false);
+            usrTransferCollapsiblePanel.ResumeLayout(false);
+            usrTransferContentPanel.ResumeLayout(false);
+            usrTransferContentPanel.PerformLayout();
+            usrTransferHeaderPanel.ResumeLayout(false);
+            panelDownRight.ResumeLayout(false);
+            sekopCollapsiblePanel.ResumeLayout(false);
+            sekopContentPanel.ResumeLayout(false);
+            sekopContentPanel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)sekopPassengersNumeric).EndInit();
+            ((System.ComponentModel.ISupportInitialize)sekopTransactionsNumeric).EndInit();
+            panel3.ResumeLayout(false);
             beelinkCollapsiblePanel.ResumeLayout(false);
             beelinkContentPanel.ResumeLayout(false);
             beelinkContentPanel.PerformLayout();
             timeGroupBox.ResumeLayout(false);
             beelinkHeaderPanel.ResumeLayout(false);
-            webServerCollapsiblePanel.ResumeLayout(false);
-            webServerContentPanel.ResumeLayout(false);
-            webServerContentPanel.PerformLayout();
-            webServerHeaderPanel.ResumeLayout(false);
-            panelRight.ResumeLayout(false);
-            usrTransferCollapsiblePanel.ResumeLayout(false);
-            usrTransferContentPanel.ResumeLayout(false);
-            usrTransferContentPanel.PerformLayout();
-            usrTransferHeaderPanel.ResumeLayout(false);
-            demoCollapsiblePanel.ResumeLayout(false);
-            demoContentPanel.ResumeLayout(false);
-            demoContentPanel.PerformLayout();
-            demoHeaderPanel.ResumeLayout(false);
-            panelDownRight.ResumeLayout(false);
             httpProtokolCollapsiblePanel.ResumeLayout(false);
             httpProtokolContentPanel.ResumeLayout(false);
             httpProtokolContentPanel.PerformLayout();
@@ -1896,6 +2099,9 @@
             logPanel.ResumeLayout(false);
             logPanel.PerformLayout();
             settingsTabPage.ResumeLayout(false);
+            sekopSettingsGroupBox.ResumeLayout(false);
+            sekopSettingsGroupBox.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)sekopPortNumeric).EndInit();
             httpPayGroupBox.ResumeLayout(false);
             httpPayGroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)httpPayIntervalNumeric).EndInit();
@@ -1930,7 +2136,6 @@
         private SplitContainer splitContainerMain;
         private Panel panelLeft;
         private FlowLayoutPanel leftFlowLayout;
-        private Panel panelRight;
         private Panel logPanel;
         #endregion
 
@@ -2115,5 +2320,24 @@
         private Button btnHttpPayStart;
         private Button btnHttpPayStop;
         private Label lblHttpPayStatus;
+        private GroupBox sekopSettingsGroupBox;
+        private Label sekopIpLabel;
+        private Label sekopPortLabel;
+        private TextBox sekopIpTextBox;
+        private Button sekopResetButton;
+        private Button sekopSaveButton;
+        private NumericUpDown sekopPortNumeric;
+        private System.ComponentModel.BackgroundWorker backgroundWorker1;
+        private Panel sekopCollapsiblePanel;
+        private Panel sekopContentPanel;
+        private Label sekopTransactionsLabel;
+        private NumericUpDown sekopTransactionsNumeric;
+        private Button sekopStartButton;
+        private Button sekopStopButton;
+        private Label sekopStatusLabel;
+        private Panel panel3;
+        private Label sekopHeaderPanel;
+        private Label sekopPassengersLabel;
+        private NumericUpDown sekopPassengersNumeric;
     }
 }
