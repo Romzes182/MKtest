@@ -224,6 +224,17 @@ namespace MKtest
             btnHttpProtokolTest.Click += btnHttpProtokolTest_Click;
             btnHttpProtokolUpdate.Click += btnHttpProtokolUpdate_Click;
 
+
+            sekopHeaderPanel.Click -= CollapsiblePanelHeader_Click;
+            sekopHeaderLabel.Click -= CollapsiblePanelHeader_Click;
+
+            sekopHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            sekopHeaderLabel.Click += CollapsiblePanelHeader_Click;
+
+            sekopCollapsiblePanel.Tag = "sekop";
+
+           
+
             _settingsManager?.LoadSettings();
             Resize += MainForm_Resize;
             CollapseAllPanels();
@@ -238,6 +249,7 @@ namespace MKtest
             _originalHeights[hermesCollapsiblePanel] = hermesCollapsiblePanel.Height;
             _originalHeights[httpPayCollapsiblePanel] = httpPayCollapsiblePanel.Height;
             _originalHeights[httpProtokolCollapsiblePanel] = httpProtokolCollapsiblePanel.Height;
+            _originalHeights[sekopCollapsiblePanel] = sekopCollapsiblePanel.Height;
         }
 
         private void CollapseAllPanels()
@@ -270,6 +282,9 @@ namespace MKtest
             httpProtokolCollapsiblePanel.Height = httpProtokolHeaderPanel.Height;
             httpProtokolHeaderLabel.Text = "Протокол JSON-RPC ▶";
 
+            sekopContentPanel.Visible = false;
+            sekopCollapsiblePanel.Height = sekopHeaderPanel.Height;
+            sekopHeaderLabel.Text = "Протокол СЭКОП ▶";
             UpdateLayout();
         }
 
@@ -341,6 +356,10 @@ namespace MKtest
                 case "httpprotokol":
                     label.Text = isExpanded
                         ? "Протокол JSON-RPC ▼" : "Протокол JSON-RPC ▶";
+                    break;
+                case "sekop":
+                    label.Text = isExpanded
+                        ? "Протокол СЭКОП ▼" : "Протокол СЭКОП ▶";
                     break;
             }
         }
@@ -1110,6 +1129,8 @@ namespace MKtest
 
             sekopStatusLabel.Text = "Статус: Остановлено";
         }
+
+
 
         private void sekopSaveButton_Click(object sender, EventArgs e)
         {

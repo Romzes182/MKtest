@@ -74,7 +74,7 @@
             sekopStartButton = new Button();
             sekopStopButton = new Button();
             sekopStatusLabel = new Label();
-            panel3 = new Panel();
+            sekopHeaderLabel = new Panel();
             sekopHeaderPanel = new Label();
             beelinkCollapsiblePanel = new Panel();
             beelinkContentPanel = new Panel();
@@ -224,7 +224,7 @@
             sekopContentPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)sekopPassengersNumeric).BeginInit();
             ((System.ComponentModel.ISupportInitialize)sekopTransactionsNumeric).BeginInit();
-            panel3.SuspendLayout();
+            sekopHeaderLabel.SuspendLayout();
             beelinkCollapsiblePanel.SuspendLayout();
             beelinkContentPanel.SuspendLayout();
             timeGroupBox.SuspendLayout();
@@ -660,7 +660,7 @@
             // 
             sekopCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             sekopCollapsiblePanel.Controls.Add(sekopContentPanel);
-            sekopCollapsiblePanel.Controls.Add(panel3);
+            sekopCollapsiblePanel.Controls.Add(sekopHeaderLabel);
             sekopCollapsiblePanel.Location = new Point(3, 111);
             sekopCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             sekopCollapsiblePanel.Name = "sekopCollapsiblePanel";
@@ -746,16 +746,16 @@
             sekopStatusLabel.TabIndex = 4;
             sekopStatusLabel.Text = "Статус: Остановлено";
             // 
-            // panel3
+            // sekopHeaderLabel
             // 
-            panel3.BackColor = SystemColors.ActiveCaption;
-            panel3.Controls.Add(sekopHeaderPanel);
-            panel3.Cursor = Cursors.Hand;
-            panel3.Dock = DockStyle.Top;
-            panel3.Location = new Point(0, 0);
-            panel3.Name = "panel3";
-            panel3.Size = new Size(366, 24);
-            panel3.TabIndex = 0;
+            sekopHeaderLabel.BackColor = SystemColors.ActiveCaption;
+            sekopHeaderLabel.Controls.Add(sekopHeaderPanel);
+            sekopHeaderLabel.Cursor = Cursors.Hand;
+            sekopHeaderLabel.Dock = DockStyle.Top;
+            sekopHeaderLabel.Location = new Point(0, 0);
+            sekopHeaderLabel.Name = "sekopHeaderLabel";
+            sekopHeaderLabel.Size = new Size(366, 24);
+            sekopHeaderLabel.TabIndex = 0;
             // 
             // sekopHeaderPanel
             // 
@@ -766,6 +766,7 @@
             sekopHeaderPanel.Size = new Size(366, 24);
             sekopHeaderPanel.TabIndex = 0;
             sekopHeaderPanel.Text = "Протокол СЭКОП";
+            sekopHeaderPanel.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // beelinkCollapsiblePanel
             // 
@@ -2076,7 +2077,7 @@
             sekopContentPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)sekopPassengersNumeric).EndInit();
             ((System.ComponentModel.ISupportInitialize)sekopTransactionsNumeric).EndInit();
-            panel3.ResumeLayout(false);
+            sekopHeaderLabel.ResumeLayout(false);
             beelinkCollapsiblePanel.ResumeLayout(false);
             beelinkContentPanel.ResumeLayout(false);
             beelinkContentPanel.PerformLayout();
@@ -2335,7 +2336,7 @@
         private Button sekopStartButton;
         private Button sekopStopButton;
         private Label sekopStatusLabel;
-        private Panel panel3;
+        private Panel sekopHeaderLabel;
         private Label sekopHeaderPanel;
         private Label sekopPassengersLabel;
         private NumericUpDown sekopPassengersNumeric;
