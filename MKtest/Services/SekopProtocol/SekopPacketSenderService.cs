@@ -13,6 +13,8 @@ namespace MKtest.Services.SekopProtocol
 
         public async Task ConnectAsync(string ip, int port)
         {
+            Disconnect();
+
             _client = new TcpClient();
 
             await _client.ConnectAsync(ip, port);

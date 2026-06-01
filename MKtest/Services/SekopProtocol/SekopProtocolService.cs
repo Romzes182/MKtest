@@ -16,22 +16,24 @@ namespace MKtest.Services.SekopProtocol
             _sender = sender;
         }
 
-        public async Task<string> SendAsync(
-            int transactions,
-            int passengers)
+        public async Task<string> SendAsync(int transactions,int passengers)
         {
             byte[] packet = SekopPacketBuilder.BuildPacket(
                 transactions,
                 passengers);
 
-            if (!_sender.IsConnected)
-            {
-                await _sender.ConnectAsync(
-                    _config.IpAddress,
-                    _config.Port);
-            }
+            await _sender.ConnectAsync(
+                _config.IpAddress,
+                _config.Port);
 
-            await _sender.SendPacketAsync(packet);
+            try
+            {
+                await _sender.SendPacketAsync(packet);
+            }
+            finally
+            {
+                _sender.Disconnect();
+            }
 
             return SekopPacketBuilder.ToHexString(packet);
         }

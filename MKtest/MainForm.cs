@@ -232,8 +232,9 @@ namespace MKtest
             sekopHeaderLabel.Click += CollapsiblePanelHeader_Click;
 
             sekopCollapsiblePanel.Tag = "sekop";
+            sekopTransactionsNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
+            sekopPassengersNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
 
-           
 
             _settingsManager?.LoadSettings();
             Resize += MainForm_Resize;
@@ -291,6 +292,25 @@ namespace MKtest
         private void MainForm_Resize(object? sender, EventArgs e)
         {
             if (mainTabControl.SelectedTab == mainTabPage) UpdateLayout();
+        }
+
+        private void LayoutRightPanels()
+        {
+            const int leftX = 3;
+            const int rightX = 309;
+            const int topY = 3;
+            const int gap = 10;
+
+            sekopCollapsiblePanel.Location = new Point(leftX, topY);
+            httpPayCollapsiblePanel.Location = new Point(rightX, topY);
+
+            hermesCollapsiblePanel.Location = new Point(
+                leftX,
+                sekopCollapsiblePanel.Bottom + gap);
+
+            beelinkCollapsiblePanel.Location = new Point(
+                leftX,
+                hermesCollapsiblePanel.Bottom + gap);
         }
         #endregion
 
@@ -1074,10 +1094,21 @@ namespace MKtest
 
         }
 
-
-
         #region Сэкоп Протокол
 
+        private SekopValues ReadSekopValues()
+        {
+            if (sekopTransactionsNumeric.InvokeRequired ||
+                sekopPassengersNumeric.InvokeRequired)
+            {
+                return (SekopValues)Invoke(
+                    new Func<SekopValues>(ReadSekopValues));
+            }
+
+            return new SekopValues(
+                (int)sekopTransactionsNumeric.Value,
+                (int)sekopPassengersNumeric.Value);
+        }
         private void InitializeSekopProtocolMain()
         {
             sekopTransactionsNumeric.Value = 0;
@@ -1095,12 +1126,8 @@ namespace MKtest
 
             try
             {
-                int transactions = (int)sekopTransactionsNumeric.Value;
-                int passengers = (int)sekopPassengersNumeric.Value;
-
                 await _sekopProtocolManager.StartAsync(
-                    transactions,
-                    passengers);
+                    ReadSekopValues);
 
                 sekopStartButton.Enabled = false;
                 sekopStopButton.Enabled = true;
@@ -1113,7 +1140,6 @@ namespace MKtest
 
                 _logManager?.AppendLog(
                     $"Ошибка запуска протокола СЭКОП: {ex.Message}");
-
             }
         }
 
@@ -1174,6 +1200,22 @@ namespace MKtest
                     MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 _settingsManager.ResetSekopProtocolSettings(_logManager);
+            }
+        }
+
+        private async void sekopValuesNumeric_ValueChanged(object? sender, EventArgs e)
+        {
+            if (_sekopProtocolManager?.IsRunning != true)
+                return;
+
+            try
+            {
+                await _sekopProtocolManager.SendCurrentAsync();
+            }
+            catch (Exception ex)
+            {
+                _logManager?.AppendLog(
+                    $"Ошибка отправки СЭКОП при изменении значений: {ex.Message}");
             }
         }
 

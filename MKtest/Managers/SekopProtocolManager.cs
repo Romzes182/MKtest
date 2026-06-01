@@ -4,10 +4,16 @@ using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
+    public readonly record struct SekopValues(
+        int Transactions,
+        int Passengers);
+
     public class SekopProtocolManager
     {
         private readonly SekopProtocolService _service;
         private readonly LogManager _logManager;
+
+        private Func<SekopValues>? _getValues;
 
         private bool _running;
 
@@ -22,32 +28,31 @@ namespace MKtest.Managers
         }
 
         public async Task StartAsync(
-            int transactions,
-            int passengers)
+            Func<SekopValues> getValues)
         {
             if (_running)
                 return;
 
+            _getValues = getValues;
             _running = true;
 
-            try
-            {
-                string hexPacket = await _service.SendAsync(
-                    transactions,
-                    passengers);
+            await SendCurrentAsync();
+        }
 
-                _logManager.AppendLog(
-                    $"Протокол СЭКОП отправлен HEX: {hexPacket}");
-            }
-            catch (Exception ex)
-            {
-                _running = false;
+        public async Task SendCurrentAsync()
+        {
+            if (_getValues == null)
+                throw new InvalidOperationException(
+                    "Источник данных СЭКОП не задан.");
 
-                _logManager.AppendLog(
-                    $"Ошибка протокола СЭКОП: {ex.Message}");
+            SekopValues values = _getValues.Invoke();
 
-                throw;
-            }
+            string hexPacket = await _service.SendAsync(
+                values.Transactions,
+                values.Passengers);
+
+            _logManager.AppendLog(
+                $"Протокол СЭКОП отправлен HEX: {hexPacket}");
         }
 
         public void Stop()
