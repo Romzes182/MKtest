@@ -64,6 +64,14 @@
             lblInMode = new Label();
             usrTransferHeaderPanel = new Panel();
             usrTransferHeaderLabel = new Label();
+            emergencyCollapsiblePanel = new Panel();
+            emergencyContentPanel = new Panel();
+            btnEmergency4 = new Button();
+            btnEmergency3 = new Button();
+            btnEmergency2 = new Button();
+            btnEmergency1 = new Button();
+            emergencyHeaderPanel = new Panel();
+            emergencyHeaderLabel = new Label();
             panelDownRight = new Panel();
             sekopCollapsiblePanel = new Panel();
             sekopContentPanel = new Panel();
@@ -219,6 +227,9 @@
             usrTransferCollapsiblePanel.SuspendLayout();
             usrTransferContentPanel.SuspendLayout();
             usrTransferHeaderPanel.SuspendLayout();
+            emergencyCollapsiblePanel.SuspendLayout();
+            emergencyContentPanel.SuspendLayout();
+            emergencyHeaderPanel.SuspendLayout();
             panelDownRight.SuspendLayout();
             sekopCollapsiblePanel.SuspendLayout();
             sekopContentPanel.SuspendLayout();
@@ -318,6 +329,7 @@
             leftFlowLayout.Controls.Add(webServerCollapsiblePanel);
             leftFlowLayout.Controls.Add(demoCollapsiblePanel);
             leftFlowLayout.Controls.Add(usrTransferCollapsiblePanel);
+            leftFlowLayout.Controls.Add(emergencyCollapsiblePanel);
             leftFlowLayout.FlowDirection = FlowDirection.TopDown;
             leftFlowLayout.Location = new Point(1, 10);
             leftFlowLayout.Name = "leftFlowLayout";
@@ -642,6 +654,90 @@
             usrTransferHeaderLabel.Size = new Size(359, 24);
             usrTransferHeaderLabel.TabIndex = 0;
             usrTransferHeaderLabel.Text = "ИР-0652";
+            // 
+            // emergencyCollapsiblePanel
+            // 
+            emergencyCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
+            emergencyCollapsiblePanel.Controls.Add(emergencyContentPanel);
+            emergencyCollapsiblePanel.Controls.Add(emergencyHeaderPanel);
+            emergencyCollapsiblePanel.Location = new Point(3, 407);
+            emergencyCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
+            emergencyCollapsiblePanel.Name = "emergencyCollapsiblePanel";
+            emergencyCollapsiblePanel.Size = new Size(361, 81);
+            emergencyCollapsiblePanel.TabIndex = 3;
+            // 
+            // emergencyContentPanel
+            // 
+            emergencyContentPanel.Controls.Add(btnEmergency4);
+            emergencyContentPanel.Controls.Add(btnEmergency3);
+            emergencyContentPanel.Controls.Add(btnEmergency2);
+            emergencyContentPanel.Controls.Add(btnEmergency1);
+            emergencyContentPanel.Dock = DockStyle.Fill;
+            emergencyContentPanel.Location = new Point(0, 24);
+            emergencyContentPanel.Name = "emergencyContentPanel";
+            emergencyContentPanel.Size = new Size(359, 55);
+            emergencyContentPanel.TabIndex = 1;
+            // 
+            // btnEmergency4
+            // 
+            btnEmergency4.Location = new Point(258, 6);
+            btnEmergency4.Name = "btnEmergency4";
+            btnEmergency4.Size = new Size(79, 25);
+            btnEmergency4.TabIndex = 3;
+            btnEmergency4.Text = "Команда 4";
+            btnEmergency4.UseVisualStyleBackColor = true;
+            btnEmergency4.Click += btnEmergency4_Click;
+            // 
+            // btnEmergency3
+            // 
+            btnEmergency3.Location = new Point(173, 6);
+            btnEmergency3.Name = "btnEmergency3";
+            btnEmergency3.Size = new Size(79, 25);
+            btnEmergency3.TabIndex = 2;
+            btnEmergency3.Text = "Команда 3";
+            btnEmergency3.UseVisualStyleBackColor = true;
+            btnEmergency3.Click += btnEmergency3_Click;
+            // 
+            // btnEmergency2
+            // 
+            btnEmergency2.Location = new Point(88, 6);
+            btnEmergency2.Name = "btnEmergency2";
+            btnEmergency2.Size = new Size(79, 25);
+            btnEmergency2.TabIndex = 1;
+            btnEmergency2.Text = "Команда 2";
+            btnEmergency2.UseVisualStyleBackColor = true;
+            btnEmergency2.Click += btnEmergency2_Click;
+            // 
+            // btnEmergency1
+            // 
+            btnEmergency1.Location = new Point(9, 6);
+            btnEmergency1.Name = "btnEmergency1";
+            btnEmergency1.Size = new Size(73, 25);
+            btnEmergency1.TabIndex = 0;
+            btnEmergency1.Text = "Команда 1";
+            btnEmergency1.UseVisualStyleBackColor = true;
+            btnEmergency1.Click += btnEmergency1_Click;
+            // 
+            // emergencyHeaderPanel
+            // 
+            emergencyHeaderPanel.BackColor = SystemColors.ActiveCaption;
+            emergencyHeaderPanel.Controls.Add(emergencyHeaderLabel);
+            emergencyHeaderPanel.Cursor = Cursors.Hand;
+            emergencyHeaderPanel.Dock = DockStyle.Top;
+            emergencyHeaderPanel.Location = new Point(0, 0);
+            emergencyHeaderPanel.Name = "emergencyHeaderPanel";
+            emergencyHeaderPanel.Size = new Size(359, 24);
+            emergencyHeaderPanel.TabIndex = 0;
+            // 
+            // emergencyHeaderLabel
+            // 
+            emergencyHeaderLabel.Dock = DockStyle.Fill;
+            emergencyHeaderLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            emergencyHeaderLabel.Location = new Point(0, 0);
+            emergencyHeaderLabel.Name = "emergencyHeaderLabel";
+            emergencyHeaderLabel.Size = new Size(359, 24);
+            emergencyHeaderLabel.TabIndex = 0;
+            emergencyHeaderLabel.Text = "МЧС";
             // 
             // panelDownRight
             // 
@@ -2071,6 +2167,9 @@
             usrTransferContentPanel.ResumeLayout(false);
             usrTransferContentPanel.PerformLayout();
             usrTransferHeaderPanel.ResumeLayout(false);
+            emergencyCollapsiblePanel.ResumeLayout(false);
+            emergencyContentPanel.ResumeLayout(false);
+            emergencyHeaderPanel.ResumeLayout(false);
             panelDownRight.ResumeLayout(false);
             sekopCollapsiblePanel.ResumeLayout(false);
             sekopContentPanel.ResumeLayout(false);
@@ -2340,5 +2439,13 @@
         private Label sekopHeaderPanel;
         private Label sekopPassengersLabel;
         private NumericUpDown sekopPassengersNumeric;
+        private Panel emergencyCollapsiblePanel;
+        private Panel emergencyContentPanel;
+        private Button btnEmergency3;
+        private Button btnEmergency2;
+        private Button btnEmergency1;
+        private Panel emergencyHeaderPanel;
+        private Label emergencyHeaderLabel;
+        private Button btnEmergency4;
     }
 }

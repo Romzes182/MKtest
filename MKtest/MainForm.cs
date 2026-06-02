@@ -29,6 +29,7 @@ namespace MKtest
         private JSONRPCprotokolManager? _httpProtokolManager;
         private HTTPpayManager? _httpPayManager;
         private SekopProtocolManager? _sekopProtocolManager;
+        private EmergencyManager? _emergencyManager;
         #endregion
 
         #region Сервисы (объявляем как nullable)
@@ -43,6 +44,7 @@ namespace MKtest
         private IUSRTransferService? _usrTransferService;
         private SekopPacketSenderService? _sekopPacketSenderService;
         private SekopProtocolService? _sekopProtocolService;
+        private EmergencyService? _emergencyService;
         #endregion
 
         #region Веб-сервер менеджеры
@@ -106,6 +108,7 @@ namespace MKtest
             _httpPayService = new HTTPpayService(ConfigService.Config.HTTPpay);
             _sekopPacketSenderService = new SekopPacketSenderService();
             _sekopProtocolService = new SekopProtocolService(ConfigService.Config.SekopProtocol,_sekopPacketSenderService);
+            _emergencyService = new EmergencyService(_logManager);
 
         }
         #endregion
@@ -146,6 +149,9 @@ namespace MKtest
                 throw new InvalidOperationException("Сервисы протокола СЭКОП не инициализированы");
             _sekopProtocolManager = new SekopProtocolManager(_sekopProtocolService,_logManager);
 
+            if (_emergencyService == null)
+                throw new InvalidOperationException("EmergencyService не инициализирован");
+            _emergencyManager = new EmergencyManager(_emergencyService,ConfigService.Config.Emergency);
             InitializeSekopProtocolMain();
 
             InitializeDemoServices();
@@ -166,9 +172,8 @@ namespace MKtest
                 var demoConfig = new DemoConfig();
                 _demoFileService = new DemoFileService(demoConfig);
                 _demoScenarioService = new DemoScenarioService(_demoFileService, _logManager!);
-                _demoManager = new DemoScenarioManager(
-                    cmbDemoScenarios, btnStartDemo, btnStopDemo, lblDemoStatus, beelinkLogTextBox, _demoScenarioService
-                );
+                _demoManager = new DemoScenarioManager(cmbDemoScenarios, btnStartDemo, btnStopDemo,
+                    lblDemoStatus, beelinkLogTextBox, _demoScenarioService);
                 _logManager?.AppendLog("Демо-сервисы инициализированы");
             }
             catch (Exception ex)
@@ -235,6 +240,10 @@ namespace MKtest
             sekopTransactionsNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
             sekopPassengersNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
 
+            emergencyHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            emergencyHeaderLabel.Click += CollapsiblePanelHeader_Click;
+            emergencyCollapsiblePanel.Tag = "emergency";
+
 
             _settingsManager?.LoadSettings();
             Resize += MainForm_Resize;
@@ -251,6 +260,7 @@ namespace MKtest
             _originalHeights[httpPayCollapsiblePanel] = httpPayCollapsiblePanel.Height;
             _originalHeights[httpProtokolCollapsiblePanel] = httpProtokolCollapsiblePanel.Height;
             _originalHeights[sekopCollapsiblePanel] = sekopCollapsiblePanel.Height;
+            _originalHeights[emergencyCollapsiblePanel] = emergencyCollapsiblePanel.Height;
         }
 
         private void CollapseAllPanels()
@@ -286,31 +296,16 @@ namespace MKtest
             sekopContentPanel.Visible = false;
             sekopCollapsiblePanel.Height = sekopHeaderPanel.Height;
             sekopHeaderLabel.Text = "Протокол СЭКОП ▶";
+
+            emergencyContentPanel.Visible = false;
+            emergencyCollapsiblePanel.Height = emergencyHeaderPanel.Height;
+            emergencyHeaderLabel.Text ="Команды МЧС ▶";
             UpdateLayout();
         }
 
         private void MainForm_Resize(object? sender, EventArgs e)
         {
             if (mainTabControl.SelectedTab == mainTabPage) UpdateLayout();
-        }
-
-        private void LayoutRightPanels()
-        {
-            const int leftX = 3;
-            const int rightX = 309;
-            const int topY = 3;
-            const int gap = 10;
-
-            sekopCollapsiblePanel.Location = new Point(leftX, topY);
-            httpPayCollapsiblePanel.Location = new Point(rightX, topY);
-
-            hermesCollapsiblePanel.Location = new Point(
-                leftX,
-                sekopCollapsiblePanel.Bottom + gap);
-
-            beelinkCollapsiblePanel.Location = new Point(
-                leftX,
-                hermesCollapsiblePanel.Bottom + gap);
         }
         #endregion
 
@@ -381,13 +376,16 @@ namespace MKtest
                     label.Text = isExpanded
                         ? "Протокол СЭКОП ▼" : "Протокол СЭКОП ▶";
                     break;
+                case "emergency":
+                    label.Text = isExpanded
+                        ? "Команды МЧС ▼": "Команды МЧС ▶";
+                    break;
             }
         }
 
         private void UpdateLayout()
         {
             leftFlowLayout?.PerformLayout();
-            panelDownRight?.PerformLayout();
         }
         #endregion
 
@@ -1221,6 +1219,37 @@ namespace MKtest
 
         #endregion
 
+        #region МЧС
+        private async void btnEmergency1_Click(object sender,EventArgs e)
+        {
+            if (_emergencyManager == null)
+                return;
 
+            await _emergencyManager.SendCommand1Async();
+        }
+
+        private async void btnEmergency2_Click(object sender,EventArgs e)
+        {
+            if (_emergencyManager == null)
+                return;
+
+            await _emergencyManager.SendCommand2Async();
+        }
+
+        private async void btnEmergency3_Click(object sender,EventArgs e)
+        {
+            if (_emergencyManager == null)
+                return;
+
+            await _emergencyManager.SendCommand3Async();
+        }
+        private async void btnEmergency4_Click(object sender, EventArgs e)
+        {
+            if (_emergencyManager == null)
+                return;
+
+            await _emergencyManager.SendCommand4Async();
+        }
+        #endregion
     }
 }
