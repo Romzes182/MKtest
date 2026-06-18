@@ -59,7 +59,7 @@ namespace MKtest.Managers
             _demoService.ScenarioProgress += DemoService_ScenarioProgress;
         }
 
-        private void StartButton_Click(object sender, EventArgs e)
+        public void StartButton_Click(object sender, EventArgs e)
         {
             var selectedScenario = _comboBox.SelectedItem?.ToString();
             if (string.IsNullOrEmpty(selectedScenario))
@@ -70,7 +70,10 @@ namespace MKtest.Managers
 
             AppendLog($"Запуск сценария: {selectedScenario}");
             _demoService.StartScenario(selectedScenario);
+
         }
+
+        public EventHandler StartButtonHandler => StartButton_Click;
 
         private void StopButton_Click(object sender, EventArgs e)
         {

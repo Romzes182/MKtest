@@ -16,6 +16,8 @@ namespace MKtest.Services.Demoscripts
         private readonly Dictionary<string, IScenario> _scenarios;
         private CancellationTokenSource? _cts;
         private bool _isRunning;
+        private bool _manualMode;
+        private Func<Task>? _waitTaskProvider;
 
         public bool IsDemoRunning => _isRunning;
         public IReadOnlyList<string> AvailableScenarios => _scenarios.Keys.ToList();
@@ -68,9 +70,18 @@ namespace MKtest.Services.Demoscripts
             if (!_isRunning) return;
 
             _cts?.Cancel();
+            _manualMode = false;
+            _waitTaskProvider = null;
             _isRunning = false;
             DemoStatusChanged?.Invoke(this, false);
             _logManager.AppendLog("Демо сценарий остановлен.");
+        }
+
+        public void StartScenarioManual(string scenarioName, Func<Task> waitTaskProvider)
+        {
+            _manualMode = true;
+            _waitTaskProvider = waitTaskProvider;
+            StartScenario(scenarioName);
         }
 
         private async Task RunScenarioAsync(IScenario scenario, CancellationToken token)
@@ -123,13 +134,26 @@ namespace MKtest.Services.Demoscripts
         {
             try
             {
+                bool isDelayStep = string.IsNullOrEmpty(step.SourceFile) && step.DelayMs > 0;
+
+                // В ручном режиме пропускаем шаги-задержки
+                if (_manualMode && isDelayStep)
+                    return;
+
                 if (!string.IsNullOrEmpty(step.SourceFile) && !string.IsNullOrEmpty(step.TargetFile))
                 {
                     await CopyScenarioFileAsync(step, scenarioName);
-                }
 
-                if (step.DelayMs > 0)
+                    // В ручном режиме после отправки файла ждём нажатия кнопки "Далее"
+                    if (_manualMode && _waitTaskProvider != null)
+                    {
+                        ScenarioProgress?.Invoke(this, "Ожидание нажатия кнопки 'Далее'...");
+                        await WaitForManualSignalAsync(token);
+                    }
+                }
+                else if (!_manualMode && step.DelayMs > 0)
                 {
+                    // Автоматический режим – обычная задержка
                     ScenarioProgress?.Invoke(this, $"Задержка {step.DelayMs}мс: {step.Description}");
                     await Task.Delay(step.DelayMs, token);
                 }
@@ -139,6 +163,20 @@ namespace MKtest.Services.Demoscripts
                 _logManager.AppendLog($"Ошибка выполнения шага '{step.Description}': {ex.Message}");
                 ScenarioProgress?.Invoke(this, $"Ошибка: {step.Description}");
             }
+        }
+
+        private async Task WaitForManualSignalAsync(CancellationToken token)
+        {
+            if (_waitTaskProvider == null)
+                return;
+
+            Task manualSignal = _waitTaskProvider.Invoke();
+            var tcs = new TaskCompletionSource<bool>();
+            using (token.Register(() => tcs.TrySetCanceled()))
+            {
+                await Task.WhenAny(manualSignal, tcs.Task);
+            }
+            token.ThrowIfCancellationRequested();
         }
 
         private async Task CopyScenarioFileAsync(ScenarioStep step, string scenarioName)

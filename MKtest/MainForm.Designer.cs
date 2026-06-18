@@ -42,6 +42,9 @@
             webServerHeaderLabel = new Label();
             demoCollapsiblePanel = new Panel();
             demoContentPanel = new Panel();
+            btnNextStep = new Button();
+            rbManualMode = new RadioButton();
+            rbAutoMode = new RadioButton();
             lblDemoStatus = new Label();
             btnStopDemo = new Button();
             btnStartDemo = new Button();
@@ -417,11 +420,14 @@
             demoCollapsiblePanel.Location = new Point(0, 94);
             demoCollapsiblePanel.Margin = new Padding(0, 0, 0, 10);
             demoCollapsiblePanel.Name = "demoCollapsiblePanel";
-            demoCollapsiblePanel.Size = new Size(361, 86);
+            demoCollapsiblePanel.Size = new Size(361, 175);
             demoCollapsiblePanel.TabIndex = 8;
             // 
             // demoContentPanel
             // 
+            demoContentPanel.Controls.Add(btnNextStep);
+            demoContentPanel.Controls.Add(rbManualMode);
+            demoContentPanel.Controls.Add(rbAutoMode);
             demoContentPanel.Controls.Add(lblDemoStatus);
             demoContentPanel.Controls.Add(btnStopDemo);
             demoContentPanel.Controls.Add(btnStartDemo);
@@ -429,13 +435,44 @@
             demoContentPanel.Dock = DockStyle.Fill;
             demoContentPanel.Location = new Point(0, 23);
             demoContentPanel.Name = "demoContentPanel";
-            demoContentPanel.Size = new Size(359, 61);
+            demoContentPanel.Size = new Size(359, 150);
             demoContentPanel.TabIndex = 1;
+            // 
+            // btnNextStep
+            // 
+            btnNextStep.Location = new Point(162, 37);
+            btnNextStep.Name = "btnNextStep";
+            btnNextStep.Size = new Size(71, 25);
+            btnNextStep.TabIndex = 6;
+            btnNextStep.Text = "Дальше";
+            btnNextStep.UseVisualStyleBackColor = true;
+            // 
+            // rbManualMode
+            // 
+            rbManualMode.AutoSize = true;
+            rbManualMode.Location = new Point(10, 61);
+            rbManualMode.Name = "rbManualMode";
+            rbManualMode.Size = new Size(66, 19);
+            rbManualMode.TabIndex = 5;
+            rbManualMode.TabStop = true;
+            rbManualMode.Text = "Ручной";
+            rbManualMode.UseVisualStyleBackColor = true;
+            // 
+            // rbAutoMode
+            // 
+            rbAutoMode.AutoSize = true;
+            rbAutoMode.Location = new Point(10, 35);
+            rbAutoMode.Name = "rbAutoMode";
+            rbAutoMode.Size = new Size(120, 19);
+            rbAutoMode.TabIndex = 4;
+            rbAutoMode.TabStop = true;
+            rbAutoMode.Text = "Автоматический ";
+            rbAutoMode.UseVisualStyleBackColor = true;
             // 
             // lblDemoStatus
             // 
             lblDemoStatus.AutoSize = true;
-            lblDemoStatus.Location = new Point(162, 34);
+            lblDemoStatus.Location = new Point(162, 67);
             lblDemoStatus.Name = "lblDemoStatus";
             lblDemoStatus.Size = new Size(115, 15);
             lblDemoStatus.TabIndex = 3;
@@ -496,7 +533,7 @@
             usrTransferCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             usrTransferCollapsiblePanel.Controls.Add(usrTransferContentPanel);
             usrTransferCollapsiblePanel.Controls.Add(usrTransferHeaderPanel);
-            usrTransferCollapsiblePanel.Location = new Point(3, 193);
+            usrTransferCollapsiblePanel.Location = new Point(3, 282);
             usrTransferCollapsiblePanel.Name = "usrTransferCollapsiblePanel";
             usrTransferCollapsiblePanel.Size = new Size(361, 208);
             usrTransferCollapsiblePanel.TabIndex = 9;
@@ -660,7 +697,7 @@
             emergencyCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             emergencyCollapsiblePanel.Controls.Add(emergencyContentPanel);
             emergencyCollapsiblePanel.Controls.Add(emergencyHeaderPanel);
-            emergencyCollapsiblePanel.Location = new Point(3, 407);
+            emergencyCollapsiblePanel.Location = new Point(3, 496);
             emergencyCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             emergencyCollapsiblePanel.Name = "emergencyCollapsiblePanel";
             emergencyCollapsiblePanel.Size = new Size(361, 81);
@@ -2447,5 +2484,8 @@
         private Panel emergencyHeaderPanel;
         private Label emergencyHeaderLabel;
         private Button btnEmergency4;
+        private Button btnNextStep;
+        private RadioButton rbManualMode;
+        private RadioButton rbAutoMode;
     }
 }

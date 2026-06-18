@@ -248,6 +248,22 @@ namespace MKtest
             _settingsManager?.LoadSettings();
             Resize += MainForm_Resize;
             CollapseAllPanels();
+
+            // Сохраняем оригинальный обработчик кнопки «Запустить» (автоматический режим)
+            _autoStartHandler = _demoManager?.StartButtonHandler;
+
+            // Инициализация TCS для ручного режима
+            _manualStepTcs = new TaskCompletionSource<bool>();
+
+            // Подписка на радиокнопки и кнопку "Далее"
+            rbAutoMode.CheckedChanged += rbAutoMode_CheckedChanged;
+            rbManualMode.CheckedChanged += rbManualMode_CheckedChanged;
+            btnNextStep.Click += btnNextStep_Click;
+
+            // Установить начальное состояние (автоматический режим)
+            rbAutoMode.Checked = true;
+            rbAutoMode_CheckedChanged(rbAutoMode, EventArgs.Empty);
+
         }
 
         private void SaveOriginalHeights()
@@ -1250,6 +1266,59 @@ namespace MKtest
 
             await _emergencyManager.SendCommand4Async();
         }
+        #endregion
+
+        #region
+        private TaskCompletionSource<bool>? _manualStepTcs;
+        private EventHandler? _autoStartHandler;
+
+        private void rbAutoMode_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbAutoMode.Checked)
+            {
+                btnNextStep.Visible = false;
+                // Убираем свой обработчик, возвращаем автоматический
+                btnStartDemo.Click -= BtnStartDemo_Click;
+                if (_autoStartHandler != null)
+                    btnStartDemo.Click += _autoStartHandler;
+            }
+        }
+
+        private void rbManualMode_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rbManualMode.Checked)
+            {
+                btnNextStep.Visible = true;
+                // Убираем автоматический обработчик, ставим свой
+                if (_autoStartHandler != null)
+                    btnStartDemo.Click -= _autoStartHandler;
+                btnStartDemo.Click += BtnStartDemo_Click;
+            }
+        }
+
+        private void BtnStartDemo_Click(object sender, EventArgs e)
+        {
+            string? scenarioName = cmbDemoScenarios.SelectedItem?.ToString();
+            if (string.IsNullOrEmpty(scenarioName))
+            {
+                _logManager?.AppendLog("Ошибка: не выбран сценарий");
+                return;
+            }
+
+            _logManager?.AppendLog($"Запуск сценария: {scenarioName} (ручной режим)");
+            _demoScenarioService?.StartScenarioManual(scenarioName,
+                () => _manualStepTcs?.Task ?? Task.CompletedTask);
+        }
+
+        private void btnNextStep_Click(object sender, EventArgs e)
+        {
+            if (_manualStepTcs != null && !_manualStepTcs.Task.IsCompleted)
+            {
+                _manualStepTcs.TrySetResult(true);
+                _manualStepTcs = new TaskCompletionSource<bool>();
+            }
+        }
+
         #endregion
     }
 }
