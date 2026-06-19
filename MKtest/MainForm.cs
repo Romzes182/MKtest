@@ -696,7 +696,7 @@ namespace MKtest
             _hermesManager.StatusChanged += HermesManager_StatusChanged;
 
             hermesEnteredTextBox.Text = "0";
-            hermesExitedTextBox.Text = "1";
+            hermesExitedTextBox.Text = "0";
             lblHermesStatus.Text = "Статус: Остановлено";
             SetHermesButtons(false);
         }
@@ -921,7 +921,7 @@ namespace MKtest
                 return;
             }
 
-            if (MessageBox.Show("Сбросить настройки HTTP Protokol к значениям по умолчанию?",
+            if (MessageBox.Show("Сбросить настройки Json-RPC Protokol к значениям по умолчанию?",
                 "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 _settingsManager.ResetHTTPProtokolSettings(_logManager);
@@ -939,7 +939,7 @@ namespace MKtest
                 _httpProtokolManager.Start(trCounter, interval);
                 btnHttpProtokolStart.Enabled = false;
                 btnHttpProtokolStop.Enabled = true;
-                lblHttpStatus.Text = "Статус: Запущено"; _logManager?.AppendLog("HTTPprotokol запущен");
+                lblHttpStatus.Text = "Статус: Запущено"; _logManager?.AppendLog("JSONRPC запущен");
             }
             catch (Exception ex)
             {
@@ -955,7 +955,7 @@ namespace MKtest
             btnHttpProtokolStart.Enabled = true;
             btnHttpProtokolStop.Enabled = false;
             lblHttpStatus.Text = "Статус: Остановлено";
-            _logManager?.AppendLog("HTTPprotokol остановлен");
+            _logManager?.AppendLog("JsonRPCprotokol остановлен");
         }
         private async void btnHttpProtokolTest_Click(object sender, EventArgs e)
         {
@@ -965,7 +965,7 @@ namespace MKtest
             {
                 int trCounter = int.Parse(httpProtokolTrCounterTextBox.Text);
                 await _httpProtokolService.SendAsync(trCounter, CancellationToken.None);
-                _logManager?.AppendLog("HTTPprotokol тест отправлен");
+                _logManager?.AppendLog("JSONRPC тест отправлен");
             }
             catch (Exception ex)
             {
