@@ -602,20 +602,19 @@ namespace MKtest
             }
             finally
             {
-                // UI controllers and log timers are disposed only after workers exit.
-                _demoModeController?.Dispose();
-                _usrTransferUiController?.Dispose();
-                _hermesUiController?.Dispose();
-                _sekopUiController?.Dispose();
-                _collapsiblePanelController?.Dispose();
-                _leftPanelLayout?.Dispose();
-                _rightPanelLayout?.Dispose();
+                // Every UI resource is released separately: one exception must
+                // not leave the application permanently disabled.
+                TryStop("Demo UI", () => _demoModeController?.Dispose());
+                TryStop("ИР-0652 UI", () => _usrTransferUiController?.Dispose());
+                TryStop("Гермес UI", () => _hermesUiController?.Dispose());
+                TryStop("СЭКОП UI", () => _sekopUiController?.Dispose());
+                TryStop("Панели", () => _collapsiblePanelController?.Dispose());
+                TryStop("Левая колонка", () => _leftPanelLayout?.Dispose());
+                TryStop("Правая колонка", () => _rightPanelLayout?.Dispose());
 
-                try { _logManager?.AppendLog("Приложение закрывается"); }
-                catch { }
-
-                _blockLogs?.Dispose();
-                _logManager?.Dispose();
+                TryStop("Журналы", () => _logManager?.AppendLog("Приложение закрывается"));
+                try { _blockLogs?.Dispose(); } catch { }
+                try { _logManager?.Dispose(); } catch { }
 
                 _shutdownCompleted = true;
                 if (!IsDisposed)
@@ -645,7 +644,8 @@ namespace MKtest
                 StopSafelyAsync("HTTPpay", () =>
                     _httpPayManager?.StopAsync() ?? Task.CompletedTask),
                 StopSafelyAsync("Demo", () =>
-                    _demoManager?.CleanupAsync() ?? Task.CompletedTask),
+                    _demoManager?.CleanupAsync() ??
+                    _demoScenarioService?.StopScenarioAsync() ?? Task.CompletedTask),
                 StopSafelyAsync("Гермес", () =>
                     _hermesManager?.StopAsync() ?? Task.CompletedTask)
             );
@@ -665,7 +665,7 @@ namespace MKtest
             try { action(); }
             catch (Exception ex)
             {
-                _logManager?.AppendLog($"Остановка {name}: {ex.Message}");
+                ReportShutdownError(name, ex);
             }
         }
 
@@ -674,8 +674,14 @@ namespace MKtest
             try { await action().ConfigureAwait(false); }
             catch (Exception ex)
             {
-                _logManager?.AppendLog($"Остановка {name}: {ex.Message}");
+                ReportShutdownError(name, ex);
             }
+        }
+
+        private void ReportShutdownError(string name, Exception ex)
+        {
+            try { _logManager?.AppendLog($"Остановка {name}: {ex.Message}"); }
+            catch { }
         }
 
         private void flowLayoutPanel_Paint(object sender, PaintEventArgs e) { }
