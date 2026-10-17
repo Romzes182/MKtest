@@ -10,7 +10,7 @@ namespace MKtest.Managers
         private readonly Button _startButton;
         private readonly Button _stopButton;
         private readonly Label _statusLabel;
-        private readonly TextBox _logTextBox;
+        private readonly LogManager _logManager;
         private readonly IDemoScenarioService _demoService;
 
         public DemoScenarioManager(
@@ -18,14 +18,14 @@ namespace MKtest.Managers
             Button startButton,
             Button stopButton,
             Label statusLabel,
-            TextBox logTextBox,
+            LogManager logManager,
             IDemoScenarioService demoService)
         {
             _comboBox = comboBox ?? throw new ArgumentNullException(nameof(comboBox));
             _startButton = startButton ?? throw new ArgumentNullException(nameof(startButton));
             _stopButton = stopButton ?? throw new ArgumentNullException(nameof(stopButton));
             _statusLabel = statusLabel ?? throw new ArgumentNullException(nameof(statusLabel));
-            _logTextBox = logTextBox ?? throw new ArgumentNullException(nameof(logTextBox));
+            _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _demoService = demoService ?? throw new ArgumentNullException(nameof(demoService));
 
             Initialize();
@@ -95,14 +95,7 @@ namespace MKtest.Managers
             }));
         }
 
-        private void AppendLog(string message)
-        {
-            _logTextBox.Invoke((MethodInvoker)(() =>
-            {
-                _logTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}\r\n");
-                _logTextBox.ScrollToCaret();
-            }));
-        }
+        private void AppendLog(string message) => _logManager.AppendLog(message);
 
         public void Cleanup()
         {
