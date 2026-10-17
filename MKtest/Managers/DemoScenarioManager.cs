@@ -1,6 +1,7 @@
 ﻿using MKtest.Services.Demoscripts;
 using System;
 using System.Windows.Forms;
+using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
@@ -12,6 +13,7 @@ namespace MKtest.Managers
         private readonly Label _statusLabel;
         private readonly LogManager _logManager;
         private readonly IDemoScenarioService _demoService;
+        private bool _isClosing;
 
         public DemoScenarioManager(
             ComboBox comboBox,
@@ -86,24 +88,45 @@ namespace MKtest.Managers
 
         private void UpdateUI(bool isRunning)
         {
-            _statusLabel.Invoke((MethodInvoker)(() =>
+            if (_statusLabel.IsDisposed || _isClosing) return;
+
+            void Apply()
             {
+                if (_statusLabel.IsDisposed || _isClosing) return;
                 _statusLabel.Text = isRunning ? "Демо запущено" : "Демо не запущено";
-                _statusLabel.ForeColor = isRunning ? System.Drawing.Color.Green : System.Drawing.Color.Red;
+                _statusLabel.ForeColor = isRunning
+                    ? System.Drawing.Color.Green : System.Drawing.Color.Red;
                 _startButton.Enabled = !isRunning;
                 _stopButton.Enabled = isRunning;
-            }));
+            }
+
+            if (_statusLabel.InvokeRequired)
+            {
+                if (!_statusLabel.IsHandleCreated) return;
+                try { _statusLabel.BeginInvoke((MethodInvoker)Apply); }
+                catch (InvalidOperationException) { }
+                catch (ObjectDisposedException) { }
+            }
+            else Apply();
         }
 
         private void AppendLog(string message) => _logManager.AppendLog(message);
 
         public void Cleanup()
         {
+            if (_isClosing) return;
+            _isClosing = true;
             _demoService.StopScenario();
             _stopButton.Click -= StopButton_Click;
             _comboBox.SelectedIndexChanged -= ComboBox_SelectedIndexChanged;
             _demoService.DemoStatusChanged -= DemoService_DemoStatusChanged;
             _demoService.ScenarioProgress -= DemoService_ScenarioProgress;
+        }
+
+        public Task CleanupAsync()
+        {
+            Cleanup();
+            return _demoService.StopScenarioAsync();
         }
     }
 }
