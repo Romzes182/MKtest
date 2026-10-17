@@ -60,6 +60,7 @@ namespace MKtest
         #region Контроллеры интерфейса
         private CollapsiblePanelController? _collapsiblePanelController;
         private DemoModeController? _demoModeController;
+        private Button? _btnPreviousDemoStep;
         private USRTransferUiController? _usrTransferUiController;
         private SekopUiController? _sekopUiController;
         private BlockLogPanelRegistry? _blockLogs;
@@ -254,9 +255,22 @@ namespace MKtest
 
             if (_demoScenarioService != null)
             {
+                // The previous-step button is kept outside Designer.cs to avoid
+                // generated-code conflicts and is visible only in manual mode.
+                _btnPreviousDemoStep = new Button
+                {
+                    Name = "btnPreviousDemoStep",
+                    Text = "Назад",
+                    Location = new System.Drawing.Point(246, 37),
+                    Size = new System.Drawing.Size(71, 25),
+                    UseVisualStyleBackColor = true,
+                    TabIndex = btnNextStep.TabIndex + 1
+                };
+                demoContentPanel.Controls.Add(_btnPreviousDemoStep);
+
                 _demoModeController = new DemoModeController(
                     rbAutoMode, rbManualMode, btnStartDemo, btnNextStep,
-                    cmbDemoScenarios, _demoScenarioService,
+                    _btnPreviousDemoStep, cmbDemoScenarios, _demoScenarioService,
                     message => _demoLog?.AppendLog(message));
             }
         }
