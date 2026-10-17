@@ -10,6 +10,7 @@ namespace MKtest.Services.Demoscripts
 
         void StartScenario(string scenarioName);
         void StopScenario();
+        Task StopScenarioAsync();
 
         void StartScenarioManual(string scenarioName, Func<Task> waitTaskProvider);
         void StartScenarioManual(string scenarioName, Func<Task<ManualStepDirection>> navigationProvider);
