@@ -1,23 +1,34 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MKtest.Services.Protocol
 {
     /// <summary>
-    /// Runs one periodic asynchronous operation at a time.
-    /// Stop cancels the current delay or request; a new run starts after cleanup.
+    /// Cancels periodic runs reliably and awaits them during shutdown.
+    /// One asynchronous operation at a time, even across rapid Stop/Start.
     /// </summary>
     public sealed class PeriodicOperationRunner
     {
+        private sealed class RunState
+        {
+            public readonly CancellationTokenSource Source = new();
+            public Task? Worker;
+        }
+
         private readonly object _sync = new();
-        private CancellationTokenSource? _cts;
+        private readonly SemaphoreSlim _operationGate = new(1, 1);
+        private readonly HashSet<RunState> _runs = new();
+        private RunState? _current;
 
         public bool IsRunning
         {
             get
             {
-                lock (_sync) return _cts != null;
+                lock (_sync)
+                    return _current != null && !_current.Source.IsCancellationRequested;
             }
         }
 
@@ -30,54 +41,81 @@ namespace MKtest.Services.Protocol
             ArgumentNullException.ThrowIfNull(intervalSeconds);
             ArgumentNullException.ThrowIfNull(onError);
 
-            CancellationTokenSource source;
             lock (_sync)
             {
-                if (_cts != null) return false;
-                source = new CancellationTokenSource();
-                _cts = source;
-            }
+                if (_current != null)
+                    return false;
 
-            _ = Task.Run(() => RunAsync(source, operation, intervalSeconds, onError));
-            return true;
+                var run = new RunState();
+                _current = run;
+                _runs.Add(run);
+                run.Worker = Task.Run(() => RunAsync(run, operation, intervalSeconds, onError));
+                return true;
+            }
         }
 
         private async Task RunAsync(
-            CancellationTokenSource source,
+            RunState run,
             Func<CancellationToken, Task> operation,
             Func<int> intervalSeconds,
             Action<Exception> onError)
         {
+            var token = run.Source.Token;
+
             try
             {
-                while (!source.IsCancellationRequested)
+                while (!token.IsCancellationRequested)
                 {
+                    await _operationGate.WaitAsync(token).ConfigureAwait(false);
                     try
                     {
-                        await operation(source.Token);
+                        token.ThrowIfCancellationRequested();
+                        try
+                        {
+                            await operation(token).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException) when (token.IsCancellationRequested)
+                        {
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportError(onError, ex);
+                        }
                     }
-                    catch (OperationCanceledException) when (source.IsCancellationRequested)
+                    finally
                     {
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        onError(ex);
+                        _operationGate.Release();
                     }
 
+                    token.ThrowIfCancellationRequested();
                     int seconds = Math.Max(1, intervalSeconds());
-                    await Task.Delay(TimeSpan.FromSeconds(seconds), source.Token);
+                    await Task.Delay(TimeSpan.FromSeconds(seconds), token).ConfigureAwait(false);
                 }
             }
-            catch (OperationCanceledException) when (source.IsCancellationRequested) { }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            catch (Exception ex)
+            {
+                ReportError(onError, ex);
+            }
             finally
             {
                 lock (_sync)
                 {
-                    if (ReferenceEquals(_cts, source))
-                        _cts = null;
+                    _runs.Remove(run);
+                    if (ReferenceEquals(_current, run))
+                        _current = null;
                 }
-                source.Dispose();
+                run.Source.Dispose();
+            }
+        }
+
+        private static void ReportError(Action<Exception> callback, Exception ex)
+        {
+            try { callback(ex); }
+            catch
+            {
+                // A logging callback must never fault the lifecycle worker.
             }
         }
 
@@ -85,14 +123,33 @@ namespace MKtest.Services.Protocol
         {
             lock (_sync)
             {
-                if (_cts == null)
-                    return;
-
-                var old = _cts;
-                _cts = null;
-                if (!old.IsCancellationRequested)
-                    old.Cancel();
+                _current = null;
+                foreach (var run in _runs)
+                {
+                    if (!run.Source.IsCancellationRequested)
+                        run.Source.Cancel();
+                }
             }
+        }
+
+        /// <summary>Stop and await all in-flight runs, including canceled older runs.</summary>
+        public async Task StopAsync()
+        {
+            Task[] pending;
+            lock (_sync)
+            {
+                _current = null;
+                foreach (var run in _runs)
+                {
+                    if (!run.Source.IsCancellationRequested)
+                        run.Source.Cancel();
+                }
+
+                pending = _runs.Select(run => run.Worker ?? Task.CompletedTask).ToArray();
+            }
+
+            if (pending.Length > 0)
+                await Task.WhenAll(pending).ConfigureAwait(false);
         }
     }
 }
