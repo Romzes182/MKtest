@@ -60,13 +60,13 @@ namespace MKtest.Managers
             _demoService.ScenarioProgress += DemoService_ScenarioProgress;
         }
 
-        private void StopButton_Click(object sender, EventArgs e)
+        private void StopButton_Click(object? sender, EventArgs e)
         {
             AppendLog("Остановка демо-сценария");
             _demoService.StopScenario();
         }
 
-        private void ComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        private void ComboBox_SelectedIndexChanged(object? sender, EventArgs e)
         {
             var selectedScenario = _comboBox.SelectedItem?.ToString();
             if (!string.IsNullOrEmpty(selectedScenario))
