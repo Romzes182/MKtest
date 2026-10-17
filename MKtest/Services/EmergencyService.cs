@@ -61,8 +61,7 @@ namespace MKtest.Services
             _disposed = true;
             _shutdown.Cancel();
             _httpClient.Dispose();
-            // Keep the canceled token source alive: an in-flight continuation
-            // can still inspect IsCancellationRequested after disposal.
+            _shutdown.Dispose();
         }
     }
 }
