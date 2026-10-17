@@ -907,7 +907,7 @@
             beelinkCollapsiblePanel.Location = new Point(4, 327);
             beelinkCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             beelinkCollapsiblePanel.Name = "beelinkCollapsiblePanel";
-            beelinkCollapsiblePanel.Size = new Size(367, 222);
+            beelinkCollapsiblePanel.Size = new Size(367, 191);
             beelinkCollapsiblePanel.TabIndex = 0;
             // 
             // beelinkContentPanel
@@ -919,7 +919,7 @@
             beelinkContentPanel.Dock = DockStyle.Fill;
             beelinkContentPanel.Location = new Point(0, 24);
             beelinkContentPanel.Name = "beelinkContentPanel";
-            beelinkContentPanel.Size = new Size(365, 196);
+            beelinkContentPanel.Size = new Size(365, 165);
             beelinkContentPanel.TabIndex = 1;
             // 
             // timeGroupBox
@@ -932,7 +932,7 @@
             timeGroupBox.Controls.Add(timeDisableNTPButton);
             timeGroupBox.Controls.Add(timeEnableNTPButton);
             timeGroupBox.Controls.Add(timeCheckButton);
-            timeGroupBox.Location = new Point(10, 65);
+            timeGroupBox.Location = new Point(10, 34);
             timeGroupBox.Name = "timeGroupBox";
             timeGroupBox.Size = new Size(352, 120);
             timeGroupBox.TabIndex = 4;
