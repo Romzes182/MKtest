@@ -1,9 +1,10 @@
 name: MKtest Windows Build
 
 on:
+  # Feature branches are checked through their pull requests.
+  # This avoids running the same build twice on push + pull_request.
   push:
     branches:
-      - refactor/solid-ui-controllers
       - master
   pull_request:
     branches:
