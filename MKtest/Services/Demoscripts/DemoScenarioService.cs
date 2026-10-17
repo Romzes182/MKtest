@@ -17,6 +17,7 @@ namespace MKtest.Services.Demoscripts
         private readonly LogManager _logManager;
         private readonly object _sync = new();
         private CancellationTokenSource? _activeRun;
+        private Task? _activeTask;
 
         public bool IsDemoRunning
         {
@@ -102,7 +103,7 @@ namespace MKtest.Services.Demoscripts
             };
 
             DemoStatusChanged?.Invoke(this, true);
-            _ = Task.Run(() => RunScenarioAsync(scenario, options, source));
+            _activeTask = Task.Run(() => RunScenarioAsync(scenario, options, source));
             _logManager.AppendLog($"Сценарий '{scenarioName}' запущен.");
         }
 
@@ -117,6 +118,18 @@ namespace MKtest.Services.Demoscripts
             }
 
             _logManager.AppendLog("Демо сценарий остановлен.");
+        }
+
+        /// <summary>Cancel and await the running demo before the UI logs are disposed.</summary>
+        public async Task StopScenarioAsync()
+        {
+            StopScenario();
+            Task? pending;
+            lock (_sync)
+                pending = _activeTask;
+
+            if (pending != null)
+                await pending.ConfigureAwait(false);
         }
 
         private async Task RunScenarioAsync(
