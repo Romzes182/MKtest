@@ -1,4 +1,6 @@
 ﻿using MKtest.Services;
+using MKtest.Services.SSH;
+using System.Threading.Tasks;
 using System;
 using System.Windows.Forms;
 
@@ -37,6 +39,28 @@ namespace MKtest.Managers
             if (!CheckConnection()) return;
             var result = _timeService.CheckTimeStatus();
             _logManager.AppendLog($"Статус времени:\n{result}");
+        }
+
+        /// <summary>
+        /// Gets the normal timedatectl status and a separately received
+        /// local clock value. SSH work is off the WinForms UI thread.
+        /// </summary>
+        public async Task<string?> CheckTimeStatusAndReadTimeAsync()
+        {
+            if (!_checkConnection())
+                return null;
+
+            string status = await Task.Run(() => _timeService.CheckTimeStatus());
+            _logManager.AppendLog($"Статус времени:\n{status}");
+
+            string rawTime = await Task.Run(() => _timeService.ReadCurrentTime());
+            string? remoteTime = BeelinkTimeValueParser.Extract(rawTime);
+
+            _logManager.AppendLog(remoteTime == null
+                ? $"Не удалось определить время Beelink из ответа: {rawTime}"
+                : $"Получено время Beelink: {remoteTime}");
+
+            return remoteTime;
         }
 
         public void EnableNTP()
