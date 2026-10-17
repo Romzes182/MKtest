@@ -17,7 +17,7 @@ namespace MKtest.UI
         private readonly IDemoScenarioService _scenarioService;
         private readonly Action<string> _log;
 
-        private TaskCompletionSource<ManualStepDirection> _navigation = NewSignal();
+        private DemoNavigationQueue _navigation = new();
         private bool _disposed;
 
         public DemoModeController(
@@ -70,9 +70,10 @@ namespace MKtest.UI
 
             if (_manualMode.Checked)
             {
-                _navigation = NewSignal();
+                _navigation = new DemoNavigationQueue();
                 _log($"Запуск сценария: {name} (ручной режим)");
-                _scenarioService.StartScenarioManual(name, () => _navigation.Task);
+                Func<Task<ManualStepDirection>> navigation = () => _navigation.NextAsync();
+                _scenarioService.StartScenarioManual(name, navigation);
             }
             else
             {
@@ -89,13 +90,8 @@ namespace MKtest.UI
             if (_disposed || !_manualMode.Checked || !_scenarioService.IsDemoRunning)
                 return;
 
-            var pending = _navigation;
-            _navigation = NewSignal();
-            pending.TrySetResult(direction);
+            _navigation.Enqueue(direction);
         }
-
-        private static TaskCompletionSource<ManualStepDirection> NewSignal() =>
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public void Dispose()
         {
