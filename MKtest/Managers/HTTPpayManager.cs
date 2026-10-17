@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public sealed class HTTPpayManager
+    public sealed class HTTPpayManager : IHttpPayOperations
     {
         private readonly HTTPpayService _service;
         private readonly LogManager _logManager;
