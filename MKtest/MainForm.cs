@@ -68,6 +68,7 @@ namespace MKtest
         private JsonRpcUiController? _jsonRpcUiController;
         private HttpPayUiController? _httpPayUiController;
         private BlockLogPanelRegistry? _blockLogs;
+        private RightPanelFlowController? _rightPanelLayout;
         private LogManager? _sshLog, _webLog, _demoLog, _usrLog, _hermesLog;
         private LogManager? _httpPayLog, _jsonLog, _sekopLog, _emergencyLog;
         #endregion
@@ -236,6 +237,9 @@ namespace MKtest
             manualTimePicker.Format = DateTimePickerFormat.Time;
             manualTimePicker.ShowUpDown = true;
 
+            _rightPanelLayout = new RightPanelFlowController(
+                panelDownRight, httpProtokolCollapsiblePanel, httpPayCollapsiblePanel,
+                sekopCollapsiblePanel, hermesCollapsiblePanel, beelinkCollapsiblePanel);
             _collapsiblePanelController = new CollapsiblePanelController(UpdateLayout);
             _collapsiblePanelController.Register(beelinkCollapsiblePanel, beelinkHeaderPanel, beelinkHeaderLabel, beelinkContentPanel, "SSH Beelink");
             _collapsiblePanelController.Register(webServerCollapsiblePanel, webServerHeaderPanel, webServerHeaderLabel, webServerContentPanel, "Веб-сервер");
@@ -284,7 +288,11 @@ namespace MKtest
             if (mainTabControl.SelectedTab == mainTabPage) UpdateLayout();
         }
 
-        private void UpdateLayout() => leftFlowLayout?.PerformLayout();
+        private void UpdateLayout()
+        {
+            leftFlowLayout?.PerformLayout();
+            _rightPanelLayout?.RefreshLayout();
+        }
         #endregion
 
         #region Обработчики SSH подключения
@@ -624,6 +632,7 @@ namespace MKtest
                 _httpPayService?.Dispose();
                 _demoModeController?.Dispose();
                 _collapsiblePanelController?.Dispose();
+                _rightPanelLayout?.Dispose();
                 _demoManager?.Cleanup();
                 _logManager?.AppendLog("Приложение закрывается");
                 if (_hermesManager != null)
