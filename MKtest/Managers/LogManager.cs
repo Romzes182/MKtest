@@ -1,69 +1,52 @@
-﻿using MKtest.Services;
+using MKtest.Services;
+using MKtest.UI.Logging;
 using System;
+using System.IO;
 using System.Windows.Forms;
 
 namespace MKtest.Managers
 {
-    public class LogManager
+    /// <summary>
+    /// Делегирует запись на диск и отрисовку двум независимым компонентам.
+    /// Общий интерфейс для существующих менеджеров MKtest не меняется.
+    /// </summary>
+    public sealed class LogManager : IDisposable
     {
-        private TextBox _logTextBox;
-        private LoggerService _loggerService;
+        private readonly LoggerService _loggerService;
+        private readonly IUiLogSink _uiSink;
+
         public LoggerService LoggerService => _loggerService;
+
         public LogManager(TextBox logTextBox)
+            : this(new LoggerService(), new WinFormsLogSink(logTextBox))
         {
-            _logTextBox = logTextBox;
-            _loggerService = new LoggerService();
-            SetupLogTextBox();
         }
 
-        private void SetupLogTextBox()
+        public LogManager(LoggerService loggerService, IUiLogSink uiSink)
         {
-            _logTextBox.ReadOnly = true;
-            _logTextBox.ScrollBars = ScrollBars.Vertical;
-            _logTextBox.Font = new System.Drawing.Font("Consolas", 9);
+            _loggerService = loggerService ?? throw new ArgumentNullException(nameof(loggerService));
+            _uiSink = uiSink ?? throw new ArgumentNullException(nameof(uiSink));
         }
 
         public void AppendLog(string message)
         {
-            // Записываем в файл через LoggerService
+            // File and in-memory history are written immediately.
             _loggerService.Log(message);
 
-            // Выводим в TextBox
-            if (_logTextBox.InvokeRequired)
-            {
-                _logTextBox.Invoke(new Action(() =>
-                {
-                    _logTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}\r\n");
-                    _logTextBox.ScrollToCaret();
-                }));
-            }
-            else
-            {
-                _logTextBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}\r\n");
-                _logTextBox.ScrollToCaret();
-            }
+            // Only screen refresh is batched (no blocking Control.Invoke).
+            _uiSink.Append($"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}");
         }
 
         public void ClearLog()
         {
-            // Очищаем лог в файле (создаем новый файл)
+            // Preserve the original marker in the log file.
             _loggerService.Log("--- Лог очищен ---");
-
-            if (_logTextBox.InvokeRequired)
-            {
-                _logTextBox.Invoke(new Action(() => _logTextBox.Clear()));
-            }
-            else
-            {
-                _logTextBox.Clear();
-            }
+            _uiSink.Clear();
         }
 
-        // Метод для получения пути к файлу лога (может пригодиться)
-        public string GetLogFilePath()
-        {
-            // LoggerService сохраняет логи в папке logs
-            return System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
-        }
+        public string GetLogFilePath() =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+
+        public void Dispose() => _uiSink.Dispose();
     }
 }
