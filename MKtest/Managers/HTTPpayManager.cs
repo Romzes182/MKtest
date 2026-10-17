@@ -38,9 +38,20 @@ namespace MKtest.Managers
 
         public void Stop()
         {
-            if (!IsRunning) return;
+            if (!IsRunning)
+            {
+                _runner.Stop();
+                return;
+            }
             _runner.Stop();
             _logManager.AppendLog("HTTPpay остановлен");
+        }
+
+        /// <summary>Await canceled HTTP/TCP operations before closing their transports.</summary>
+        public Task StopAsync()
+        {
+            Stop();
+            return _runner.StopAsync();
         }
 
         private async Task SendOnceAsync(CancellationToken token)
@@ -48,6 +59,7 @@ namespace MKtest.Managers
             var getPtotal = _readPtotal;
             int total = getPtotal?.Invoke() ?? 0;
             HTTPpayResponse response = await _service.SendAsync(total, token);
+            token.ThrowIfCancellationRequested();
             _logManager.AppendLog($"HTTPpay: {response.Message}");
         }
     }
