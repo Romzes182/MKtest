@@ -113,6 +113,24 @@ namespace MKtest.Managers
             }
         }
 
+        /// <summary>
+        /// Stop accepting updates and give the current TCP send time to finish.
+        /// A bounded wait prevents application shutdown from hanging if the
+        /// remote endpoint never completes its connection.
+        /// </summary>
+        public async Task StopAsync()
+        {
+            Stop();
+            if (await _sendLock.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false))
+            {
+                _sendLock.Release();
+            }
+            else
+            {
+                _logManager.AppendLog("СЭКОП: таймаут ожидания завершения передачи");
+            }
+        }
+
         public void Stop()
         {
             lock (_stateLock)
