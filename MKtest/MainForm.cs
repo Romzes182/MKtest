@@ -16,6 +16,7 @@ using System.Windows.Forms;
 using MKtest.Services.JSONRPCprotokol;
 using MKtest.Services.HTTPpay;
 using MKtest.Services.SekopProtocol;
+using MKtest.UI.Sekop;
 
 namespace MKtest
 {
@@ -59,6 +60,7 @@ namespace MKtest
         private CollapsiblePanelController? _collapsiblePanelController;
         private DemoModeController? _demoModeController;
         private USRTransferUiController? _usrTransferUiController;
+        private SekopUiController? _sekopUiController;
         #endregion
 
         #region Конструктор
@@ -224,8 +226,6 @@ namespace MKtest
 
             webServerStartButton.Click += WebServerStartButton_Click;
             webServerStopButton.Click += WebServerStopButton_Click;
-            sekopTransactionsNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
-            sekopPassengersNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
 
             _settingsManager?.LoadSettings();
             Resize += MainForm_Resize;
@@ -574,6 +574,10 @@ namespace MKtest
             {
                 _usrTransferManager?.StopInSequence();
                 _usrTransferUiController?.Dispose();
+                _sekopUiController?.Dispose();
+                if (_sekopProtocolManager?.IsRunning == true)
+                    _sekopProtocolManager.Stop();
+                _sekopPacketSenderService?.Dispose();
                 _sshService?.Dispose();
                 _webServerService?.Dispose();
                 _httpPayManager?.Stop();
@@ -861,68 +865,27 @@ namespace MKtest
         }
 
         #region Сэкоп Протокол
-
-        private SekopValues ReadSekopValues()
-        {
-            if (sekopTransactionsNumeric.InvokeRequired ||
-                sekopPassengersNumeric.InvokeRequired)
-            {
-                return (SekopValues)Invoke(
-                    new Func<SekopValues>(ReadSekopValues));
-            }
-
-            return new SekopValues(
-                (int)sekopTransactionsNumeric.Value,
-                (int)sekopPassengersNumeric.Value);
-        }
+        // Designer продолжает вызывать обработчики кнопок в MainForm.
+        // Состояние UI и отправка значений находятся в SekopUiController.
         private void InitializeSekopProtocolMain()
         {
-            sekopTransactionsNumeric.Value = 0;
-            sekopPassengersNumeric.Value = 0;
-
-            sekopStatusLabel.Text = "Статус: Остановлено";
-
-            sekopStartButton.Enabled = true;
-            sekopStopButton.Enabled = false;
+            if (_sekopProtocolManager == null || _logManager == null) return;
+            _sekopUiController = new SekopUiController(
+                _sekopProtocolManager,
+                new SekopControls(
+                    sekopTransactionsNumeric, sekopPassengersNumeric,
+                    sekopStartButton, sekopStopButton, sekopStatusLabel),
+                _logManager.AppendLog);
         }
+
         private async void sekopStartButton_Click(object sender, EventArgs e)
         {
-            if (_sekopProtocolManager == null)
-                return;
-
-            try
-            {
-                await _sekopProtocolManager.StartAsync(
-                    ReadSekopValues);
-
-                sekopStartButton.Enabled = false;
-                sekopStopButton.Enabled = true;
-
-                sekopStatusLabel.Text = "Статус: Запущено";
-            }
-            catch (Exception ex)
-            {
-                sekopStatusLabel.Text = "Статус: Ошибка";
-
-                _logManager?.AppendLog(
-                    $"Ошибка запуска протокола СЭКОП: {ex.Message}");
-            }
+            if (_sekopUiController != null)
+                await _sekopUiController.StartAsync();
         }
 
-        private void sekopStopButton_Click(object sender, EventArgs e)
-        {
-            if (_sekopProtocolManager == null)
-                return;
-
-            _sekopProtocolManager.Stop();
-
-            sekopStartButton.Enabled = true;
-            sekopStopButton.Enabled = false;
-
-            sekopStatusLabel.Text = "Статус: Остановлено";
-        }
-
-
+        private void sekopStopButton_Click(object sender, EventArgs e) =>
+            _sekopUiController?.Stop();
 
         private void sekopSaveButton_Click(object sender, EventArgs e)
         {
@@ -966,22 +929,6 @@ namespace MKtest
                     MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 _settingsManager.ResetSekopProtocolSettings(_logManager);
-            }
-        }
-
-        private async void sekopValuesNumeric_ValueChanged(object? sender, EventArgs e)
-        {
-            if (_sekopProtocolManager?.IsRunning != true)
-                return;
-
-            try
-            {
-                await _sekopProtocolManager.SendCurrentAsync();
-            }
-            catch (Exception ex)
-            {
-                _logManager?.AppendLog(
-                    $"Ошибка отправки СЭКОП при изменении значений: {ex.Message}");
             }
         }
 
