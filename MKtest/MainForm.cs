@@ -189,7 +189,7 @@ namespace MKtest
                 _demoFileService = new DemoFileService(demoConfig);
                 _demoScenarioService = new DemoScenarioService(_demoFileService, _logManager!);
                 _demoManager = new DemoScenarioManager(cmbDemoScenarios, btnStartDemo, btnStopDemo,
-                    lblDemoStatus, beelinkLogTextBox, _demoScenarioService);
+                    lblDemoStatus, _logManager!, _demoScenarioService);
                 _logManager?.AppendLog("Демо-сервисы инициализированы");
             }
             catch (Exception ex)
@@ -589,6 +589,10 @@ namespace MKtest
             {
                 _logManager?.AppendLog($"Ошибка при закрытии: {ex.Message}");
 
+            }
+            finally
+            {
+                _logManager?.Dispose();
             }
         }
 
