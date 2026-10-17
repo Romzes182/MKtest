@@ -7,14 +7,20 @@ using System.Windows.Forms;
 namespace MKtest.UI.Logging
 {
     /// <summary>
-    /// Creates a distinct, auto-scrolling log view inside each existing WinForms block.
-    /// No edits to the Designer-generated layout are needed.
+    /// Owns one independent, collapsible log area inside each protocol block.
+    /// The owning protocol panel remains controlled by CollapsiblePanelController.
     /// </summary>
     public sealed class BlockLogPanelRegistry : IDisposable
     {
-        private const int LogPanelHeight = 140;
+        private const int ExpandedLogHeight = 140;
+        private const int CollapsedLogHeight = 32;
         private readonly LogManager _generalLog;
         private readonly List<LogManager> _sections = new();
+
+        /// <summary>
+        /// Changes the remembered expanded height of the parent protocol block.
+        /// </summary>
+        public event Action<Panel, int>? LogHeightChanged;
 
         public BlockLogPanelRegistry(LogManager generalLog)
         {
@@ -29,10 +35,14 @@ namespace MKtest.UI.Logging
             var logContainer = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = LogPanelHeight,
+                Height = ExpandedLogHeight,
                 Padding = new Padding(5, 4, 5, 4)
             };
-            var header = new Panel { Dock = DockStyle.Top, Height = 24 };
+            var header = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 24
+            };
             var caption = new Label
             {
                 Text = "Журнал: " + blockName,
@@ -40,11 +50,25 @@ namespace MKtest.UI.Logging
                 AutoEllipsis = true,
                 TextAlign = ContentAlignment.MiddleLeft
             };
+            var collapse = new Button
+            {
+                Text = "Свернуть",
+                Dock = DockStyle.Right,
+                Width = 77,
+                Height = 23
+            };
+            var toBottom = new Button
+            {
+                Text = "Вниз ↓",
+                Dock = DockStyle.Right,
+                Width = 63,
+                Height = 23
+            };
             var clear = new Button
             {
                 Text = "Очистить",
                 Dock = DockStyle.Right,
-                Width = 82,
+                Width = 75,
                 Height = 23
             };
             var logText = new TextBox
@@ -59,15 +83,43 @@ namespace MKtest.UI.Logging
 
             header.Controls.Add(caption);
             header.Controls.Add(clear);
+            header.Controls.Add(toBottom);
+            header.Controls.Add(collapse);
+
             logContainer.Controls.Add(logText);
             logContainer.Controls.Add(header);
 
             var scopedLog = _generalLog.CreateScope(logText);
             clear.Click += (_, _) => scopedLog.ClearLog();
+            toBottom.Click += (_, _) => scopedLog.ResumeLogScroll();
 
-            // Keep all controls in their existing coordinates. The extra height
-            // is reserved solely for the log docked below them.
-            container.Height += LogPanelHeight;
+            bool collapsed = false;
+            collapse.Click += (_, _) =>
+            {
+                int formerHeight = logContainer.Height;
+                collapsed = !collapsed;
+                int desiredHeight = collapsed ? CollapsedLogHeight : ExpandedLogHeight;
+
+                logContainer.SuspendLayout();
+                try
+                {
+                    logText.Visible = !collapsed;
+                    logContainer.Height = desiredHeight;
+                    collapse.Text = collapsed ? "Развернуть" : "Свернуть";
+                }
+                finally
+                {
+                    logContainer.ResumeLayout(true);
+                }
+
+                // The entire protocol block must shrink/grow by the same amount.
+                // The layout controller also remembers it when the block is closed.
+                LogHeightChanged?.Invoke(container, desiredHeight - formerHeight);
+            };
+
+            // Reserve the log height before CollapsiblePanelController registers
+            // the original expanded size of the protocol block.
+            container.Height += ExpandedLogHeight;
             contentPanel.Controls.Add(logContainer);
 
             _sections.Add(scopedLog);
@@ -79,6 +131,7 @@ namespace MKtest.UI.Logging
             foreach (var section in _sections)
                 section.Dispose();
             _sections.Clear();
+            LogHeightChanged = null;
         }
     }
 }
