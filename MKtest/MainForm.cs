@@ -622,44 +622,44 @@ namespace MKtest
             }
         }
 
-        private async Task ShutdownServicesAsync()
+        private Task ShutdownServicesAsync()
         {
-            _logManager?.AppendLog("Завершение работы: остановка протоколов...");
+            var shutdown = new ApplicationShutdownCoordinator(
+                message => _logManager?.AppendLog(message));
 
-            // First signal cancellation to every active module; only then wait.
-            TryStop("ИР-0652", () => _usrTransferManager?.StopInSequence());
-            TryStop("JSON-RPC", () => _httpProtokolManager?.Stop());
-            TryStop("HTTPpay", () => _httpPayManager?.Stop());
-            TryStop("Demo", () => _demoScenarioService?.StopScenario());
-            TryStop("СЭКОП", () => _sekopProtocolManager?.Stop());
-            TryStop("МЧС", () => _emergencyService?.Dispose());
+            shutdown.AddCancel("ИР-0652", () => _usrTransferManager?.StopInSequence());
+            shutdown.AddCancel("JSON-RPC", () => _httpProtokolManager?.Stop());
+            shutdown.AddCancel("HTTPpay", () => _httpPayManager?.Stop());
+            shutdown.AddCancel("Demo", () => _demoScenarioService?.StopScenario());
+            shutdown.AddCancel("СЭКОП", () => _sekopProtocolManager?.Stop());
+            shutdown.AddCancel("МЧС", () => _emergencyService?.Dispose());
 
-            // Each cleanup has its own exception handler so one faulty module
-            // cannot prevent other services from shutting down.
-            await Task.WhenAll(
-                StopSafelyAsync("ИР-0652", () =>
-                    _usrTransferManager?.StopInSequenceAsync() ?? Task.CompletedTask),
-                StopSafelyAsync("JSON-RPC", () =>
-                    _httpProtokolManager?.StopAsync() ?? Task.CompletedTask),
-                StopSafelyAsync("HTTPpay", () =>
-                    _httpPayManager?.StopAsync() ?? Task.CompletedTask),
-                StopSafelyAsync("Demo", () =>
-                    _demoManager?.CleanupAsync() ??
-                    _demoScenarioService?.StopScenarioAsync() ?? Task.CompletedTask),
-                StopSafelyAsync("Гермес", () =>
-                    _hermesManager?.StopAsync() ?? Task.CompletedTask),
-                StopSafelyAsync("СЭКОП", () =>
-                    _sekopProtocolManager?.StopAsync() ?? Task.CompletedTask)
-            );
+            shutdown.AddWait("ИР-0652", () =>
+                _usrTransferManager?.StopInSequenceAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("JSON-RPC", () =>
+                _httpProtokolManager?.StopAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("HTTPpay", () =>
+                _httpPayManager?.StopAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("Demo", () =>
+                _demoManager?.CleanupAsync() ??
+                _demoScenarioService?.StopScenarioAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("Гермес", () =>
+                _hermesManager?.StopAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("СЭКОП", () =>
+                _sekopProtocolManager?.StopAsync() ?? Task.CompletedTask);
 
-            await StopSafelyAsync("SSH Beelink", () =>
+            shutdown.AddDispose("SSH Beelink", () =>
                 Task.Run(() => _sshService?.Dispose()));
-            await StopSafelyAsync("Веб-сервер", () =>
+            shutdown.AddDispose("Веб-сервер", () =>
                 Task.Run(() => _webServerService?.Dispose()));
+            shutdown.AddDispose("Гермес", () =>
+                Task.Run(() => _hermesService?.Dispose()));
+            shutdown.AddDispose("HTTPpay", () =>
+                Task.Run(() => _httpPayService?.Dispose()));
+            shutdown.AddDispose("СЭКОП TCP", () =>
+                Task.Run(() => _sekopPacketSenderService?.Dispose()));
 
-            TryStop("Гермес", () => _hermesService?.Dispose());
-            TryStop("HTTPpay", () => _httpPayService?.Dispose());
-            TryStop("СЭКОП TCP", () => _sekopPacketSenderService?.Dispose());
+            return shutdown.RunAsync();
         }
 
         private void TryStop(string name, Action action)
@@ -667,23 +667,9 @@ namespace MKtest
             try { action(); }
             catch (Exception ex)
             {
-                ReportShutdownError(name, ex);
+                try { _logManager?.AppendLog($"Остановка {name}: {ex.Message}"); }
+                catch { }
             }
-        }
-
-        private async Task StopSafelyAsync(string name, Func<Task> action)
-        {
-            try { await action().ConfigureAwait(false); }
-            catch (Exception ex)
-            {
-                ReportShutdownError(name, ex);
-            }
-        }
-
-        private void ReportShutdownError(string name, Exception ex)
-        {
-            try { _logManager?.AppendLog($"Остановка {name}: {ex.Message}"); }
-            catch { }
         }
 
         private void flowLayoutPanel_Paint(object sender, PaintEventArgs e) { }
