@@ -64,7 +64,15 @@ namespace MKtest.Services.Demoscripts
         public void StartScenarioManual(string scenarioName, Func<Task> waitTaskProvider) =>
             StartCore(scenarioName, manualMode: true, waitForNext: waitTaskProvider);
 
-        private void StartCore(string scenarioName, bool manualMode, Func<Task>? waitForNext)
+        /// <summary>Reversible manual navigation; existing overload remains supported.</summary>
+        public void StartScenarioManual(
+            string scenarioName,
+            Func<Task<ManualStepDirection>> navigationProvider) =>
+            StartCore(scenarioName, manualMode: true, waitForNext: null,
+                navigationProvider: navigationProvider);
+
+        private void StartCore(string scenarioName, bool manualMode, Func<Task>? waitForNext,
+            Func<Task<ManualStepDirection>>? navigationProvider = null)
         {
             CancellationTokenSource source;
             IScenario scenario;
@@ -88,7 +96,10 @@ namespace MKtest.Services.Demoscripts
             }
 
             var options = new DemoRunOptions(manualMode, waitForNext,
-                message => ScenarioProgress?.Invoke(this, message));
+                message => ScenarioProgress?.Invoke(this, message))
+            {
+                WaitForDirection = navigationProvider
+            };
 
             DemoStatusChanged?.Invoke(this, true);
             _ = Task.Run(() => RunScenarioAsync(scenario, options, source));
