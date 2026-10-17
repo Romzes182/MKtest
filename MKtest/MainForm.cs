@@ -2,6 +2,7 @@
 using MKtest.UI;
 using MKtest.UI.USRTransfer;
 using MKtest.Managers;
+using MKtest.Managers.Settings;
 using MKtest.Services;
 using MKtest.Services.Demoscripts;
 using MKtest.Services.HermesPassenger;
@@ -130,13 +131,24 @@ namespace MKtest
                 webServerStartButton, webServerStopButton, webServerStatusLabel
             );
 
+            var settingsStore = new ConfigServiceSettingsStore();
             _settingsManager = new SettingsManager(
-                ipTextBox, portNumeric, userTextBox, passwordUserTextBox, passwordRootTextBox,
-                webServerIpTextBox, webServerPortNumeric, usrTransferIpTextBox, usrTransferPortNumeric, hermesIpTextBox, hermesPortNumeric,
-                hermesUserTextBox, hermesPasswordTextBox, httpProtokolIpTextBox, httpProtokolPortNumeric, httpPayIpTextBox, httpPayPortNumeric,
-                httpPayTerminalTextBox, httpPayRouteTextBox, httpPayTripNumeric, httpPayTripDatePicker, httpPayCurrentNumeric, httpPayIntervalNumeric,
-                sekopIpTextBox, sekopPortNumeric
-            );
+                settingsStore,
+                new SshSettingsSection(settingsStore,
+                    ipTextBox, portNumeric, userTextBox, passwordUserTextBox, passwordRootTextBox),
+                new WebServerSettingsSection(settingsStore,
+                    webServerIpTextBox, webServerPortNumeric),
+                new UsrTransferSettingsSection(settingsStore,
+                    usrTransferIpTextBox, usrTransferPortNumeric),
+                new HermesSettingsSection(
+                    hermesIpTextBox, hermesPortNumeric, hermesUserTextBox, hermesPasswordTextBox),
+                new JsonRpcSettingsSection(settingsStore,
+                    httpProtokolIpTextBox, httpProtokolPortNumeric),
+                new HttpPaySettingsSection(settingsStore,
+                    httpPayIpTextBox, httpPayPortNumeric, httpPayTerminalTextBox, httpPayRouteTextBox,
+                    httpPayTripNumeric, httpPayTripDatePicker, httpPayCurrentNumeric, httpPayIntervalNumeric),
+                new SekopSettingsSection(settingsStore,
+                    sekopIpTextBox, sekopPortNumeric));
 
             if (_sshService == null || _logManager == null || _stateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
