@@ -131,10 +131,11 @@ namespace MKtest.Managers
                     IsSequenceRunning = false;
                     _sequenceToken = null;
                     _sequenceComplete = null;
+                    // Resolve the waiter before exposing an idle sequence.
+                    finished.TrySetResult(true);
                 }
 
                 source.Dispose();
-                finished.TrySetResult(true);
             }
         }
 
