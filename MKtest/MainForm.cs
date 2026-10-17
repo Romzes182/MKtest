@@ -69,6 +69,7 @@ namespace MKtest
         private HttpPayUiController? _httpPayUiController;
         private BlockLogPanelRegistry? _blockLogs;
         private RightPanelFlowController? _rightPanelLayout;
+        private ScrollablePanelStackController? _leftPanelLayout;
         private LogManager? _sshLog, _webLog, _demoLog, _usrLog, _hermesLog;
         private LogManager? _httpPayLog, _jsonLog, _sekopLog, _emergencyLog;
         #endregion
@@ -237,6 +238,15 @@ namespace MKtest
             manualTimePicker.Format = DateTimePickerFormat.Time;
             manualTimePicker.ShowUpDown = true;
 
+            // Both columns use a real scroll viewport with explicit content height.
+            // The old FlowLayoutPanel stays in Designer but is not used at runtime.
+            leftFlowLayout.Visible = false;
+            panelLeft.Dock = DockStyle.Fill;
+            panelDownRight.Dock = DockStyle.Fill;
+
+            _leftPanelLayout = new ScrollablePanelStackController(
+                panelLeft, webServerCollapsiblePanel, demoCollapsiblePanel,
+                usrTransferCollapsiblePanel, emergencyCollapsiblePanel);
             _rightPanelLayout = new RightPanelFlowController(
                 panelDownRight, httpProtokolCollapsiblePanel, httpPayCollapsiblePanel,
                 sekopCollapsiblePanel, hermesCollapsiblePanel, beelinkCollapsiblePanel);
@@ -290,7 +300,7 @@ namespace MKtest
 
         private void UpdateLayout()
         {
-            leftFlowLayout?.PerformLayout();
+            _leftPanelLayout?.RefreshLayout();
             _rightPanelLayout?.RefreshLayout();
         }
         #endregion
@@ -632,6 +642,7 @@ namespace MKtest
                 _httpPayService?.Dispose();
                 _demoModeController?.Dispose();
                 _collapsiblePanelController?.Dispose();
+                _leftPanelLayout?.Dispose();
                 _rightPanelLayout?.Dispose();
                 _demoManager?.Cleanup();
                 _logManager?.AppendLog("Приложение закрывается");
