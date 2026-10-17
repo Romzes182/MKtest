@@ -65,7 +65,15 @@ namespace MKtest.UI.Logging
 
         private void FlushToUi(object? sender, EventArgs args)
         {
-            if (_disposed || _textBox.IsDisposed || _readingPaused)
+            if (_disposed || _textBox.IsDisposed)
+                return;
+
+            // Detect scroll-bar dragging as well as mouse-wheel/key events.
+            // Native TextBox scrollbar clicks may not produce MouseDown.
+            if (!_readingPaused && IsViewingOlderLines())
+                _readingPaused = true;
+
+            if (_readingPaused)
                 return;
 
             var batch = new StringBuilder();
@@ -135,6 +143,24 @@ namespace MKtest.UI.Logging
             _textBox.SelectionStart = _textBox.TextLength;
             _textBox.SelectionLength = 0;
             _textBox.ScrollToCaret();
+        }
+
+        private bool IsViewingOlderLines()
+        {
+            if (!_textBox.Focused || !_textBox.IsHandleCreated ||
+                !_textBox.Visible || _textBox.TextLength == 0)
+                return false;
+
+            int lastLine = _textBox.GetLineFromCharIndex(_textBox.TextLength);
+            if (lastLine <= 1)
+                return false;
+
+            int y = Math.Max(1, _textBox.ClientSize.Height - 3);
+            int lastVisibleChar = _textBox.GetCharIndexFromPosition(
+                new System.Drawing.Point(4, y));
+            int lastVisibleLine = _textBox.GetLineFromCharIndex(lastVisibleChar);
+
+            return lastVisibleLine < lastLine - 1;
         }
 
         private void PauseReading(object? sender, MouseEventArgs e) =>
