@@ -13,6 +13,7 @@ namespace MKtest.UI
         private readonly Action _layoutChanged;
         private readonly List<PanelEntry> _entries = new();
         private readonly Dictionary<Control, PanelEntry> _headers = new();
+        private readonly Dictionary<Panel, int> _heightOffsets = new();
         private bool _disposed;
 
         public CollapsiblePanelController(Action layoutChanged)
@@ -47,6 +48,30 @@ namespace MKtest.UI
             _layoutChanged();
         }
 
+        /// <summary>
+        /// Change the remembered expanded size when an embedded log is
+        /// collapsed/expanded. Works even if the whole protocol is collapsed.
+        /// </summary>
+        public void AdjustExpandedHeight(Panel container, int delta)
+        {
+            if (_disposed || delta == 0) return;
+
+            var entry = _entries.Find(e => ReferenceEquals(e.Container, container));
+            if (entry == null) return;
+
+            _heightOffsets.TryGetValue(container, out int current);
+            _heightOffsets[container] = current + delta;
+
+            if (entry.Content.Visible)
+            {
+                using (new PanelExpansionLayoutScope(entry.Container, entry.Content))
+                {
+                    SetExpanded(entry, true);
+                    _layoutChanged();
+                }
+            }
+        }
+
         private void HeaderClicked(object? sender, EventArgs e)
         {
             if (sender is not Control control || !_headers.TryGetValue(control, out var entry))
@@ -63,10 +88,13 @@ namespace MKtest.UI
             }
         }
 
-        private static void SetExpanded(PanelEntry entry, bool expanded)
+        private void SetExpanded(PanelEntry entry, bool expanded)
         {
             entry.Content.Visible = expanded;
-            entry.Container.Height = expanded ? entry.ExpandedHeight : entry.Header.Height;
+            _heightOffsets.TryGetValue(entry.Container, out int adjustment);
+            entry.Container.Height = expanded
+                ? Math.Max(entry.Header.Height + 1, entry.ExpandedHeight + adjustment)
+                : entry.Header.Height;
             entry.TitleLabel.Text = entry.Title + (expanded ? " ▼" : " ▶");
         }
 
@@ -81,6 +109,7 @@ namespace MKtest.UI
 
             _entries.Clear();
             _headers.Clear();
+            _heightOffsets.Clear();
             _disposed = true;
         }
 
