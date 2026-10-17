@@ -52,28 +52,11 @@ namespace MKtest.Managers
 
         private void SetupEventHandlers()
         {
-            _startButton.Click += StartButton_Click;
             _stopButton.Click += StopButton_Click;
             _comboBox.SelectedIndexChanged += ComboBox_SelectedIndexChanged;
             _demoService.DemoStatusChanged += DemoService_DemoStatusChanged;
             _demoService.ScenarioProgress += DemoService_ScenarioProgress;
         }
-
-        public void StartButton_Click(object sender, EventArgs e)
-        {
-            var selectedScenario = _comboBox.SelectedItem?.ToString();
-            if (string.IsNullOrEmpty(selectedScenario))
-            {
-                AppendLog("Ошибка: не выбран сценарий");
-                return;
-            }
-
-            AppendLog($"Запуск сценария: {selectedScenario}");
-            _demoService.StartScenario(selectedScenario);
-
-        }
-
-        public EventHandler StartButtonHandler => StartButton_Click;
 
         private void StopButton_Click(object sender, EventArgs e)
         {
@@ -124,6 +107,8 @@ namespace MKtest.Managers
         public void Cleanup()
         {
             _demoService.StopScenario();
+            _stopButton.Click -= StopButton_Click;
+            _comboBox.SelectedIndexChanged -= ComboBox_SelectedIndexChanged;
             _demoService.DemoStatusChanged -= DemoService_DemoStatusChanged;
             _demoService.ScenarioProgress -= DemoService_ScenarioProgress;
         }
