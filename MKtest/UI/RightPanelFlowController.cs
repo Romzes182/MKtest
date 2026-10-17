@@ -11,12 +11,15 @@ namespace MKtest.UI
     public sealed class RightPanelFlowController : IDisposable
     {
         private readonly FlowLayoutPanel _flow;
+        private readonly Panel _host;
+        private int _lastPanelWidth = -1;
         private readonly List<Panel> _panels = new();
 
         public RightPanelFlowController(Panel host, params Panel[] panels)
         {
             ArgumentNullException.ThrowIfNull(host);
-            _flow = new FlowLayoutPanel
+            _host = host;
+            _flow = new BufferedFlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 AutoScroll = true,
@@ -44,14 +47,26 @@ namespace MKtest.UI
 
         public void RefreshLayout()
         {
-            int availableWidth = Math.Max(250,
-                _flow.ClientSize.Width - _flow.Padding.Horizontal - 26);
+            // Use the parent viewport width, not FlowLayoutPanel.ClientSize:
+            // the latter changes when the vertical scrollbar appears/disappears.
+            // Reserve its width even when currently hidden, avoiding resize flicker.
+            int horizontalMargins = _panels.Count > 0
+                ? _panels[0].Margin.Horizontal
+                : 6;
+            int availableWidth = Math.Max(1,
+                _host.ClientSize.Width - _flow.Padding.Horizontal -
+                horizontalMargins - SystemInformation.VerticalScrollBarWidth - 4);
 
+            if (_lastPanelWidth == availableWidth)
+                return;
+
+            _lastPanelWidth = availableWidth;
             _flow.SuspendLayout();
             try
             {
                 foreach (var panel in _panels)
-                    panel.Width = availableWidth;
+                    if (panel.Width != availableWidth)
+                        panel.Width = availableWidth;
             }
             finally
             {
