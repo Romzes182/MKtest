@@ -447,7 +447,7 @@ namespace MKtest
         #endregion
 
         #region Обработчики веб-сервера
-        private void WebServerStartButton_Click(object sender, EventArgs e)
+        private void WebServerStartButton_Click(object? sender, EventArgs e)
         {
             if (_webServerManager == null)
             {
@@ -459,7 +459,7 @@ namespace MKtest
             _webServerManager.StartServer(ConfigService.Config.WebServer);
         }
 
-        private void WebServerStopButton_Click(object sender, EventArgs e) => _webServerManager?.StopServer();
+        private void WebServerStopButton_Click(object? sender, EventArgs e) => _webServerManager?.StopServer();
         #endregion
 
         #region USR Transfer
