@@ -1,97 +1,53 @@
-﻿using System;
+using MKtest.Services.Logging;
+using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace MKtest.Services
 {
-    public class LoggerService
+    /// <summary>
+    /// Доставляет записи в независимое файловое хранилище и ограниченную историю.
+    /// Не зависит от WinForms и сохраняет прежний публичный API.
+    /// </summary>
+    public sealed class LoggerService
     {
-        private readonly List<string> _logMessages = new();
-        private readonly string _logDirectory;
-        private readonly string _logFile;
-        private readonly object _lock = new object();
+        private readonly ILogFileStorage _storage;
+        private readonly BoundedLogHistory _history;
+        private readonly object _sync = new();
 
         public event Action<string>? OnLogMessage;
 
         public LoggerService()
+            : this(new FileLogStorage(), new BoundedLogHistory())
         {
-            _logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
-            Directory.CreateDirectory(_logDirectory);
-            _logFile = Path.Combine(_logDirectory, $"log_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+        }
+
+        public LoggerService(ILogFileStorage storage, BoundedLogHistory history)
+        {
+            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+            _history = history ?? throw new ArgumentNullException(nameof(history));
         }
 
         public void Log(string message)
         {
-            string formattedMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}";
-
-            lock (_lock)
+            string formatted;
+            lock (_sync)
             {
-                // Сохраняем в память
-                _logMessages.Add(formattedMessage);
-
-                // Записываем в файл
-                try
-                {
-                    File.AppendAllText(_logFile, formattedMessage + Environment.NewLine);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Ошибка записи в лог-файл: {ex.Message}");
-                }
-
-                // Ограничиваем размер лога в памяти (например, последние 1000 сообщений)
-                if (_logMessages.Count > 1000)
-                {
-                    _logMessages.RemoveAt(0);
-                }
+                formatted = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}";
+                _history.Add(formatted);
+                _storage.AppendLine(formatted);
             }
 
-            // Вызываем событие
-            OnLogMessage?.Invoke(formattedMessage);
-
-            // Выводим в консоль
-            Console.WriteLine(formattedMessage);
+            OnLogMessage?.Invoke(formatted);
+            Console.WriteLine(formatted);
         }
 
-        public IReadOnlyList<string> GetLogs() => _logMessages.AsReadOnly();
+        public IReadOnlyList<string> GetLogs() => _history.Snapshot();
 
-        public string GetLogFile() => _logFile;
+        public string GetLogFile() => _storage.CurrentFile;
 
-        // Метод для получения всех лог-файлов
-        public List<string> GetAllLogFiles()
-        {
-            try
-            {
-                return Directory.GetFiles(_logDirectory, "log_*.txt")
-                    .OrderByDescending(f => f)
-                    .ToList();
-            }
-            catch
-            {
-                return new List<string>();
-            }
-        }
+        public List<string> GetAllLogFiles() => _storage.GetAllLogFiles();
 
-        // Метод для очистки старых логов (например, старше 7 дней)
-        public void CleanOldLogs(int daysToKeep = 7)
-        {
-            try
-            {
-                var files = Directory.GetFiles(_logDirectory, "log_*.txt");
-                foreach (var file in files)
-                {
-                    var fileInfo = new FileInfo(file);
-                    if (fileInfo.CreationTime < DateTime.Now.AddDays(-daysToKeep))
-                    {
-                        fileInfo.Delete();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка очистки старых логов: {ex.Message}");
-            }
-        }
+        public void CleanOldLogs(int daysToKeep = 7) =>
+            _storage.CleanOldLogs(daysToKeep);
     }
 }
