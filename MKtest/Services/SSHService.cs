@@ -1,287 +1,107 @@
-﻿using Renci.SshNet;
 using MKtest.Configs;
+using MKtest.Services.SSH;
+using Renci.SshNet;
 using System;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace MKtest.Services
 {
-    public class SSHService : IDisposable
+    /// <summary>
+    /// Управляет жизненным циклом SSH-подключения Beelink.
+    /// Авторизация root, чтение shell и выполнение команд вынесены в отдельные классы.
+    /// </summary>
+    public sealed class SSHService : ISshCommandExecutor, IDisposable
     {
+        private readonly ISshClientFactory _clientFactory;
         private SshClient? _sshClient;
-        private ShellStream? _shellStream;
-        private bool _isConnected = false;
-        private bool _isRootLoggedIn = false;
-        private readonly object _lockObject = new();
+        private SshShellSession? _shellSession;
+        private bool _isConnected;
+        private bool _isRootLoggedIn;
 
         public event Action<string>? OnLogMessage;
         public event Action<string>? OnStatusChanged;
 
-        public async Task<bool> ConnectAsync(SSHConfig config)
+        public SSHService(ISshClientFactory? clientFactory = null)
         {
-            return await Task.Run(() => Connect(config));
+            _clientFactory = clientFactory ?? new SshClientFactory();
         }
+
+        public Task<bool> ConnectAsync(SSHConfig config) =>
+            Task.Run(() => Connect(config));
 
         public bool Connect(SSHConfig config)
         {
+            ArgumentNullException.ThrowIfNull(config);
+
             try
             {
+                if (_sshClient != null)
+                    ReleaseConnection();
+
                 OnLogMessage?.Invoke($"Попытка подключения к {config.IP}:{config.Port} как {config.User}");
                 OnStatusChanged?.Invoke($"Подключение к {config.IP}...");
 
-                // Создаем подключение
-                var connectionInfo = new ConnectionInfo(
-                    config.IP,
-                    config.Port,
-                    config.User,
-                    new PasswordAuthenticationMethod(config.User, config.PasswordUser)
-                );
+                var client = _clientFactory.Create(config);
+                _sshClient = client;
+                client.Connect();
 
-                connectionInfo.Encoding = Encoding.UTF8;
-                connectionInfo.Timeout = TimeSpan.FromSeconds(30);
-
-                _sshClient = new SshClient(connectionInfo);
-                _sshClient.Connect();
-
-                if (!_sshClient.IsConnected)
+                if (!client.IsConnected)
                 {
                     OnLogMessage?.Invoke("Ошибка: SSH соединение не установлено");
                     OnStatusChanged?.Invoke("Ошибка подключения");
+                    ReleaseConnection();
                     return false;
                 }
 
                 OnLogMessage?.Invoke("SSH подключение установлено успешно");
 
-                // Создаем shell stream
-                _shellStream = _sshClient.CreateShellStream("xterm", 80, 24, 800, 600, 1024);
+                var shellSession = new SshShellSession(client, Log);
+                _shellSession = shellSession;
 
-                // Ждем приглашение shell
-                WaitForPrompt("user@", 2000);
-
-                // Отправляем su
-                _shellStream.WriteLine("su");
-                Thread.Sleep(500);
-
-                // Ждем запрос пароля
-                WaitForPrompt("Пароль:", 2000);
-
-                // Отправляем пароль root
-                _shellStream.WriteLine(config.PasswordRoot);
-                Thread.Sleep(1000);
-
-                // Проверяем, что вошли в root
-                _shellStream.WriteLine("whoami");
-                Thread.Sleep(1000);
-
-                // Читаем ответ
-                string whoamiResult = ReadAvailableOutput(2000);
-
-                if (whoamiResult.Contains("root"))
-                {
-                    _isConnected = true;
-                    _isRootLoggedIn = true;
-                    OnLogMessage?.Invoke("Успешный вход под root");
-                    OnStatusChanged?.Invoke("Подключено (root)");
-                    return true;
-                }
-                else
+                if (!shellSession.TryLoginAsRoot(config.PasswordRoot, out var whoamiResult))
                 {
                     OnLogMessage?.Invoke($"Не удалось войти под root. Ответ whoami: {whoamiResult}");
                     OnStatusChanged?.Invoke("Ошибка авторизации root");
+                    ReleaseConnection();
                     return false;
                 }
+
+                _isConnected = true;
+                _isRootLoggedIn = true;
+                OnLogMessage?.Invoke("Успешный вход под root");
+                OnStatusChanged?.Invoke("Подключено (root)");
+                return true;
             }
             catch (Exception ex)
             {
                 OnLogMessage?.Invoke($"Ошибка SSH подключения: {ex.Message}");
                 OnStatusChanged?.Invoke($"Ошибка: {ex.Message}");
-                Disconnect();
+                ReleaseConnection();
                 return false;
             }
         }
 
-        private string WaitForPrompt(string prompt, int timeoutMs)
-        {
-            DateTime start = DateTime.Now;
-            StringBuilder output = new StringBuilder();
-
-            while ((DateTime.Now - start).TotalMilliseconds < timeoutMs)
-            {
-                if (_shellStream == null) break;
-
-                if (_shellStream.DataAvailable)
-                {
-                    byte[] buffer = new byte[1024];
-                    int bytesRead = _shellStream.Read(buffer, 0, buffer.Length);
-                    string text = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    output.Append(text);
-
-                    OnLogMessage?.Invoke($"Получено: {text}");
-
-                    if (text.Contains(prompt))
-                    {
-                        return output.ToString();
-                    }
-                }
-                Thread.Sleep(100);
-            }
-
-            return output.ToString();
-        }
-
-        private string ReadAvailableOutput(int timeoutMs)
-        {
-            DateTime start = DateTime.Now;
-            StringBuilder output = new StringBuilder();
-
-            while ((DateTime.Now - start).TotalMilliseconds < timeoutMs)
-            {
-                if (_shellStream == null) break;
-
-                if (_shellStream.DataAvailable)
-                {
-                    byte[] buffer = new byte[1024];
-                    int bytesRead = _shellStream.Read(buffer, 0, buffer.Length);
-                    string text = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    output.Append(text);
-                }
-                else
-                {
-                    break;
-                }
-                Thread.Sleep(50);
-            }
-
-            return output.ToString();
-        }
-
         public string ExecuteCommand(string command)
         {
-            if (!_isConnected || _shellStream == null || !_isRootLoggedIn)
-            {
+            if (!IsConnected() || _shellSession == null)
                 return "ERROR: Нет подключения или не выполнен вход под root";
-            }
 
-            try
-            {
-                // Отправляем команду
-                _shellStream.WriteLine(command);
-                OnLogMessage?.Invoke($"Выполняется команда: {command}");
-
-                // Ждем ответ
-                Thread.Sleep(1000);
-
-                // Читаем доступный вывод
-                string result = ReadAvailableOutput(3000);
-
-                return CleanOutput(result);
-            }
-            catch (Exception ex)
-            {
-                OnLogMessage?.Invoke($"Ошибка выполнения команды: {ex.Message}");
-                return $"ERROR: {ex.Message}";
-            }
+            return _shellSession.ExecuteCommand(command);
         }
 
         public string ExecuteDirectCommand(string command)
         {
-            if (!_isConnected || _sshClient == null || !_isRootLoggedIn)
-            {
+            if (!IsConnected() || _sshClient == null)
                 return "ERROR: Нет подключения";
-            }
 
-            try
-            {
-                using var cmd = _sshClient.CreateCommand(command);
-                cmd.CommandTimeout = TimeSpan.FromSeconds(10);
-
-                OnLogMessage?.Invoke($"Выполнение команды: {command}");
-                string result = cmd.Execute();
-                string error = cmd.Error;
-
-                if (!string.IsNullOrEmpty(error))
-                {
-                    OnLogMessage?.Invoke($"Ошибка команды: {error}");
-                    return $"{result}\nERROR: {error}";
-                }
-
-                return result.Trim();
-            }
-            catch (Exception ex)
-            {
-                OnLogMessage?.Invoke($"Ошибка выполнения команды: {ex.Message}");
-                return $"ERROR: {ex.Message}";
-            }
-        }
-
-        private static string CleanOutput(string input)
-        {
-            if (string.IsNullOrEmpty(input)) return input;
-
-            // Удаляем escape-последовательности ANSI
-            var sb = new StringBuilder();
-            bool inEscape = false;
-
-            foreach (char c in input)
-            {
-                if (c == '\u001B') // ESC character
-                {
-                    inEscape = true;
-                    continue;
-                }
-
-                if (inEscape)
-                {
-                    if (c == 'm' || c == 'K' || c == 'J' || c == 'H' || c == 'A' || c == 'B' || c == 'C' || c == 'D')
-                    {
-                        inEscape = false;
-                    }
-                    continue;
-                }
-
-                sb.Append(c);
-            }
-
-            string cleaned = sb.ToString()
-                .Replace("[?2004h", "")
-                .Replace("[?2004l", "")
-                .Replace("\b", "")  // Удаляем backspace
-                .Trim();
-
-            return cleaned;
+            return SshDirectCommandExecutor.Execute(_sshClient, command, Log);
         }
 
         public void Disconnect()
         {
             try
             {
-                _isConnected = false;
-                _isRootLoggedIn = false;
-
-                if (_shellStream != null)
-                {
-                    try
-                    {
-                        // Если подключены, выходим из root и затем из сессии
-                        if (_isRootLoggedIn)
-                        {
-                            _shellStream.WriteLine("exit");
-                            Thread.Sleep(500);
-                        }
-                        _shellStream.WriteLine("exit");
-                    }
-                    catch { }
-
-                    _shellStream?.Close();
-                    _shellStream?.Dispose();
-                    _shellStream = null;
-                }
-
-                _sshClient?.Disconnect();
-                _sshClient?.Dispose();
-                _sshClient = null;
-
+                ReleaseConnection();
                 OnLogMessage?.Invoke("SSH соединение закрыто");
                 OnStatusChanged?.Invoke("Отключено");
             }
@@ -291,12 +111,52 @@ namespace MKtest.Services
             }
         }
 
-        public bool IsConnected()
+        public bool IsConnected() =>
+            _isConnected &&
+            _isRootLoggedIn &&
+            _sshClient?.IsConnected == true;
+
+        private void Log(string message) => OnLogMessage?.Invoke(message);
+
+        private void ReleaseConnection()
         {
-            return _isConnected &&
-                   _sshClient != null &&
-                   _sshClient.IsConnected &&
-                   _isRootLoggedIn;
+            var shellSession = _shellSession;
+            var client = _sshClient;
+            bool wasRoot = _isRootLoggedIn;
+
+            _isConnected = false;
+            _isRootLoggedIn = false;
+            _shellSession = null;
+            _sshClient = null;
+
+            if (shellSession != null)
+            {
+                try
+                {
+                    shellSession.Logout(wasRoot);
+                }
+                catch (Exception ex)
+                {
+                    Log($"Ошибка выхода из shell: {ex.Message}");
+                }
+                finally
+                {
+                    try { shellSession.Dispose(); }
+                    catch (Exception ex) { Log($"Ошибка закрытия shell: {ex.Message}"); }
+                }
+            }
+
+            if (client != null)
+            {
+                try
+                {
+                    if (client.IsConnected) client.Disconnect();
+                }
+                finally
+                {
+                    client.Dispose();
+                }
+            }
         }
 
         public void Dispose()
