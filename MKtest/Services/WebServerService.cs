@@ -1,4 +1,4 @@
-﻿using MKtest.Managers;
+using MKtest.Services.WebServer;
 using System;
 using System.IO;
 using System.Net;
@@ -18,75 +18,78 @@ namespace MKtest.Services
         event EventHandler<string> ServerLog;
     }
 
-    public class WebServerService : IWebServerService, IDisposable
+    /// <summary>
+    /// Owns the HttpListener lifecycle; request details belong to IWebServerRequestHandler.
+    /// No WinForms or LogManager dependencies.
+    /// </summary>
+    public sealed class WebServerService : IWebServerService, IDisposable
     {
-        private readonly LogManager? _logManager;
+        private readonly IWebServerRequestHandler _requestHandler;
+        private readonly object _sync = new();
         private HttpListener? _listener;
         private Thread? _serverThread;
-        private bool _isRunning;
+        private volatile bool _isRunning;
         private string _serverUrl = string.Empty;
-        private readonly string _rootPath;
 
         public bool IsRunning => _isRunning;
         public string ServerUrl => _serverUrl;
 
         public event EventHandler<string>? ServerLog;
 
-        public WebServerService(LogManager? logManager = null)
+        public WebServerService(IWebServerRequestHandler? requestHandler = null)
         {
-            _logManager = logManager;
-            _rootPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "JsonTemplates");
-            Directory.CreateDirectory(_rootPath);
-        }
-
-        private static bool IsPortInUse(int port)
-        {
-            try
-            {
-                using var client = new TcpClient();
-                var result = client.BeginConnect("127.0.0.1", port, null, null);
-                var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
-                client.EndConnect(result);
-                return success;
-            }
-            catch
-            {
-                return false;
-            }
+            _requestHandler = requestHandler ??
+                new StaticFileRequestHandler(Path.Combine(AppContext.BaseDirectory, "JsonTemplates"));
+            _requestHandler.RequestLog += RequestHandlerLog;
         }
 
         public void StartServer(string ipAddress = "*", int port = 8080)
         {
-            try
+            string? error = null;
+            string? url = null;
+
+            lock (_sync)
             {
-                if (IsPortInUse(port))
-                {
-                    var error = $"Ошибка: Порт {port} уже занят другим процессом";
-                    OnServerLog(error);
+                if (_isRunning)
                     return;
-                }
 
-                _isRunning = true;
-                _listener = new HttpListener
+                HttpListener? newListener = null;
+                try
                 {
-                    Prefixes = { $"http://{ipAddress}:{port}/" }
-                };
+                    url = $"http://{ipAddress}:{port}/";
+                    newListener = new HttpListener();
+                    newListener.Prefixes.Add(url);
 
-                _serverUrl = $"http://{ipAddress}:{port}/";
-                _serverThread = new Thread(Listen) { IsBackground = true };
-                _serverThread.Start();
+                    // Start synchronously: a failed bind must never appear as a running server.
+                    newListener.Start();
 
-                var message = $"Веб-сервер запущен на {_serverUrl}";
-                OnServerLog(message);
-
-                string ipInfo = GetIPAddressInfo(port);
-                OnServerLog(ipInfo);
+                    _listener = newListener;
+                    _serverUrl = url;
+                    _isRunning = true;
+                    _serverThread = new Thread(() => Listen(newListener))
+                    {
+                        IsBackground = true
+                    };
+                    _serverThread.Start();
+                }
+                catch (Exception ex)
+                {
+                    _isRunning = false;
+                    _listener = null;
+                    _serverThread = null;
+                    newListener?.Close();
+                    error = ex.Message;
+                }
             }
-            catch (Exception ex)
+
+            if (error != null)
             {
-                var error = $"Ошибка запуска веб-сервера: {ex.Message}";
-                OnServerLog(error);
+                OnServerLog($"Ошибка запуска веб-сервера: {error}");
+                return;
             }
+
+            OnServerLog($"Веб-сервер запущен на {url}");
+            OnServerLog(GetIPAddressInfo(port));
         }
 
         private static string GetIPAddressInfo(int port)
@@ -100,9 +103,7 @@ namespace MKtest.Services
                 foreach (var ip in host.AddressList)
                 {
                     if (ip.AddressFamily == AddressFamily.InterNetwork)
-                    {
                         result.AppendLine($"http://{ip}:{port}/");
-                    }
                 }
 
                 result.AppendLine($"http://localhost:{port}/");
@@ -114,30 +115,22 @@ namespace MKtest.Services
             }
         }
 
-        private void Listen()
+        private void Listen(HttpListener listener)
         {
             try
             {
-                var listener = _listener;
-                if (listener == null) return;
-
-                listener.Start();
-
                 while (_isRunning)
                 {
                     try
                     {
-                        if (!listener.IsListening)
-                            break;
-
                         var context = listener.GetContext();
-                        Task.Run(() => ProcessRequest(context));
+                        _ = Task.Run(() => _requestHandler.Handle(context));
                     }
                     catch (HttpListenerException) when (!_isRunning)
                     {
                         break;
                     }
-                    catch (ObjectDisposedException)
+                    catch (ObjectDisposedException) when (!_isRunning)
                     {
                         break;
                     }
@@ -154,95 +147,46 @@ namespace MKtest.Services
             }
         }
 
-        private void ProcessRequest(HttpListenerContext context)
-        {
-            try
-            {
-                var request = context.Request;
-                var response = context.Response;
-
-                var requestedFile = request.Url?.AbsolutePath.TrimStart('/') ?? string.Empty;
-                var logMessage = $"HTTP запрос: {request.HttpMethod} {request.Url?.AbsolutePath}";
-                OnServerLog(logMessage);
-
-                string safePath = Path.Combine(_rootPath, requestedFile);
-                safePath = Path.GetFullPath(safePath);
-
-                // Проверка безопасности
-                if (!safePath.StartsWith(Path.GetFullPath(_rootPath)))
-                {
-                    response.StatusCode = 403;
-                    var forbidden = Encoding.UTF8.GetBytes("Forbidden");
-                    response.OutputStream.Write(forbidden, 0, forbidden.Length);
-                    response.Close();
-                    return;
-                }
-
-                if (File.Exists(safePath))
-                {
-                    var extension = Path.GetExtension(safePath).ToLower();
-                    response.ContentType = extension switch
-                    {
-                        ".json" => "application/json",
-                        ".html" => "text/html",
-                        ".txt" => "text/plain",
-                        _ => "application/octet-stream"
-                    };
-
-                    response.ContentEncoding = Encoding.UTF8;
-                    var fileBytes = File.ReadAllBytes(safePath);
-                    response.OutputStream.Write(fileBytes, 0, fileBytes.Length);
-                    response.StatusCode = 200;
-                    OnServerLog($"Отправлен файл: {requestedFile}");
-                }
-                else
-                {
-                    response.StatusCode = 404;
-                    var notFound = Encoding.UTF8.GetBytes("File not found");
-                    response.OutputStream.Write(notFound, 0, notFound.Length);
-                    OnServerLog($"Файл не найден: {requestedFile}");
-                }
-
-                response.Close();
-            }
-            catch (Exception ex)
-            {
-                OnServerLog($"Ошибка обработки HTTP запроса: {ex.Message}");
-            }
-        }
-
         public void StopServer()
         {
+            HttpListener? listener;
+            Thread? serverThread;
+
+            lock (_sync)
+            {
+                if (!_isRunning && _listener == null)
+                    return;
+
+                _isRunning = false;
+                listener = _listener;
+                serverThread = _serverThread;
+                _listener = null;
+                _serverThread = null;
+            }
+
             try
             {
-                _isRunning = false;
-                _listener?.Stop();
-                _listener?.Close();
-                _listener = null;
+                listener?.Stop();
+                listener?.Close();
+                if (serverThread != Thread.CurrentThread)
+                    serverThread?.Join(1000);
 
-                _serverThread?.Join(1000);
-                _serverThread = null;
-
-                var message = "Веб-сервер остановлен";
-                OnServerLog(message);
+                OnServerLog("Веб-сервер остановлен");
             }
             catch (Exception ex)
             {
-                var error = $"Ошибка остановки веб-сервера: {ex.Message}";
-                OnServerLog(error);
+                OnServerLog($"Ошибка остановки веб-сервера: {ex.Message}");
             }
         }
 
-        protected virtual void OnServerLog(string message)
-        {
-            ServerLog?.Invoke(this, message);
-            _logManager?.AppendLog($"[WebServer] {message}");
-        }
+        private void RequestHandlerLog(object? sender, string message) => OnServerLog(message);
+
+        private void OnServerLog(string message) => ServerLog?.Invoke(this, message);
 
         public void Dispose()
         {
             StopServer();
-            _listener?.Close();
+            _requestHandler.RequestLog -= RequestHandlerLog;
         }
     }
 }
