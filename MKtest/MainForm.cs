@@ -907,7 +907,7 @@ namespace MKtest
 
             if (_settingsManager.SaveSettings(_logManager))
             {
-                MessageBox.Show("Настройки HTTP Protokol сохранены!", "Успех",
+                MessageBox.Show("Настройки Json-RPC Protokol сохранены!", "Успех",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
