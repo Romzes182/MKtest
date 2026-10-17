@@ -17,6 +17,7 @@ using MKtest.Services.JSONRPCprotokol;
 using MKtest.Services.HTTPpay;
 using MKtest.Services.SekopProtocol;
 using MKtest.UI.Sekop;
+using MKtest.UI.Logging;
 
 namespace MKtest
 {
@@ -61,6 +62,9 @@ namespace MKtest
         private DemoModeController? _demoModeController;
         private USRTransferUiController? _usrTransferUiController;
         private SekopUiController? _sekopUiController;
+        private BlockLogPanelRegistry? _blockLogs;
+        private LogManager? _sshLog, _webLog, _demoLog, _usrLog, _hermesLog;
+        private LogManager? _httpPayLog, _jsonLog, _sekopLog, _emergencyLog;
         #endregion
 
         #region Конструктор
@@ -106,19 +110,36 @@ namespace MKtest
         private void InitializeServices()
         {
             _logManager = new LogManager(beelinkLogTextBox);
+            InitializeBlockLogs();
             _sshService = new SSHService();
             _timeService = new TimeCommandsService(_sshService);
             _webServerService = new WebServerService();
             _routeService = new RouteService();
-            _usrTransferService = new USRTransferService(_logManager);
+            _usrTransferService = new USRTransferService(_usrLog!);
             _httpProtokolService = new JSONRPCprotokolService(ConfigService.Config.HTTPprotokol);
             _httpPayService = new HTTPpayService(ConfigService.Config.HTTPpay);
             _sekopPacketSenderService = new SekopPacketSenderService();
             _sekopProtocolService = new SekopProtocolService(ConfigService.Config.SekopProtocol,_sekopPacketSenderService);
-            _emergencyService = new EmergencyService(_logManager);
+            _emergencyService = new EmergencyService(_emergencyLog!);
 
         }
         #endregion
+
+        /// <summary>Dedicated log inside each existing protocol block.</summary>
+        private void InitializeBlockLogs()
+        {
+            if (_logManager == null) return;
+            _blockLogs = new BlockLogPanelRegistry(_logManager);
+            _sshLog = _blockLogs.Add("SSH Beelink", beelinkContentPanel, beelinkCollapsiblePanel);
+            _webLog = _blockLogs.Add("Веб-сервер", webServerContentPanel, webServerCollapsiblePanel);
+            _demoLog = _blockLogs.Add("ЛК-ВИЗ / Demo", demoContentPanel, demoCollapsiblePanel);
+            _usrLog = _blockLogs.Add("ИР-0652", usrTransferContentPanel, usrTransferCollapsiblePanel);
+            _hermesLog = _blockLogs.Add("Гермес", hermesContentPanel, hermesCollapsiblePanel);
+            _httpPayLog = _blockLogs.Add("HTTP-платежи", httpPayContentPanel, httpPayCollapsiblePanel);
+            _jsonLog = _blockLogs.Add("JSON-RPC", httpProtokolContentPanel, httpProtokolCollapsiblePanel);
+            _sekopLog = _blockLogs.Add("СЭКОП", sekopContentPanel, sekopCollapsiblePanel);
+            _emergencyLog = _blockLogs.Add("МЧС", emergencyContentPanel, emergencyCollapsiblePanel);
+        }
 
         #region Инициализация менеджеров
         private void InitializeManagers()
@@ -154,18 +175,18 @@ namespace MKtest
 
             if (_sshService == null || _logManager == null || _stateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
-            _sshManager = new SSHConnectionManager(_sshService, _logManager, _stateManager);
+            _sshManager = new SSHConnectionManager(_sshService, _sshLog!, _stateManager);
 
             if (_webServerService == null || _logManager == null || _webServerStateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
-            _webServerManager = new WebServerManager(_webServerService, _logManager, _webServerStateManager);
+            _webServerManager = new WebServerManager(_webServerService, _webLog!, _webServerStateManager);
 
             if (_timeService == null || _logManager == null || _sshManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
-            _timeManager = new TimeCommandsManager(_timeService, _logManager, () => _sshManager.IsConnected());
+            _timeManager = new TimeCommandsManager(_timeService, _sshLog!, () => _sshManager.IsConnected());
             if (_sekopProtocolService == null || _logManager == null)
                 throw new InvalidOperationException("Сервисы протокола СЭКОП не инициализированы");
-            _sekopProtocolManager = new SekopProtocolManager(_sekopProtocolService,_logManager);
+            _sekopProtocolManager = new SekopProtocolManager(_sekopProtocolService,_sekopLog!);
 
             if (_emergencyService == null)
                 throw new InvalidOperationException("EmergencyService не инициализирован");
@@ -176,7 +197,7 @@ namespace MKtest
 
             if (_routeService == null || _usrTransferService == null || _logManager == null)
                 throw new InvalidOperationException("USR сервисы не инициализированы");
-            _usrTransferManager = new USRTransferManager(_routeService, _usrTransferService, _logManager);
+            _usrTransferManager = new USRTransferManager(_routeService, _usrTransferService, _usrLog!);
             InitializeUsrTransferUi();
             InitializeHermesMain();
             InitializeHTTPpayMain();
@@ -189,14 +210,14 @@ namespace MKtest
             {
                 var demoConfig = new DemoConfig();
                 _demoFileService = new DemoFileService(demoConfig);
-                _demoScenarioService = new DemoScenarioService(_demoFileService, _logManager!);
+                _demoScenarioService = new DemoScenarioService(_demoFileService, _demoLog!);
                 _demoManager = new DemoScenarioManager(cmbDemoScenarios, btnStartDemo, btnStopDemo,
-                    lblDemoStatus, _logManager!, _demoScenarioService);
-                _logManager?.AppendLog("Демо-сервисы инициализированы");
+                    lblDemoStatus, _demoLog!, _demoScenarioService);
+                _demoLog?.AppendLog("Демо-сервисы инициализированы");
             }
             catch (Exception ex)
             {
-                _logManager?.AppendLog($"Ошибка инициализации демо-сервисов: {ex.Message}");
+                _demoLog?.AppendLog($"Ошибка инициализации демо-сервисов: {ex.Message}");
             }
         }
 
@@ -236,7 +257,7 @@ namespace MKtest
                 _demoModeController = new DemoModeController(
                     rbAutoMode, rbManualMode, btnStartDemo, btnNextStep,
                     cmbDemoScenarios, _demoScenarioService,
-                    message => _logManager?.AppendLog(message));
+                    message => _demoLog?.AppendLog(message));
             }
         }
 
@@ -371,7 +392,7 @@ namespace MKtest
                     cmbUsrRoutes, cmbInMode, lstSvcFiles, lstInFiles,
                     btnUsrTest, btnUsrSendSvc, btnUsrStartIn, btnUsrStopIn,
                     lblUsrStatus, lblUsrStep, lblUsrCountdown),
-                _logManager.AppendLog);
+                _usrLog!.AppendLog);
         }
 
         private void cmbUsrRoutes_SelectedIndexChanged(object? sender, EventArgs e) =>
@@ -436,8 +457,8 @@ namespace MKtest
             if (_logManager == null) return;
 
             var cfg = ConfigService.Config.HermesSSH;
-            _hermesService = new HermesPassengerService(_logManager, cfg);
-            _hermesManager = new HermesPassengerManager(_hermesService, _logManager);
+            _hermesService = new HermesPassengerService(_hermesLog!, cfg);
+            _hermesManager = new HermesPassengerManager(_hermesService, _hermesLog!);
             _hermesManager.StatusChanged += HermesManager_StatusChanged;
 
             hermesEnteredTextBox.Text = "0";
@@ -461,7 +482,7 @@ namespace MKtest
             }
             catch (Exception ex)
             {
-                _logManager.AppendLog($"Hermes start error: {ex.Message}");
+                _hermesLog!.AppendLog($"Hermes start error: {ex.Message}");
                 lblHermesStatus.Text = "Статус: Ошибка подключения";
                 MessageBox.Show($"Hermes недоступен:\n{ex.Message}", "Hermes",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -483,7 +504,7 @@ namespace MKtest
             }
             catch (Exception ex)
             {
-                _logManager.AppendLog($"Hermes stop error: {ex.Message}");
+                _hermesLog!.AppendLog($"Hermes stop error: {ex.Message}");
             }
             finally
             {
@@ -501,13 +522,13 @@ namespace MKtest
                 lblHermesStatus.Text = "Статус: Тест...";
                 var ok = await _hermesManager.TestConnectionAsync();
                 lblHermesStatus.Text = ok ? "Статус: Доступно" : "Статус: Недоступно";
-                _logManager.AppendLog(ok
+                _hermesLog!.AppendLog(ok
                     ? "Hermes SSH: подключение успешно"
                     : "Hermes SSH: подключение не удалось");
             }
             catch (Exception ex)
             {
-                _logManager.AppendLog($"Hermes test fatal: {ex.Message}");
+                _hermesLog!.AppendLog($"Hermes test fatal: {ex.Message}");
                 lblHermesStatus.Text = "Статус: Ошибка";
             }
         }
@@ -518,7 +539,7 @@ namespace MKtest
             if (!TryReadHermesValues(out var entered, out var exited)) return;
 
             _hermesManager.UpdateValues(entered, exited);
-            _logManager.AppendLog($"Hermes: обновлены значения A={entered}, B={exited}");
+            _hermesLog!.AppendLog($"Hermes: обновлены значения A={entered}, B={exited}");
         }
 
         private bool TryReadHermesValues(out int entered, out int exited)
@@ -596,6 +617,7 @@ namespace MKtest
             }
             finally
             {
+                _blockLogs?.Dispose();
                 _logManager?.Dispose();
             }
         }
@@ -644,7 +666,7 @@ namespace MKtest
         {
             if (_httpProtokolService == null || _logManager == null)
                 return;
-            _httpProtokolManager = new JSONRPCprotokolManager(_httpProtokolService, _logManager);
+            _httpProtokolManager = new JSONRPCprotokolManager(_httpProtokolService, _jsonLog!);
             httpProtokolTrCounterTextBox.Text = "0";
             httpProtokolIntervalTextBox.Text = "5";
             lblHttpStatus.Text = "Статус: Остановлено";
@@ -695,11 +717,11 @@ namespace MKtest
                 _httpProtokolManager.Start(trCounter, interval);
                 btnHttpProtokolStart.Enabled = false;
                 btnHttpProtokolStop.Enabled = true;
-                lblHttpStatus.Text = "Статус: Запущено"; _logManager?.AppendLog("JSONRPC запущен");
+                lblHttpStatus.Text = "Статус: Запущено"; _jsonLog?.AppendLog("JSONRPC запущен");
             }
             catch (Exception ex)
             {
-                _logManager?.AppendLog(ex.Message);
+                _jsonLog?.AppendLog(ex.Message);
             }
         }
 
@@ -711,7 +733,7 @@ namespace MKtest
             btnHttpProtokolStart.Enabled = true;
             btnHttpProtokolStop.Enabled = false;
             lblHttpStatus.Text = "Статус: Остановлено";
-            _logManager?.AppendLog("JsonRPCprotokol остановлен");
+            _jsonLog?.AppendLog("JsonRPCprotokol остановлен");
         }
         private async void btnHttpProtokolTest_Click(object sender, EventArgs e)
         {
@@ -721,11 +743,11 @@ namespace MKtest
             {
                 int trCounter = int.Parse(httpProtokolTrCounterTextBox.Text);
                 await _httpProtokolService.SendAsync(trCounter, CancellationToken.None);
-                _logManager?.AppendLog("JSONRPC тест отправлен");
+                _jsonLog?.AppendLog("JSONRPC тест отправлен");
             }
             catch (Exception ex)
             {
-                _logManager?.AppendLog(ex.Message);
+                _jsonLog?.AppendLog(ex.Message);
             }
         }
         private void btnHttpProtokolUpdate_Click(object sender, EventArgs e)
@@ -745,12 +767,12 @@ namespace MKtest
                     trCounter,
                     interval);
 
-                _logManager?.AppendLog(
+                _jsonLog?.AppendLog(
                     "JSONRPCprotokol параметры обновлены");
             }
             catch (Exception ex)
             {
-                _logManager?.AppendLog(ex.Message);
+                _jsonLog?.AppendLog(ex.Message);
             }
         }
         #endregion
@@ -765,7 +787,7 @@ namespace MKtest
             _httpPayManager =
                 new HTTPpayManager(
                     _httpPayService,
-                    _logManager);
+                    _httpPayLog!);
 
             httpPayTotalNumeric.Value =
                 Math.Min(
@@ -797,7 +819,7 @@ namespace MKtest
             lblHttpPayStatus.Text = "Статус: Запущено";
             SetHttpPayButtons(true);
 
-            _logManager.AppendLog(
+            _httpPayLog!.AppendLog(
                 $"HTTPpay запущен, интервал {intervalSeconds} сек");
         }
 
@@ -875,7 +897,7 @@ namespace MKtest
                 new SekopControls(
                     sekopTransactionsNumeric, sekopPassengersNumeric,
                     sekopStartButton, sekopStopButton, sekopStatusLabel),
-                _logManager.AppendLog);
+                _sekopLog!.AppendLog);
         }
 
         private async void sekopStartButton_Click(object sender, EventArgs e)
