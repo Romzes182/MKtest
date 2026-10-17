@@ -36,6 +36,16 @@ namespace MKtest.Managers
             new(_loggerService, new ScopedLogSink(
                 _uiSink, new WinFormsLogSink(localTextBox)));
 
+        /// <summary>
+        /// Enables following the newest entry after the user has scrolled up.
+        /// Never changes what is stored in the journal file.
+        /// </summary>
+        public void ResumeLogScroll()
+        {
+            if (_uiSink is ILogViewportControl viewport)
+                viewport.ResumeToLatest();
+        }
+
         public void AppendLog(string message)
         {
             // File and in-memory history are written immediately.
