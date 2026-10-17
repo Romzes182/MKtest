@@ -1,43 +1,41 @@
-﻿using System;
+using MKtest.Services.SSH;
+using System;
 
 namespace MKtest.Services
 {
-    public class TimeCommandsService
+    public sealed class TimeCommandsService
     {
-        private readonly SSHService _sshService;
+        private readonly ISshCommandExecutor _commands;
 
         public event Action<string>? OnCommandExecuted;
 
-        public TimeCommandsService(SSHService sshService)
+        public TimeCommandsService(ISshCommandExecutor commands)
         {
-            _sshService = sshService;
+            _commands = commands ?? throw new ArgumentNullException(nameof(commands));
         }
 
         public string CheckTimeStatus()
         {
             OnCommandExecuted?.Invoke("Проверка статуса времени...");
-            // Используем ExecuteCommand вместо ExecuteDirectCommand для интерактивных команд
-            return _sshService.ExecuteCommand("timedatectl status");
+            return _commands.ExecuteCommand("timedatectl status");
         }
 
         public string EnableNTP()
         {
             OnCommandExecuted?.Invoke("Включение NTP синхронизации...");
-            return _sshService.ExecuteCommand("timedatectl set-ntp true");
+            return _commands.ExecuteCommand("timedatectl set-ntp true");
         }
 
         public string DisableNTP()
         {
             OnCommandExecuted?.Invoke("Отключение NTP синхронизации...");
-            return _sshService.ExecuteCommand("timedatectl set-ntp false");
+            return _commands.ExecuteCommand("timedatectl set-ntp false");
         }
 
         public string SetManualDateTime(string dateTime)
         {
             OnCommandExecuted?.Invoke($"Установка времени: {dateTime}");
-            return _sshService.ExecuteCommand($"date -s \"{dateTime}\"");
+            return _commands.ExecuteCommand($"date -s \"{dateTime}\"");
         }
-
-      
     }
 }
