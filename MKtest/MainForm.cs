@@ -647,7 +647,9 @@ namespace MKtest
                     _demoManager?.CleanupAsync() ??
                     _demoScenarioService?.StopScenarioAsync() ?? Task.CompletedTask),
                 StopSafelyAsync("Гермес", () =>
-                    _hermesManager?.StopAsync() ?? Task.CompletedTask)
+                    _hermesManager?.StopAsync() ?? Task.CompletedTask),
+                StopSafelyAsync("СЭКОП", () =>
+                    _sekopProtocolManager?.StopAsync() ?? Task.CompletedTask)
             );
 
             await StopSafelyAsync("SSH Beelink", () =>
