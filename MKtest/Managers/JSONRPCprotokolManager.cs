@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public sealed class JSONRPCprotokolManager
+    public sealed class JSONRPCprotokolManager : IJsonRpcOperations
     {
         private readonly JSONRPCprotokolService _service;
         private readonly LogManager _logManager;
