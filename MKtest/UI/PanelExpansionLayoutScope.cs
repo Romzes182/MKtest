@@ -31,3 +31,4 @@ namespace MKtest.UI
             _container.ResumeLayout(true);
         }
     }
+}
