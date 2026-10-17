@@ -104,8 +104,8 @@ namespace MKtest.Managers
             {
                 if (!_statusLabel.IsHandleCreated) return;
                 try { _statusLabel.BeginInvoke((MethodInvoker)Apply); }
+                // ObjectDisposedException inherits InvalidOperationException.
                 catch (InvalidOperationException) { }
-                catch (ObjectDisposedException) { }
             }
             else Apply();
         }
