@@ -12,6 +12,7 @@ namespace MKtest.Services.Demoscripts
         void StopScenario();
 
         void StartScenarioManual(string scenarioName, Func<Task> waitTaskProvider);
+        void StartScenarioManual(string scenarioName, Func<Task<ManualStepDirection>> navigationProvider);
 
         event EventHandler<string> ScenarioProgress;
         event EventHandler<bool> DemoStatusChanged;
