@@ -88,9 +88,19 @@ namespace MKtest.Services.HermesPassenger
                     return;
 
                 SetValues(entered, exited);
-                var source = new CancellationTokenSource();
-                IHermesSshSession session = _sessionFactory.Create(_config);
+                IHermesSshSession session;
+                try
+                {
+                    session = _sessionFactory.Create(_config);
+                }
+                catch (Exception ex)
+                {
+                    _log.AppendLog($"Гермес: ошибка создания SSH клиента: {ex.Message}");
+                    ErrorOccurred?.Invoke(ex.Message);
+                    return;
+                }
 
+                var source = new CancellationTokenSource();
                 lock (_stateSync)
                 {
                     _runCancellation = source;
@@ -234,7 +244,11 @@ namespace MKtest.Services.HermesPassenger
             }
             finally
             {
-                session?.Dispose();
+                try { session?.Dispose(); }
+                catch (Exception ex)
+                {
+                    _log.AppendLog($"Гермес: освобождение SSH: {ex.Message}");
+                }
                 source?.Dispose();
                 _log.AppendLog("Гермес: SSH управление остановлено");
                 StatusChanged?.Invoke("ОСТАНОВЛЕНО");
