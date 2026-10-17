@@ -38,7 +38,11 @@ namespace MKtest.Managers
 
         public void Stop()
         {
-            if (!IsRunning) return;
+            if (!IsRunning)
+            {
+                _runner.Stop();
+                return;
+            }
             _runner.Stop();
             _logManager.AppendLog("JSONRPCprotokol остановлен");
         }
@@ -54,10 +58,18 @@ namespace MKtest.Managers
                 $"JSONRPCprotokol обновлен: trCounter={trCounter}, interval={intervalSeconds}");
         }
 
+        /// <summary>Await canceled HTTP/TCP operations before closing their transports.</summary>
+        public Task StopAsync()
+        {
+            Stop();
+            return _runner.StopAsync();
+        }
+
         private async Task SendOnceAsync(CancellationToken token)
         {
             int current = Volatile.Read(ref _counter);
             await _service.SendAsync(current, token);
+            token.ThrowIfCancellationRequested();
             _logManager.AppendLog($"JSONRPCprotokol отправлен: {current}");
         }
     }
