@@ -74,6 +74,8 @@ namespace MKtest
         private BlockLogPanelRegistry? _blockLogs;
         private RightPanelFlowController? _rightPanelLayout;
         private ScrollablePanelStackController? _leftPanelLayout;
+        private bool _shutdownStarted;
+        private bool _shutdownCompleted;
         private LogManager? _sshLog, _webLog, _demoLog, _usrLog, _hermesLog;
         private LogManager? _httpPayLog, _jsonLog, _sekopLog, _emergencyLog;
         #endregion
@@ -575,40 +577,104 @@ namespace MKtest
         #region События формы
         private void MainForm_Load(object sender, EventArgs e) => _logManager?.AppendLog("Приложение запущено");
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (_shutdownCompleted)
+                return;
+
+            // Cancel the first close request, then close again after asynchronous
+            // network workers have actually stopped. This keeps the UI responsive.
+            e.Cancel = true;
+            if (_shutdownStarted)
+                return;
+
+            _shutdownStarted = true;
+            Enabled = false;
+
             try
             {
-                _usrTransferManager?.StopInSequence();
-                _usrTransferUiController?.Dispose();
-                _hermesUiController?.Dispose();
-                _sekopUiController?.Dispose();
-                if (_sekopProtocolManager?.IsRunning == true)
-                    _sekopProtocolManager.Stop();
-                _sekopPacketSenderService?.Dispose();
-                _sshService?.Dispose();
-                _webServerService?.Dispose();
-                _httpPayManager?.Stop();
-                _httpProtokolManager?.Stop();
-                _httpPayService?.Dispose();
-                _demoModeController?.Dispose();
-                _collapsiblePanelController?.Dispose();
-                _leftPanelLayout?.Dispose();
-                _rightPanelLayout?.Dispose();
-                _demoManager?.Cleanup();
-                _logManager?.AppendLog("Приложение закрывается");
-                if (_hermesManager != null)
-                    _hermesManager.StopAsync().Wait(1500);
+                await ShutdownServicesAsync();
             }
             catch (Exception ex)
             {
-                _logManager?.AppendLog($"Ошибка при закрытии: {ex.Message}");
-
+                try { _logManager?.AppendLog($"Ошибка завершения MKtest: {ex.Message}"); }
+                catch { }
             }
             finally
             {
+                // UI controllers and log timers are disposed only after workers exit.
+                _demoModeController?.Dispose();
+                _usrTransferUiController?.Dispose();
+                _hermesUiController?.Dispose();
+                _sekopUiController?.Dispose();
+                _collapsiblePanelController?.Dispose();
+                _leftPanelLayout?.Dispose();
+                _rightPanelLayout?.Dispose();
+
+                try { _logManager?.AppendLog("Приложение закрывается"); }
+                catch { }
+
                 _blockLogs?.Dispose();
                 _logManager?.Dispose();
+
+                _shutdownCompleted = true;
+                if (!IsDisposed)
+                    Close();
+            }
+        }
+
+        private async Task ShutdownServicesAsync()
+        {
+            _logManager?.AppendLog("Завершение работы: остановка протоколов...");
+
+            // First signal cancellation to every active module; only then wait.
+            TryStop("ИР-0652", () => _usrTransferManager?.StopInSequence());
+            TryStop("JSON-RPC", () => _httpProtokolManager?.Stop());
+            TryStop("HTTPpay", () => _httpPayManager?.Stop());
+            TryStop("Demo", () => _demoScenarioService?.StopScenario());
+            TryStop("СЭКОП", () => _sekopProtocolManager?.Stop());
+            TryStop("МЧС", () => _emergencyService?.Dispose());
+
+            // Each cleanup has its own exception handler so one faulty module
+            // cannot prevent other services from shutting down.
+            await Task.WhenAll(
+                StopSafelyAsync("ИР-0652", () =>
+                    _usrTransferManager?.StopInSequenceAsync() ?? Task.CompletedTask),
+                StopSafelyAsync("JSON-RPC", () =>
+                    _httpProtokolManager?.StopAsync() ?? Task.CompletedTask),
+                StopSafelyAsync("HTTPpay", () =>
+                    _httpPayManager?.StopAsync() ?? Task.CompletedTask),
+                StopSafelyAsync("Demo", () =>
+                    _demoManager?.CleanupAsync() ?? Task.CompletedTask),
+                StopSafelyAsync("Гермес", () =>
+                    _hermesManager?.StopAsync() ?? Task.CompletedTask)
+            );
+
+            await StopSafelyAsync("SSH Beelink", () =>
+                Task.Run(() => _sshService?.Dispose()));
+            await StopSafelyAsync("Веб-сервер", () =>
+                Task.Run(() => _webServerService?.Dispose()));
+
+            TryStop("Гермес", () => _hermesService?.Dispose());
+            TryStop("HTTPpay", () => _httpPayService?.Dispose());
+            TryStop("СЭКОП TCP", () => _sekopPacketSenderService?.Dispose());
+        }
+
+        private void TryStop(string name, Action action)
+        {
+            try { action(); }
+            catch (Exception ex)
+            {
+                _logManager?.AppendLog($"Остановка {name}: {ex.Message}");
+            }
+        }
+
+        private async Task StopSafelyAsync(string name, Func<Task> action)
+        {
+            try { await action().ConfigureAwait(false); }
+            catch (Exception ex)
+            {
+                _logManager?.AppendLog($"Остановка {name}: {ex.Message}");
             }
         }
 
