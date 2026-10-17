@@ -400,7 +400,6 @@
             webServerHeaderPanel.Name = "webServerHeaderPanel";
             webServerHeaderPanel.Size = new Size(356, 24);
             webServerHeaderPanel.TabIndex = 0;
-           
             // 
             // webServerHeaderLabel
             // 
@@ -420,7 +419,7 @@
             demoCollapsiblePanel.Location = new Point(0, 94);
             demoCollapsiblePanel.Margin = new Padding(0, 0, 0, 10);
             demoCollapsiblePanel.Name = "demoCollapsiblePanel";
-            demoCollapsiblePanel.Size = new Size(361, 175);
+            demoCollapsiblePanel.Size = new Size(361, 137);
             demoCollapsiblePanel.TabIndex = 8;
             // 
             // demoContentPanel
@@ -435,7 +434,7 @@
             demoContentPanel.Dock = DockStyle.Fill;
             demoContentPanel.Location = new Point(0, 23);
             demoContentPanel.Name = "demoContentPanel";
-            demoContentPanel.Size = new Size(359, 150);
+            demoContentPanel.Size = new Size(359, 112);
             demoContentPanel.TabIndex = 1;
             // 
             // btnNextStep
@@ -516,7 +515,6 @@
             demoHeaderPanel.Name = "demoHeaderPanel";
             demoHeaderPanel.Size = new Size(359, 23);
             demoHeaderPanel.TabIndex = 0;
-           
             // 
             // demoHeaderLabel
             // 
@@ -533,7 +531,7 @@
             usrTransferCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             usrTransferCollapsiblePanel.Controls.Add(usrTransferContentPanel);
             usrTransferCollapsiblePanel.Controls.Add(usrTransferHeaderPanel);
-            usrTransferCollapsiblePanel.Location = new Point(3, 282);
+            usrTransferCollapsiblePanel.Location = new Point(3, 244);
             usrTransferCollapsiblePanel.Name = "usrTransferCollapsiblePanel";
             usrTransferCollapsiblePanel.Size = new Size(361, 208);
             usrTransferCollapsiblePanel.TabIndex = 9;
@@ -680,7 +678,6 @@
             usrTransferHeaderPanel.Name = "usrTransferHeaderPanel";
             usrTransferHeaderPanel.Size = new Size(359, 24);
             usrTransferHeaderPanel.TabIndex = 0;
-            
             // 
             // usrTransferHeaderLabel
             // 
@@ -697,7 +694,7 @@
             emergencyCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             emergencyCollapsiblePanel.Controls.Add(emergencyContentPanel);
             emergencyCollapsiblePanel.Controls.Add(emergencyHeaderPanel);
-            emergencyCollapsiblePanel.Location = new Point(3, 496);
+            emergencyCollapsiblePanel.Location = new Point(3, 458);
             emergencyCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             emergencyCollapsiblePanel.Name = "emergencyCollapsiblePanel";
             emergencyCollapsiblePanel.Size = new Size(361, 81);
@@ -1048,7 +1045,6 @@
             beelinkHeaderPanel.Name = "beelinkHeaderPanel";
             beelinkHeaderPanel.Size = new Size(365, 24);
             beelinkHeaderPanel.TabIndex = 0;
-           
             // 
             // beelinkHeaderLabel
             // 
@@ -1373,7 +1369,7 @@
             // 
             // btnHermesTest
             // 
-            btnHermesTest.Location = new Point(291, 6);
+            btnHermesTest.Location = new Point(260, 6);
             btnHermesTest.Name = "btnHermesTest";
             btnHermesTest.Size = new Size(41, 25);
             btnHermesTest.TabIndex = 6;
@@ -1383,7 +1379,7 @@
             // 
             // btnHermesUpdate
             // 
-            btnHermesUpdate.Location = new Point(195, 9);
+            btnHermesUpdate.Location = new Point(179, 6);
             btnHermesUpdate.Name = "btnHermesUpdate";
             btnHermesUpdate.Size = new Size(72, 26);
             btnHermesUpdate.TabIndex = 7;
@@ -1410,7 +1406,6 @@
             hermesHeaderPanel.Name = "hermesHeaderPanel";
             hermesHeaderPanel.Size = new Size(366, 24);
             hermesHeaderPanel.TabIndex = 0;
-           
             // 
             // hermesHeaderLabel
             // 
@@ -1421,7 +1416,6 @@
             hermesHeaderLabel.Size = new Size(366, 24);
             hermesHeaderLabel.TabIndex = 0;
             hermesHeaderLabel.Text = "Гермес";
-            
             // 
             // logPanel
             // 
