@@ -6,7 +6,7 @@ namespace MKtest.UI.Logging
     /// Sends entries to the application-wide log and to one section only.
     /// Disposing a section does not dispose the shared application sink.
     /// </summary>
-    public sealed class ScopedLogSink : IUiLogSink
+    public sealed class ScopedLogSink : IUiLogSink, ILogViewportControl
     {
         private readonly IUiLogSink _shared;
         private readonly IUiLogSink _local;
@@ -25,6 +25,12 @@ namespace MKtest.UI.Logging
 
         // Clear only the section; the global log keeps the full context.
         public void Clear() => _local.Clear();
+
+        public void ResumeToLatest()
+        {
+            if (_local is ILogViewportControl viewport)
+                viewport.ResumeToLatest();
+        }
 
         public void Dispose() => _local.Dispose();
     }
