@@ -89,6 +89,7 @@ namespace MKtest
             {
                 RepositionLogPanel();
                 InitializeServices();
+                SetupGeneralLogToolbar();
                 InitializeManagers();
                 SetupUI();
                 _logManager?.AppendLog("Приложение инициализировано");
@@ -110,6 +111,42 @@ namespace MKtest
             logPanel.BringToFront();
             splitContainerMain.Dock = DockStyle.Fill;
             splitContainerMain.BringToFront();
+        }
+        /// <summary>
+        /// A small toolbar for the shared log. The existing clear handler is
+        /// retained, and the new button resumes following incoming entries.
+        /// </summary>
+        private void SetupGeneralLogToolbar()
+        {
+            var toolbar = new TableLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 31,
+                ColumnCount = 2,
+                RowCount = 1,
+                Padding = Padding.Empty,
+                Margin = Padding.Empty
+            };
+            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
+
+            logPanel.Controls.Remove(beelinkClearLogButton);
+            beelinkClearLogButton.Dock = DockStyle.Fill;
+            beelinkClearLogButton.Margin = Padding.Empty;
+            toolbar.Controls.Add(beelinkClearLogButton, 0, 0);
+
+            var latestButton = new Button
+            {
+                Name = "btnResumeGeneralLog",
+                Text = "Вниз ↓",
+                Dock = DockStyle.Fill,
+                Margin = Padding.Empty,
+                UseVisualStyleBackColor = true
+            };
+            latestButton.Click += (_, _) => _logManager?.ResumeLogScroll();
+            toolbar.Controls.Add(latestButton, 1, 0);
+            logPanel.Controls.Add(toolbar);
+            toolbar.BringToFront();
         }
         #endregion
 
@@ -264,6 +301,9 @@ namespace MKtest
             _collapsiblePanelController.Register(sekopCollapsiblePanel, sekopHeaderLabel, sekopHeaderPanel, sekopContentPanel, "Протокол СЭКОП");
             _collapsiblePanelController.Register(emergencyCollapsiblePanel, emergencyHeaderPanel, emergencyHeaderLabel, emergencyContentPanel, "Команды МЧС");
 
+            if (_blockLogs != null)
+                _blockLogs.LogHeightChanged += _collapsiblePanelController.AdjustExpandedHeight;
+
             webServerStartButton.Click += WebServerStartButton_Click;
             webServerStopButton.Click += WebServerStopButton_Click;
 
@@ -340,8 +380,8 @@ namespace MKtest
 
         private void beelinkLogTextBox_TextChanged(object sender, EventArgs e)
         {
-            beelinkLogTextBox.SelectionStart = beelinkLogTextBox.Text.Length;
-            beelinkLogTextBox.ScrollToCaret();
+            // Viewport position is owned by WinFormsLogSink.
+            // Forcing ScrollToCaret here prevents reading earlier records.
         }
         #endregion
 
