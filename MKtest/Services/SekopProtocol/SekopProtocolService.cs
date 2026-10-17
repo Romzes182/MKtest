@@ -1,46 +1,42 @@
-﻿using MKtest.Configs;
+using MKtest.Configs;
+using System;
 using System.Threading.Tasks;
 
 namespace MKtest.Services.SekopProtocol
 {
-    public class SekopProtocolService
+    /// <summary>
+    /// Превращает значения СЭКОП в пакет и передаёт его транспортному слою.
+    /// Не знает о кнопках, полях ввода и TCP-клиенте.
+    /// </summary>
+    public sealed class SekopProtocolService
     {
-        private readonly SekopProtocolConfig _config;
-        private readonly ISekopPacketSenderService _sender;
+        private readonly ISekopPacketEncoder _encoder;
+        private readonly ISekopPacketTransmitter _transmitter;
 
+        // Совместимость с текущей сборкой в MainForm.
         public SekopProtocolService(
             SekopProtocolConfig config,
             ISekopPacketSenderService sender)
+            : this(new SekopPacketEncoder(),
+                   new SekopPacketTransmitter(config, sender))
         {
-            _config = config;
-            _sender = sender;
         }
 
-        public async Task<string> SendAsync(int transactions,int passengers)
+        public SekopProtocolService(
+            ISekopPacketEncoder encoder,
+            ISekopPacketTransmitter transmitter)
         {
-            byte[] packet = SekopPacketBuilder.BuildPacket(
-                transactions,
-                passengers);
-
-            await _sender.ConnectAsync(
-                _config.IpAddress,
-                _config.Port);
-
-            try
-            {
-                await _sender.SendPacketAsync(packet);
-            }
-            finally
-            {
-                _sender.Disconnect();
-            }
-
-            return SekopPacketBuilder.ToHexString(packet);
+            _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            _transmitter = transmitter ?? throw new ArgumentNullException(nameof(transmitter));
         }
 
-        public void Disconnect()
+        public async Task<string> SendAsync(int transactions, int passengers)
         {
-            _sender.Disconnect();
+            byte[] packet = _encoder.Encode(transactions, passengers);
+            await _transmitter.SendAsync(packet);
+            return _encoder.ToHexString(packet);
         }
+
+        public void Disconnect() => _transmitter.Disconnect();
     }
 }
