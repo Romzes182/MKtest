@@ -25,6 +25,12 @@ namespace MKtest.Services.Demoscripts
         {
             ArgumentNullException.ThrowIfNull(scenario);
             ArgumentNullException.ThrowIfNull(options);
+            if (options.ManualMode && options.WaitForDirection != null)
+            {
+                await new ManualDemoScenarioRunner(_steps)
+                    .RunAsync(scenario, options, cancellationToken);
+                return;
+            }
 
             foreach (var step in scenario.Steps.Where(s => s.ExecutionMode == StepExecutionMode.Once))
             {
