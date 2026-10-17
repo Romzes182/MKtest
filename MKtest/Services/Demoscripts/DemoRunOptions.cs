@@ -7,5 +7,9 @@ namespace MKtest.Services.Demoscripts
     public sealed record DemoRunOptions(
         bool ManualMode,
         Func<Task>? WaitForNext,
-        Action<string> ReportProgress);
+        Action<string> ReportProgress)
+    {
+        /// <summary>Optional reversible manual mode with Next/Previous actions.</summary>
+        public Func<Task<ManualStepDirection>>? WaitForDirection { get; init; }
+    }
 }
