@@ -1,480 +1,136 @@
-﻿using MKtest.Configs;
 using MKtest.Managers.Settings;
-using MKtest.Services;
 using System;
-using System.Windows.Forms;
 
 namespace MKtest.Managers
 {
-    public class SettingsManager
+    /// <summary>
+    /// Координатор сохранения настроек. Каждая группа реализована отдельно,
+    /// поэтому добавление протокола не увеличивает этот класс бизнес-логикой UI.
+    /// </summary>
+    public sealed class SettingsManager
     {
-        // SSH Beelink
-        private readonly TextBox _ipTextBox;
-        private readonly NumericUpDown _portNumeric;
-        private readonly TextBox _userTextBox;
-        private readonly TextBox _passwordUserTextBox;
-        private readonly TextBox _passwordRootTextBox;
+        private readonly ISettingsStore _store;
+        private readonly ISettingsSection _ssh, _web, _usr, _jsonRpc, _httpPay, _sekop;
+        private readonly HermesSettingsSection _hermes;
 
-        // Web Server
-        private readonly TextBox _webServerIpTextBox;
-        private readonly NumericUpDown _webServerPortNumeric;
-
-        // USR Transfer
-        private readonly TextBox _usrTransferIpTextBox;
-        private readonly NumericUpDown _usrTransferPortNumeric;
-
-        private readonly HermesSettingsSection _hermesSection;
-
-        private readonly TextBox _httpProtokolIpTextBox;
-        private readonly NumericUpDown _httpProtokolPortNumeric;
-
-
-        private readonly TextBox _httpPayIpTextBox;
-        private readonly NumericUpDown _httpPayPortNumeric;
-        private readonly TextBox _httpPayTerminalTextBox;
-        private readonly TextBox _httpPayRouteTextBox;
-        private readonly NumericUpDown _httpPayTripNumeric;
-        private readonly DateTimePicker _httpPayTripDatePicker;
-        private readonly NumericUpDown _httpPayCurrentNumeric;
-        private readonly NumericUpDown _httpPayIntervalNumeric;
-
-        //Сэкоп
-        private readonly TextBox _sekopIpTextBox;
-        private readonly NumericUpDown _sekopPortNumeric;
-
-        public SettingsManager(TextBox ipTextBox, NumericUpDown portNumeric, TextBox userTextBox, TextBox passwordUserTextBox, TextBox passwordRootTextBox,
-            TextBox webServerIpTextBox, NumericUpDown webServerPortNumeric, TextBox usrTransferIpTextBox, NumericUpDown usrTransferPortNumeric,
-            TextBox hermesIpTextBox, NumericUpDown hermesPortNumeric, TextBox hermesUserTextBox, TextBox hermesPasswordTextBox, TextBox httpProtokolIpTextBox,
-            NumericUpDown httpProtokolPortNumeric, TextBox httpPayIpTextBox, NumericUpDown httpPayPortNumeric, TextBox httpPayTerminalTextBox, TextBox httpPayRouteTextBox,
-            NumericUpDown httpPayTripNumeric, DateTimePicker httpPayTripDatePicker, NumericUpDown httpPayCurrentNumeric, NumericUpDown httpPayIntervalNumeric, 
-            TextBox sekopIpTextBox,NumericUpDown sekopPortNumeric)
+        public SettingsManager(
+            ISettingsStore store,
+            ISettingsSection ssh,
+            ISettingsSection web,
+            ISettingsSection usr,
+            HermesSettingsSection hermes,
+            ISettingsSection jsonRpc,
+            ISettingsSection httpPay,
+            ISettingsSection sekop)
         {
-            _ipTextBox = ipTextBox;
-            _portNumeric = portNumeric;
-            _userTextBox = userTextBox;
-            _passwordUserTextBox = passwordUserTextBox;
-            _passwordRootTextBox = passwordRootTextBox;
-
-            _webServerIpTextBox = webServerIpTextBox;
-            _webServerPortNumeric = webServerPortNumeric;
-
-            _usrTransferIpTextBox = usrTransferIpTextBox;
-            _usrTransferPortNumeric = usrTransferPortNumeric;
-
-            _hermesSection = new HermesSettingsSection(hermesIpTextBox, hermesPortNumeric, hermesUserTextBox, hermesPasswordTextBox );
-
-            _httpProtokolIpTextBox = httpProtokolIpTextBox;
-            _httpProtokolPortNumeric = httpProtokolPortNumeric;
-
-            _httpPayIpTextBox = httpPayIpTextBox;
-            _httpPayPortNumeric = httpPayPortNumeric;
-            _httpPayTerminalTextBox = httpPayTerminalTextBox;
-            _httpPayRouteTextBox = httpPayRouteTextBox;
-            _httpPayTripNumeric = httpPayTripNumeric;
-            _httpPayTripDatePicker = httpPayTripDatePicker;
-            _httpPayCurrentNumeric = httpPayCurrentNumeric;
-            _httpPayIntervalNumeric = httpPayIntervalNumeric;
-
-
-            _sekopIpTextBox = sekopIpTextBox;
-            _sekopPortNumeric = sekopPortNumeric;
+            _store = store ?? throw new ArgumentNullException(nameof(store));
+            _ssh = ssh ?? throw new ArgumentNullException(nameof(ssh));
+            _web = web ?? throw new ArgumentNullException(nameof(web));
+            _usr = usr ?? throw new ArgumentNullException(nameof(usr));
+            _hermes = hermes ?? throw new ArgumentNullException(nameof(hermes));
+            _jsonRpc = jsonRpc ?? throw new ArgumentNullException(nameof(jsonRpc));
+            _httpPay = httpPay ?? throw new ArgumentNullException(nameof(httpPay));
+            _sekop = sekop ?? throw new ArgumentNullException(nameof(sekop));
         }
 
         public void LoadSettings()
         {
-            // SSH Beelink
-            var sshConfig = ConfigService.Config.SSHBeelink;
-            _ipTextBox.Text = sshConfig.IP;
-            _portNumeric.Value = sshConfig.Port;
-            _userTextBox.Text = sshConfig.User;
-            _passwordUserTextBox.Text = sshConfig.PasswordUser;
-            _passwordRootTextBox.Text = sshConfig.PasswordRoot;
-
-            // Web Server
-            if (_webServerIpTextBox != null && _webServerPortNumeric != null)
-            {
-                var webConfig = ConfigService.Config.WebServer;
-                _webServerIpTextBox.Text = webConfig.IpAddress;
-                _webServerPortNumeric.Value = webConfig.Port;
-            }
-
-            // USR Transfer
-            if (_usrTransferIpTextBox != null && _usrTransferPortNumeric != null)
-            {
-                var usrConfig = ConfigService.Config.USRTransfer;
-                _usrTransferIpTextBox.Text = usrConfig.IP;
-                _usrTransferPortNumeric.Value = usrConfig.Port;
-            }
-
-            // Hermes SSH
-            _hermesSection.Load();
-
-            //JSONRPCpprotokol
-
-            if (_httpProtokolIpTextBox != null && _httpProtokolPortNumeric != null)
-            {
-                var httpConfig = ConfigService.Config.HTTPprotokol;
-                _httpProtokolIpTextBox.Text = httpConfig.IP;
-                _httpProtokolPortNumeric.Value = httpConfig.Port;
-            }
-
-            // HTTPpay
-            if (_httpPayIpTextBox != null &&
-                _httpPayPortNumeric != null &&
-                _httpPayTerminalTextBox != null &&
-                _httpPayRouteTextBox != null &&
-                _httpPayTripNumeric != null &&
-                _httpPayTripDatePicker != null &&
-                _httpPayCurrentNumeric != null &&
-                _httpPayIntervalNumeric != null)
-            {
-                var cfg = ConfigService.Config.HTTPpay;
-
-                _httpPayIpTextBox.Text = cfg.IP;
-                _httpPayPortNumeric.Value = cfg.Port;
-                _httpPayTerminalTextBox.Text = cfg.Terminal;
-                _httpPayRouteTextBox.Text = cfg.Route;
-                _httpPayTripNumeric.Value = cfg.Trip;
-                _httpPayTripDatePicker.Value = cfg.TripDate;
-                _httpPayCurrentNumeric.Value = cfg.CurrentPayments;
-                _httpPayIntervalNumeric.Value = cfg.IntervalSeconds;
-            }
-
-         
-            // Протокол СЭКОП
-            if (_sekopIpTextBox != null && _sekopPortNumeric != null)
-            {
-                var cfg = ConfigService.Config.SekopProtocol;
-
-                _sekopIpTextBox.Text = cfg.IpAddress;
-                _sekopPortNumeric.Value = cfg.Port;
-            }
-
+            _ssh.Load();
+            _web.Load();
+            _usr.Load();
+            _hermes.Load();
+            _jsonRpc.Load();
+            _httpPay.Load();
+            _sekop.Load();
         }
 
-        public bool SaveSettings(LogManager logManager)
-        {
-            try
+        public bool SaveSettings(LogManager logManager) =>
+            Run(logManager, () =>
             {
-                // SSH Beelink
-                ConfigService.Config.SSHBeelink.IP = _ipTextBox.Text;
-                ConfigService.Config.SSHBeelink.Port = (int)_portNumeric.Value;
-                ConfigService.Config.SSHBeelink.User = _userTextBox.Text;
-                ConfigService.Config.SSHBeelink.PasswordUser = _passwordUserTextBox.Text;
-                ConfigService.Config.SSHBeelink.PasswordRoot = _passwordRootTextBox.Text;
+                // Совместимость: прежний SaveSettings не сохранял Гермес.
+                _ssh.Apply();
+                _web.Apply();
+                _usr.Apply();
+                _jsonRpc.Apply();
+                _httpPay.Apply();
+                _sekop.Apply();
+                _store.Save();
+            }, "Все настройки сохранены", "Ошибка сохранения настроек");
 
-                // Web Server
-                if (_webServerIpTextBox != null && _webServerPortNumeric != null)
-                {
-                    ConfigService.Config.WebServer.IpAddress = _webServerIpTextBox.Text;
-                    ConfigService.Config.WebServer.Port = (int)_webServerPortNumeric.Value;
-                }
+        public bool SaveSshSettings(LogManager logManager) =>
+            SaveSection(_ssh, logManager, "Настройки SSH Beelink сохранены", "Ошибка сохранения настроек SSH");
 
-                // USR Transfer
-                if (_usrTransferIpTextBox != null && _usrTransferPortNumeric != null)
-                {
-                    ConfigService.Config.USRTransfer.IP = _usrTransferIpTextBox.Text;
-                    ConfigService.Config.USRTransfer.Port = (int)_usrTransferPortNumeric.Value;
-                }
+        public bool SaveWebServerSettings(LogManager logManager) =>
+            SaveSection(_web, logManager, "Настройки веб-сервера сохранены", "Ошибка сохранения настроек веб-сервера");
 
-                if (_httpProtokolIpTextBox != null && _httpProtokolPortNumeric != null)
-                {
-                    ConfigService.Config.HTTPprotokol.IP = _httpProtokolIpTextBox.Text;
-                    ConfigService.Config.HTTPprotokol.Port = (int)_httpProtokolPortNumeric.Value;
-                }
+        public bool SaveUSRTransferSettings(LogManager logManager) =>
+            SaveSection(_usr, logManager, "Настройки USR Transfer сохранены", "Ошибка сохранения настроек USR Transfer");
 
-                // HTTPpay
-                if (_httpPayIpTextBox != null &&
-                    _httpPayPortNumeric != null &&
-                    _httpPayTerminalTextBox != null &&
-                    _httpPayRouteTextBox != null &&
-                    _httpPayTripNumeric != null &&
-                    _httpPayTripDatePicker != null &&
-                    _httpPayCurrentNumeric != null &&
-                    _httpPayIntervalNumeric != null)
-                {
-                    var cfg = ConfigService.Config.HTTPpay;
-                    cfg.IP = _httpPayIpTextBox.Text;
-                    cfg.Port = (int)_httpPayPortNumeric.Value;
-                    cfg.Terminal = _httpPayTerminalTextBox.Text;
-                    cfg.Route = _httpPayRouteTextBox.Text;
-                    cfg.Trip = (int)_httpPayTripNumeric.Value;
-                    cfg.TripDate = _httpPayTripDatePicker.Value;
-                    cfg.CurrentPayments = (int)_httpPayCurrentNumeric.Value;
-                    cfg.IntervalSeconds = (int)_httpPayIntervalNumeric.Value;
-                }
-                // Протокол СЭКОП
-                if (_sekopIpTextBox != null && _sekopPortNumeric != null)
-                {
-                    var cfg = ConfigService.Config.SekopProtocol;
+        public bool SaveHermesSettings(LogManager logManager) => _hermes.Save(logManager);
 
-                    cfg.IpAddress = _sekopIpTextBox.Text;
-                    cfg.Port = (int)_sekopPortNumeric.Value;
-                }
+        public bool SaveHTTPpaySettings(LogManager logManager) =>
+            SaveSection(_httpPay, logManager, "Настройки HTTPpay сохранены", "Ошибка HTTPpay");
 
-                ConfigService.Save();
-                logManager.AppendLog("Все настройки сохранены");
-                return true;
-            }
-            catch (Exception ex)
+        public bool SaveSekopProtocolSettings(LogManager logManager) =>
+            SaveSection(_sekop, logManager, "Настройки протокола СЭКОП сохранены", "Ошибка сохранения настроек протокола СЭКОП");
+
+        public void ResetHermesSettings(LogManager logManager) => _hermes.Reset(logManager);
+
+        public bool ResetSekopProtocolSettings(LogManager logManager) =>
+            ResetSection(_sekop, logManager, "Настройки протокола СЭКОП сброшены", "Ошибка сброса настроек протокола СЭКОП");
+
+        public bool ResetAllSettings(LogManager logManager) =>
+            Run(logManager, () =>
             {
-                logManager.AppendLog($"Ошибка сохранения настроек: {ex.Message}");
-                return false;
-            }
-        }
-
-        public bool SaveSshSettings(LogManager logManager)
-        {
-            try
-            {
-                ConfigService.Config.SSHBeelink.IP = _ipTextBox.Text;
-                ConfigService.Config.SSHBeelink.Port = (int)_portNumeric.Value;
-                ConfigService.Config.SSHBeelink.User = _userTextBox.Text;
-                ConfigService.Config.SSHBeelink.PasswordUser = _passwordUserTextBox.Text;
-                ConfigService.Config.SSHBeelink.PasswordRoot = _passwordRootTextBox.Text;
-
-                ConfigService.Save();
-                logManager.AppendLog("Настройки SSH Beelink сохранены");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка сохранения настроек SSH: {ex.Message}");
-                return false;
-            }
-        }
-
-        public bool SaveWebServerSettings(LogManager logManager)
-        {
-            try
-            {
-                if (_webServerIpTextBox != null && _webServerPortNumeric != null)
-                {
-                    ConfigService.Config.WebServer.IpAddress = _webServerIpTextBox.Text;
-                    ConfigService.Config.WebServer.Port = (int)_webServerPortNumeric.Value;
-                    ConfigService.Save();
-                    logManager.AppendLog("Настройки веб-сервера сохранены");
-                    return true;
-                }
-                logManager.AppendLog("Элементы управления веб-сервера не найдены");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка сохранения настроек веб-сервера: {ex.Message}");
-                return false;
-            }
-        }
-
-        public bool SaveUSRTransferSettings(LogManager logManager)
-        {
-            try
-            {
-                if (_usrTransferIpTextBox != null && _usrTransferPortNumeric != null)
-                {
-                    ConfigService.Config.USRTransfer.IP = _usrTransferIpTextBox.Text;
-                    ConfigService.Config.USRTransfer.Port = (int)_usrTransferPortNumeric.Value;
-                    ConfigService.Save();
-                    logManager.AppendLog("Настройки USR Transfer сохранены");
-                    return true;
-                }
-                logManager.AppendLog("Элементы управления USR Transfer не найдены");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка сохранения настроек USR Transfer: {ex.Message}");
-                return false;
-            }
-        }
-
-        public bool SaveHermesSettings(LogManager log)
-        {
-            return _hermesSection.Save(log);
-        }
-
-        public bool SaveHTTPpaySettings(LogManager logManager)
-        {
-            try
-            {
-                var cfg = ConfigService.Config.HTTPpay;
-                cfg.IP = _httpPayIpTextBox.Text;
-                cfg.Port = (int)_httpPayPortNumeric.Value;
-                cfg.Terminal = _httpPayTerminalTextBox.Text;
-                cfg.Route = _httpPayRouteTextBox.Text;
-                cfg.Trip = (int)_httpPayTripNumeric.Value;
-                cfg.TripDate = _httpPayTripDatePicker.Value;
-                cfg.CurrentPayments = (int)_httpPayCurrentNumeric.Value;
-                cfg.IntervalSeconds = (int)_httpPayIntervalNumeric.Value;
-                ConfigService.Save();
-                logManager.AppendLog("Настройки HTTPpay сохранены");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка HTTPpay: {ex.Message}");
-                return false;
-            }
-        }
-
-
-        public bool SaveSekopProtocolSettings(LogManager logManager)
-        {
-            try
-            {
-                var cfg = ConfigService.Config.SekopProtocol;
-
-                cfg.IpAddress = _sekopIpTextBox.Text;
-                cfg.Port = (int)_sekopPortNumeric.Value;
-
-                ConfigService.Save();
-
-                logManager.AppendLog(
-                    "Настройки протокола СЭКОП сохранены");
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog(
-                    $"Ошибка сохранения настроек протокола СЭКОП: {ex.Message}");
-
-                return false;
-            }
-        }
-
-        public void ResetHermesSettings(LogManager log)
-        {
-            _hermesSection.Reset(log);
-        }
-
-        public bool ResetSekopProtocolSettings(LogManager logManager)
-        {
-            try
-            {
-                ConfigService.Config.SekopProtocol = new SekopProtocolConfig();
-
-                ConfigService.Save();
-
+                // Совместимость: прежняя команда сбрасывала только эти три группы.
+                _ssh.Reset();
+                _web.Reset();
+                _usr.Reset();
+                _store.Save();
                 LoadSettings();
+            }, "Все настройки сброшены", "Ошибка сброса настроек");
 
-                logManager.AppendLog(
-                    "Настройки протокола СЭКОП сброшены");
+        public bool ResetSshSettings(LogManager logManager) =>
+            ResetSection(_ssh, logManager, "Настройки SSH Beelink сброшены", "Ошибка сброса настроек SSH");
 
-                return true;
-            }
-            catch (Exception ex)
+        public bool ResetWebServerSettings(LogManager logManager) =>
+            ResetSection(_web, logManager, "Настройки веб-сервера сброшены", "Ошибка сброса настроек веб-сервера");
+
+        public bool ResetUSRTransferSettings(LogManager logManager) =>
+            ResetSection(_usr, logManager, "Настройки USR Transfer сброшены", "Ошибка сброса настроек USR Transfer");
+
+        public bool ResetHTTPProtokolSettings(LogManager logManager) =>
+            ResetSection(_jsonRpc, logManager, "Настройки JSONRPC протокола сброшены", "Ошибка сброса JSONRPC протокол");
+
+        public bool ResetHTTPpaySettings(LogManager logManager) =>
+            ResetSection(_httpPay, logManager, "Настройки HTTPpay сброшены", "Ошибка сброса HTTPpay");
+
+        private bool SaveSection(ISettingsSection section, LogManager logManager, string success, string failure) =>
+            Run(logManager, () =>
             {
-                logManager.AppendLog(
-                    $"Ошибка сброса настроек протокола СЭКОП: {ex.Message}");
+                section.Apply();
+                _store.Save();
+            }, success, failure);
 
-                return false;
-            }
-        }
+        private bool ResetSection(ISettingsSection section, LogManager logManager, string success, string failure) =>
+            Run(logManager, () =>
+            {
+                section.Reset();
+                _store.Save();
+                LoadSettings();
+            }, success, failure);
 
-        public bool ResetAllSettings(LogManager logManager)
+        private static bool Run(LogManager logManager, Action action, string success, string failure)
         {
             try
             {
-                ConfigService.Config.SSHBeelink = new SSHConfig();
-                ConfigService.Config.WebServer = new WebServerConfig();
-                ConfigService.Config.USRTransfer = new USRTransferConfig();
-                ConfigService.Save();
-                LoadSettings();
-                logManager.AppendLog("Все настройки сброшены");
+                action();
+                logManager.AppendLog(success);
                 return true;
             }
             catch (Exception ex)
             {
-                logManager.AppendLog($"Ошибка сброса настроек: {ex.Message}");
-                return false;
-            }
-        }
-
-        public bool ResetSshSettings(LogManager logManager)
-        {
-            try
-            {
-                ConfigService.Config.SSHBeelink = new SSHConfig();
-                ConfigService.Save();
-                LoadSettings();
-                logManager.AppendLog("Настройки SSH Beelink сброшены");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка сброса настроек SSH: {ex.Message}");
-                return false;
-            }
-        }
-
-        public bool ResetWebServerSettings(LogManager logManager)
-        {
-            try
-            {
-                ConfigService.Config.WebServer = new WebServerConfig();
-                ConfigService.Save();
-                LoadSettings();
-                logManager.AppendLog("Настройки веб-сервера сброшены");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка сброса настроек веб-сервера: {ex.Message}");
-                return false;
-            }
-        }
-
-        public bool ResetUSRTransferSettings(LogManager logManager)
-        {
-            try
-            {
-                ConfigService.Config.USRTransfer = new USRTransferConfig();
-                ConfigService.Save();
-                LoadSettings();
-                logManager.AppendLog("Настройки USR Transfer сброшены");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка сброса настроек USR Transfer: {ex.Message}");
-                return false;
-            }
-        }
-
-        public bool ResetHTTPProtokolSettings(LogManager logManager)
-        {
-            try
-            {
-                ConfigService.Config.HTTPprotokol = new JSONRPCprotokolConfig();
-                ConfigService.Save();
-                LoadSettings();
-                logManager.AppendLog("Настройки JSONRPC протокола сброшены");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка сброса JSONRPC протокол: {ex.Message}");
-                return false;
-            }
-        }
-        public bool ResetHTTPpaySettings(LogManager logManager)
-        {
-            try
-            {
-                ConfigService.Config.HTTPpay = new HTTPpayConfig();
-
-                ConfigService.Save();
-
-                LoadSettings();
-
-                logManager.AppendLog("Настройки HTTPpay сброшены");
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logManager.AppendLog($"Ошибка сброса HTTPpay: {ex.Message}");
+                logManager.AppendLog($"{failure}: {ex.Message}");
                 return false;
             }
         }
