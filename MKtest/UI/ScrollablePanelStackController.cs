@@ -105,7 +105,8 @@ namespace MKtest.UI
                     _content.Height = neededHeight;
 
                 // Explicit bottom edge allows scrolling all the way to МЧС.
-                _viewport.AutoScrollMinSize = new Size(0, neededHeight);
+                if (_viewport.AutoScrollMinSize.Height != neededHeight)
+                    _viewport.AutoScrollMinSize = new Size(0, neededHeight);
             }
             finally
             {
