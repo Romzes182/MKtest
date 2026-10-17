@@ -1,5 +1,6 @@
 ﻿using MKtest.Configs;
 using MKtest.UI;
+using MKtest.UI.USRTransfer;
 using MKtest.Managers;
 using MKtest.Services;
 using MKtest.Services.Demoscripts;
@@ -56,6 +57,7 @@ namespace MKtest
         #region Контроллеры интерфейса
         private CollapsiblePanelController? _collapsiblePanelController;
         private DemoModeController? _demoModeController;
+        private USRTransferUiController? _usrTransferUiController;
         #endregion
 
         #region Конструктор
@@ -210,10 +212,6 @@ namespace MKtest
 
             webServerStartButton.Click += WebServerStartButton_Click;
             webServerStopButton.Click += WebServerStopButton_Click;
-            btnHttpProtokolStart.Click += btnHttpProtokolStart_Click;
-            btnHttpProtokolStop.Click += btnHttpProtokolStop_Click;
-            btnHttpProtokolTest.Click += btnHttpProtokolTest_Click;
-            btnHttpProtokolUpdate.Click += btnHttpProtokolUpdate_Click;
             sekopTransactionsNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
             sekopPassengersNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
 
@@ -349,142 +347,44 @@ namespace MKtest
         #endregion
 
         #region USR Transfer
+        // Адаптеры для обработчиков, привязанных в MainForm.Designer.cs.
+        // Вся логика представления ИР-0652 находится в USRTransferUiController.
         private void InitializeUsrTransferUi()
         {
-            if (_usrTransferManager == null) return;
+            if (_usrTransferManager == null || _logManager == null) return;
 
-            _usrTransferManager.ProgressChanged += UsrTransferManager_ProgressChanged;
-            LoadUsrRoutesToUi();
-            SetUsrButtons(false);
-
-            if (lblUsrStatus != null) lblUsrStatus.Text = "Статус: Остановлен";
-            if (lblUsrStep != null) lblUsrStep.Text = "Шаг: 0/0";
-            if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
-
-            cmbInMode.Items.Clear();
-            cmbInMode.Items.Add("Все подряд");
-            cmbInMode.Items.Add("С выбранного");
-            cmbInMode.Items.Add("Только выбранный");
-            cmbInMode.SelectedIndex = 0;
+            _usrTransferUiController = new USRTransferUiController(
+                _usrTransferManager,
+                new USRTransferControls(
+                    cmbUsrRoutes, cmbInMode, lstSvcFiles, lstInFiles,
+                    btnUsrTest, btnUsrSendSvc, btnUsrStartIn, btnUsrStopIn,
+                    lblUsrStatus, lblUsrStep, lblUsrCountdown),
+                _logManager.AppendLog);
         }
 
-        private void LoadUsrRoutesToUi()
-        {
-            if (_usrTransferManager == null || cmbUsrRoutes == null) return;
-
-            cmbUsrRoutes.Items.Clear();
-            foreach (var route in _usrTransferManager.LoadRoutes())
-                cmbUsrRoutes.Items.Add(route.RouteNumber);
-
-            if (cmbUsrRoutes.Items.Count > 0) cmbUsrRoutes.SelectedIndex = 0;
-        }
-
-        private void cmbUsrRoutes_SelectedIndexChanged(object? sender, EventArgs e)
-        {
-            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null) return;
-
-            var selected = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
-            var route = _usrTransferManager.LoadRoutes().FirstOrDefault(r => r.RouteNumber == selected);
-
-            lstSvcFiles?.Items.Clear();
-            lstInFiles?.Items.Clear();
-            if (route == null) return;
-
-            foreach (var svc in route.SvcFilePaths) lstSvcFiles?.Items.Add(System.IO.Path.GetFileName(svc));
-            foreach (var inf in route.InFilePaths) lstInFiles?.Items.Add(System.IO.Path.GetFileName(inf));
-
-            if (lblUsrStatus != null) lblUsrStatus.Text = $"Статус: Маршрут {route.RouteNumber}";
-            if (lblUsrStep != null) lblUsrStep.Text = $"Шаг: 0/{route.InFilePaths.Count}";
-            if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
-        }
+        private void cmbUsrRoutes_SelectedIndexChanged(object? sender, EventArgs e) =>
+            _usrTransferUiController?.RouteChanged();
 
         private async void btnUsrTest_Click(object? sender, EventArgs e)
         {
-            if (_usrTransferManager == null || _logManager == null) return;
-            var ok = await _usrTransferManager.TestConnectionAsync();
-            _logManager.AppendLog(ok ? "USR: подключение установлено" : "USR: тест не пройден (timeout/ошибка)");
+            if (_usrTransferUiController != null)
+                await _usrTransferUiController.TestConnectionAsync();
         }
 
         private async void btnUsrSendSvc_Click(object? sender, EventArgs e)
         {
-            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null || lstSvcFiles?.SelectedItem == null)
-            {
-                _logManager?.AppendLog("Выберите маршрут и SVC файл");
-                return;
-            }
-
-            var routeNumber = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
-            var svcFileName = lstSvcFiles.SelectedItem.ToString() ?? string.Empty;
-            await _usrTransferManager.SendSelectedSvcAsync(routeNumber, svcFileName);
+            if (_usrTransferUiController != null)
+                await _usrTransferUiController.SendSelectedSvcAsync();
         }
 
         private async void btnUsrStartIn_Click(object? sender, EventArgs e)
         {
-            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null) return;
-            if (_usrTransferManager.IsSequenceRunning) return;
-
-            var routeNumber = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
-            var mode = cmbInMode?.SelectedItem?.ToString() ?? "Все подряд";
-            var selectedIn = lstInFiles?.SelectedItem?.ToString() ?? string.Empty;
-
-            SetUsrButtons(true);
-            try
-            {
-                if (mode == "Все подряд")
-                {
-                    await _usrTransferManager.StartInSequenceAsync(routeNumber);
-                }
-                else if (mode == "С выбранного")
-                {
-                    if (string.IsNullOrWhiteSpace(selectedIn))
-                    {
-                        _logManager?.AppendLog("Выберите IN файл для режима 'С выбранного'");
-                        return;
-                    }
-                    await _usrTransferManager.StartInFromSelectedAsync(routeNumber, selectedIn);
-                }
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(selectedIn))
-                    {
-                        _logManager?.AppendLog("Выберите IN файл для режима 'Только выбранный'");
-                        return;
-                    }
-                    await _usrTransferManager.SendSingleInAsync(routeNumber, selectedIn);
-                }
-            }
-            finally
-            {
-                SetUsrButtons(false);
-                if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
-            }
+            if (_usrTransferUiController != null)
+                await _usrTransferUiController.StartInAsync();
         }
 
-        private void btnUsrStopIn_Click(object? sender, EventArgs e) => _usrTransferManager?.StopInSequence();
-
-        private void UsrTransferManager_ProgressChanged(object? sender, TransferProgressEventArgs e)
-        {
-            if (InvokeRequired)
-            {
-                Invoke(new Action(() => UsrTransferManager_ProgressChanged(sender, e)));
-                return;
-            }
-
-            if (lblUsrStatus != null) lblUsrStatus.Text = $"Статус: {e.Status}";
-            if (lblUsrStep != null) lblUsrStep.Text = $"Шаг: {e.CurrentStep}/{e.TotalSteps}";
-            if (lblUsrCountdown != null)
-                lblUsrCountdown.Text = e.CountdownSeconds > 0
-                    ? $"След. через: {e.CountdownSeconds} сек"
-                    : "След. через: -- сек";
-        }
-
-        private void SetUsrButtons(bool isRunning)
-        {
-            if (btnUsrStartIn != null) btnUsrStartIn.Enabled = !isRunning;
-            if (btnUsrSendSvc != null) btnUsrSendSvc.Enabled = !isRunning;
-            if (btnUsrStopIn != null) btnUsrStopIn.Enabled = isRunning;
-            if (btnUsrTest != null) btnUsrTest.Enabled = !isRunning;
-        }
+        private void btnUsrStopIn_Click(object? sender, EventArgs e) =>
+            _usrTransferUiController?.StopIn();
         #endregion
 
         #region Обработчики настроек USR Transfer
@@ -661,6 +561,7 @@ namespace MKtest
             try
             {
                 _usrTransferManager?.StopInSequence();
+                _usrTransferUiController?.Dispose();
                 _sshService?.Dispose();
                 _webServerService?.Dispose();
                 _httpPayManager?.Stop();
