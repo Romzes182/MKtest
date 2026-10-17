@@ -90,13 +90,14 @@
             beelinkCollapsiblePanel = new Panel();
             beelinkContentPanel = new Panel();
             timeGroupBox = new GroupBox();
+            beelinkRemoteTimeLabel = new Label();
+            beelinkRemoteTimeTextBox = new TextBox();
             timeSetButton = new Button();
             manualTimePicker = new DateTimePicker();
             manualDatePicker = new DateTimePicker();
             timeDisableNTPButton = new Button();
             timeEnableNTPButton = new Button();
             timeCheckButton = new Button();
-            beelinkTestButton = new Button();
             beelinkDisconnectButton = new Button();
             beelinkConnectButton = new Button();
             beelinkStatusLabel = new Label();
@@ -906,24 +907,25 @@
             beelinkCollapsiblePanel.Location = new Point(4, 327);
             beelinkCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             beelinkCollapsiblePanel.Name = "beelinkCollapsiblePanel";
-            beelinkCollapsiblePanel.Size = new Size(367, 190);
+            beelinkCollapsiblePanel.Size = new Size(367, 222);
             beelinkCollapsiblePanel.TabIndex = 0;
             // 
             // beelinkContentPanel
             // 
             beelinkContentPanel.Controls.Add(timeGroupBox);
-            beelinkContentPanel.Controls.Add(beelinkTestButton);
             beelinkContentPanel.Controls.Add(beelinkDisconnectButton);
             beelinkContentPanel.Controls.Add(beelinkConnectButton);
             beelinkContentPanel.Controls.Add(beelinkStatusLabel);
             beelinkContentPanel.Dock = DockStyle.Fill;
             beelinkContentPanel.Location = new Point(0, 24);
             beelinkContentPanel.Name = "beelinkContentPanel";
-            beelinkContentPanel.Size = new Size(365, 164);
+            beelinkContentPanel.Size = new Size(365, 196);
             beelinkContentPanel.TabIndex = 1;
             // 
             // timeGroupBox
             // 
+            timeGroupBox.Controls.Add(beelinkRemoteTimeTextBox);
+            timeGroupBox.Controls.Add(beelinkRemoteTimeLabel);
             timeGroupBox.Controls.Add(timeSetButton);
             timeGroupBox.Controls.Add(manualTimePicker);
             timeGroupBox.Controls.Add(manualDatePicker);
@@ -932,11 +934,29 @@
             timeGroupBox.Controls.Add(timeCheckButton);
             timeGroupBox.Location = new Point(10, 65);
             timeGroupBox.Name = "timeGroupBox";
-            timeGroupBox.Size = new Size(352, 88);
+            timeGroupBox.Size = new Size(352, 120);
             timeGroupBox.TabIndex = 4;
             timeGroupBox.TabStop = false;
             timeGroupBox.Text = "Управление временем";
-            // 
+            //
+            // beelinkRemoteTimeLabel
+            //
+            beelinkRemoteTimeLabel.AutoSize = true;
+            beelinkRemoteTimeLabel.Location = new Point(10, 90);
+            beelinkRemoteTimeLabel.Name = "beelinkRemoteTimeLabel";
+            beelinkRemoteTimeLabel.Text = "Время Beelink:";
+            //
+            // beelinkRemoteTimeTextBox
+            //
+            beelinkRemoteTimeTextBox.BackColor = SystemColors.Window;
+            beelinkRemoteTimeTextBox.Font = new Font("Consolas", 9F);
+            beelinkRemoteTimeTextBox.Location = new Point(124, 87);
+            beelinkRemoteTimeTextBox.Name = "beelinkRemoteTimeTextBox";
+            beelinkRemoteTimeTextBox.ReadOnly = true;
+            beelinkRemoteTimeTextBox.Size = new Size(223, 23);
+            beelinkRemoteTimeTextBox.TabStop = false;
+            beelinkRemoteTimeTextBox.Text = "—";
+            //
             // timeSetButton
             // 
             timeSetButton.Location = new Point(229, 51);
@@ -995,16 +1015,6 @@
             timeCheckButton.Text = "Статус времени";
             timeCheckButton.UseVisualStyleBackColor = true;
             timeCheckButton.Click += timeCheckButton_Click;
-            // 
-            // beelinkTestButton
-            // 
-            beelinkTestButton.Location = new Point(3, 33);
-            beelinkTestButton.Name = "beelinkTestButton";
-            beelinkTestButton.Size = new Size(90, 21);
-            beelinkTestButton.TabIndex = 3;
-            beelinkTestButton.Text = "Тест ";
-            beelinkTestButton.UseVisualStyleBackColor = true;
-            beelinkTestButton.Click += beelinkTestButton_Click;
             // 
             // beelinkDisconnectButton
             // 
@@ -2278,8 +2288,9 @@
         private Label beelinkStatusLabel;
         private Button beelinkConnectButton;
         private Button beelinkDisconnectButton;
-        private Button beelinkTestButton;
         private GroupBox timeGroupBox;
+        private Label beelinkRemoteTimeLabel;
+        private TextBox beelinkRemoteTimeTextBox;
         private Button timeCheckButton;
         private Button timeEnableNTPButton;
         private Button timeDisableNTPButton;
