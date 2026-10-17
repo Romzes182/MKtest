@@ -11,7 +11,7 @@ namespace MKtest.UI.Logging
     /// Если поток сообщений чрезмерный, ограничивается только экранная очередь:
     /// дисковый лог сохраняется полностью и независимо.
     /// </summary>
-    public sealed class WinFormsLogSink : IUiLogSink
+    public sealed class WinFormsLogSink : IUiLogSink, ILogViewportControl
     {
         private const int MaxPendingLines = 3000;
         private const int MaxLinesPerFrame = 300;
@@ -24,13 +24,22 @@ namespace MKtest.UI.Logging
         private readonly object _sync = new();
         private int _dropped;
         private bool _disposed;
+        private bool _readingPaused;
 
         public WinFormsLogSink(TextBox textBox)
         {
             _textBox = textBox ?? throw new ArgumentNullException(nameof(textBox));
             _textBox.ReadOnly = true;
-            _textBox.ScrollBars = ScrollBars.Vertical;
+            // Horizontal scrollbar requires no word-wrapping. Keep the full line intact.
+            _textBox.WordWrap = false;
+            _textBox.ScrollBars = ScrollBars.Both;
             _textBox.Font = new System.Drawing.Font("Consolas", 9);
+
+            // As soon as the user interacts with the text/scrollbars,
+            // freeze ONLY screen updates; incoming records still go to disk.
+            _textBox.MouseDown += PauseReading;
+            _textBox.MouseWheel += PauseReading;
+            _textBox.KeyDown += PauseReadingOnKey;
 
             // Must be created on the WinForms thread. Timer.Tick is called only there.
             _timer = new System.Windows.Forms.Timer { Interval = 100 };
@@ -56,7 +65,7 @@ namespace MKtest.UI.Logging
 
         private void FlushToUi(object? sender, EventArgs args)
         {
-            if (_disposed || _textBox.IsDisposed)
+            if (_disposed || _textBox.IsDisposed || _readingPaused)
                 return;
 
             var batch = new StringBuilder();
@@ -107,6 +116,38 @@ namespace MKtest.UI.Logging
             _textBox.ScrollToCaret();
         }
 
+        /// <summary>
+        /// Resume following new records and scroll to the bottom on user request.
+        /// Any screen-only queue accumulated while reading is flushed on next ticks.
+        /// </summary>
+        public void ResumeToLatest()
+        {
+            if (_disposed || _textBox.IsDisposed) return;
+            if (_textBox.InvokeRequired)
+            {
+                if (_textBox.IsHandleCreated)
+                    _textBox.BeginInvoke(new Action(ResumeToLatest));
+                return;
+            }
+
+            _readingPaused = false;
+            FlushToUi(null, EventArgs.Empty);
+            _textBox.SelectionStart = _textBox.TextLength;
+            _textBox.SelectionLength = 0;
+            _textBox.ScrollToCaret();
+        }
+
+        private void PauseReading(object? sender, MouseEventArgs e) =>
+            _readingPaused = true;
+
+        private void PauseReadingOnKey(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode is Keys.Up or Keys.Down or Keys.Left or Keys.Right or
+                Keys.PageUp or Keys.PageDown or Keys.Home or Keys.End ||
+                (e.Control && e.KeyCode == Keys.A))
+                _readingPaused = true;
+        }
+
         public void Clear()
         {
             lock (_sync)
@@ -129,6 +170,7 @@ namespace MKtest.UI.Logging
             }
 
             _textBox.Clear();
+            _readingPaused = false;
         }
 
         public void Dispose()
@@ -145,6 +187,9 @@ namespace MKtest.UI.Logging
             _timer.Stop();
             _timer.Tick -= FlushToUi;
             _timer.Dispose();
+            _textBox.MouseDown -= PauseReading;
+            _textBox.MouseWheel -= PauseReading;
+            _textBox.KeyDown -= PauseReadingOnKey;
         }
     }
 }
