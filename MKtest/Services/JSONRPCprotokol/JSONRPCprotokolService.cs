@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace MKtest.Services.JSONRPCprotokol
 {
     /// <summary>Coordinates an unchanged JSON-RPC payload and a TCP transport.</summary>
-    public sealed class JSONRPCprotokolService
+    public sealed class JSONRPCprotokolService : IJsonRpcSender
     {
         private readonly JSONRPCprotokolConfig _config;
         private readonly IJsonRpcPayloadBuilder _builder;
