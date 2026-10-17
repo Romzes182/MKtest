@@ -52,8 +52,15 @@ namespace MKtest.UI
             if (sender is not Control control || !_headers.TryGetValue(control, out var entry))
                 return;
 
-            SetExpanded(entry, !entry.Content.Visible);
-            _layoutChanged();
+            bool expand = !entry.Content.Visible;
+
+            // Do not paint a partially resized TextBox or scrollbar.
+            // All nested size changes become visible in one frame.
+            using (new PanelExpansionLayoutScope(entry.Container, entry.Content))
+            {
+                SetExpanded(entry, expand);
+                _layoutChanged();
+            }
         }
 
         private static void SetExpanded(PanelEntry entry, bool expanded)
