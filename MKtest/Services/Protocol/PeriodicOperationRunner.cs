@@ -85,9 +85,13 @@ namespace MKtest.Services.Protocol
         {
             lock (_sync)
             {
-                if (_cts == null || _cts.IsCancellationRequested)
+                if (_cts == null)
                     return;
-                _cts.Cancel();
+
+                var old = _cts;
+                _cts = null;
+                if (!old.IsCancellationRequested)
+                    old.Cancel();
             }
         }
     }
