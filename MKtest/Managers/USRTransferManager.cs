@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public class USRTransferManager
+    public class USRTransferManager : IUSRTransferOperations
     {
         private readonly IRouteService _routeService;
         private readonly IUSRTransferService _transferService;
