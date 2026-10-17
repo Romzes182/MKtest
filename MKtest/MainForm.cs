@@ -1,4 +1,5 @@
 ﻿using MKtest.Configs;
+using MKtest.UI;
 using MKtest.Managers;
 using MKtest.Services;
 using MKtest.Services.Demoscripts;
@@ -52,8 +53,9 @@ namespace MKtest
         private WebServerStateManager? _webServerStateManager;
         #endregion
 
-        #region Поля для управления сворачиванием
-        private Dictionary<Panel, int> _originalHeights = new Dictionary<Panel, int>();
+        #region Контроллеры интерфейса
+        private CollapsiblePanelController? _collapsiblePanelController;
+        private DemoModeController? _demoModeController;
         #endregion
 
         #region Конструктор
@@ -192,217 +194,48 @@ namespace MKtest
             manualTimePicker.Format = DateTimePickerFormat.Time;
             manualTimePicker.ShowUpDown = true;
 
-            SaveOriginalHeights();
+            _collapsiblePanelController = new CollapsiblePanelController(UpdateLayout);
+            _collapsiblePanelController.Register(beelinkCollapsiblePanel, beelinkHeaderPanel, beelinkHeaderLabel, beelinkContentPanel, "SSH Beelink");
+            _collapsiblePanelController.Register(webServerCollapsiblePanel, webServerHeaderPanel, webServerHeaderLabel, webServerContentPanel, "Веб-сервер");
+            _collapsiblePanelController.Register(demoCollapsiblePanel, demoHeaderPanel, demoHeaderLabel, demoContentPanel, "ЛК-ВИЗ через route.json");
+            _collapsiblePanelController.Register(usrTransferCollapsiblePanel, usrTransferHeaderPanel, usrTransferHeaderLabel, usrTransferContentPanel, "ИР-0652");
+            _collapsiblePanelController.Register(hermesCollapsiblePanel, hermesHeaderPanel, hermesHeaderLabel, hermesContentPanel, "Гермес");
+            _collapsiblePanelController.Register(httpPayCollapsiblePanel, httpPayHeaderPanel, httpPayHeaderLabel, httpPayContentPanel, "Протокол HTTP");
+            _collapsiblePanelController.Register(httpProtokolCollapsiblePanel, httpProtokolHeaderPanel, httpProtokolHeaderLabel, httpProtokolContentPanel, "Протокол JSON-RPC");
 
-            beelinkHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            beelinkHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            beelinkCollapsiblePanel.Tag = "beelink";
-
-            webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            webServerHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            webServerCollapsiblePanel.Tag = "webserver";
-
-            demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            demoHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            demoCollapsiblePanel.Tag = "demo";
-
-            usrTransferHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            usrTransferHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            usrTransferCollapsiblePanel.Tag = "usrtransfer";
+            // В Designer имена заголовка СЭКОП исторически переставлены:
+            // sekopHeaderLabel — Panel, sekopHeaderPanel — Label.
+            _collapsiblePanelController.Register(sekopCollapsiblePanel, sekopHeaderLabel, sekopHeaderPanel, sekopContentPanel, "Протокол СЭКОП");
+            _collapsiblePanelController.Register(emergencyCollapsiblePanel, emergencyHeaderPanel, emergencyHeaderLabel, emergencyContentPanel, "Команды МЧС");
 
             webServerStartButton.Click += WebServerStartButton_Click;
             webServerStopButton.Click += WebServerStopButton_Click;
-
-
-            hermesCollapsiblePanel.Tag = "hermes";
-
-            httpPayHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            httpPayHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            httpPayCollapsiblePanel.Tag = "httppay";
-
-            httpProtokolHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            httpProtokolHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            httpProtokolCollapsiblePanel.Tag = "httpprotokol";
-
             btnHttpProtokolStart.Click += btnHttpProtokolStart_Click;
             btnHttpProtokolStop.Click += btnHttpProtokolStop_Click;
             btnHttpProtokolTest.Click += btnHttpProtokolTest_Click;
             btnHttpProtokolUpdate.Click += btnHttpProtokolUpdate_Click;
-
-
-            sekopHeaderPanel.Click -= CollapsiblePanelHeader_Click;
-            sekopHeaderLabel.Click -= CollapsiblePanelHeader_Click;
-
-            sekopHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            sekopHeaderLabel.Click += CollapsiblePanelHeader_Click;
-
-            sekopCollapsiblePanel.Tag = "sekop";
             sekopTransactionsNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
             sekopPassengersNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
 
-            emergencyHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            emergencyHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            emergencyCollapsiblePanel.Tag = "emergency";
-
-
             _settingsManager?.LoadSettings();
             Resize += MainForm_Resize;
-            CollapseAllPanels();
+            _collapsiblePanelController.CollapseAll();
 
-            // Сохраняем оригинальный обработчик кнопки «Запустить» (автоматический режим)
-            _autoStartHandler = _demoManager?.StartButtonHandler;
-
-            // Инициализация TCS для ручного режима
-            _manualStepTcs = new TaskCompletionSource<bool>();
-
-            // Подписка на радиокнопки и кнопку "Далее"
-            rbAutoMode.CheckedChanged += rbAutoMode_CheckedChanged;
-            rbManualMode.CheckedChanged += rbManualMode_CheckedChanged;
-            btnNextStep.Click += btnNextStep_Click;
-
-            // Установить начальное состояние (автоматический режим)
-            rbAutoMode.Checked = true;
-            rbAutoMode_CheckedChanged(rbAutoMode, EventArgs.Empty);
-
-        }
-
-        private void SaveOriginalHeights()
-        {
-            _originalHeights[beelinkCollapsiblePanel] = beelinkCollapsiblePanel.Height;
-            _originalHeights[webServerCollapsiblePanel] = webServerCollapsiblePanel.Height;
-            _originalHeights[demoCollapsiblePanel] = demoCollapsiblePanel.Height;
-            _originalHeights[usrTransferCollapsiblePanel] = usrTransferCollapsiblePanel.Height;
-            _originalHeights[hermesCollapsiblePanel] = hermesCollapsiblePanel.Height;
-            _originalHeights[httpPayCollapsiblePanel] = httpPayCollapsiblePanel.Height;
-            _originalHeights[httpProtokolCollapsiblePanel] = httpProtokolCollapsiblePanel.Height;
-            _originalHeights[sekopCollapsiblePanel] = sekopCollapsiblePanel.Height;
-            _originalHeights[emergencyCollapsiblePanel] = emergencyCollapsiblePanel.Height;
-        }
-
-        private void CollapseAllPanels()
-        {
-            beelinkContentPanel.Visible = false;
-            beelinkCollapsiblePanel.Height = beelinkHeaderPanel.Height;
-            beelinkHeaderLabel.Text = "SSH Beelink ▶";
-
-            webServerContentPanel.Visible = false;
-            webServerCollapsiblePanel.Height = webServerHeaderPanel.Height;
-            webServerHeaderLabel.Text = "Веб-сервер ▶";
-
-            demoContentPanel.Visible = false;
-            demoCollapsiblePanel.Height = demoHeaderPanel.Height;
-            demoHeaderLabel.Text = "ЛК-ВИЗ через route.json ▶";
-
-            usrTransferContentPanel.Visible = false;
-            usrTransferCollapsiblePanel.Height = usrTransferHeaderPanel.Height;
-            usrTransferHeaderLabel.Text = "ИР-0652 ▶";
-
-            hermesContentPanel.Visible = false;
-            hermesCollapsiblePanel.Height = hermesHeaderPanel.Height;
-            hermesHeaderLabel.Text = "Гермес ▶";
-
-            httpPayContentPanel.Visible = false;
-            httpPayCollapsiblePanel.Height = httpPayHeaderPanel.Height;
-            httpPayHeaderLabel.Text = "Протокол HTTP ▶";
-
-            httpProtokolContentPanel.Visible = false;
-            httpProtokolCollapsiblePanel.Height = httpProtokolHeaderPanel.Height;
-            httpProtokolHeaderLabel.Text = "Протокол JSON-RPC ▶";
-
-            sekopContentPanel.Visible = false;
-            sekopCollapsiblePanel.Height = sekopHeaderPanel.Height;
-            sekopHeaderLabel.Text = "Протокол СЭКОП ▶";
-
-            emergencyContentPanel.Visible = false;
-            emergencyCollapsiblePanel.Height = emergencyHeaderPanel.Height;
-            emergencyHeaderLabel.Text ="Команды МЧС ▶";
-            UpdateLayout();
+            if (_demoScenarioService != null)
+            {
+                _demoModeController = new DemoModeController(
+                    rbAutoMode, rbManualMode, btnStartDemo, btnNextStep,
+                    cmbDemoScenarios, _demoScenarioService,
+                    message => _logManager?.AppendLog(message));
+            }
         }
 
         private void MainForm_Resize(object? sender, EventArgs e)
         {
             if (mainTabControl.SelectedTab == mainTabPage) UpdateLayout();
         }
-        #endregion
 
-        #region Обработчики сворачиваемых панелей
-        private void CollapsiblePanelHeader_Click(object sender, EventArgs e)
-        {
-            Panel? headerPanel = sender as Panel ?? (sender as Label)?.Parent as Panel;
-            if (headerPanel == null) return;
-            ToggleCollapsiblePanel(headerPanel);
-        }
-
-        private void ToggleCollapsiblePanel(Panel headerPanel)
-        {
-            var collapsiblePanel = headerPanel.Parent as Panel;
-            if (collapsiblePanel == null || !_originalHeights.ContainsKey(collapsiblePanel)) return;
-
-            var contentPanel = collapsiblePanel.Controls.OfType<Panel>().FirstOrDefault(p => p != headerPanel);
-            if (contentPanel == null) return;
-
-            if (contentPanel.Visible)
-            {
-                contentPanel.Visible = false;
-                collapsiblePanel.Height = headerPanel.Height;
-                UpdateHeaderLabel(headerPanel, false);
-            }
-            else
-            {
-                contentPanel.Visible = true;
-                collapsiblePanel.Height = _originalHeights[collapsiblePanel];
-                UpdateHeaderLabel(headerPanel, true);
-            }
-
-            UpdateLayout();
-        }
-
-        private void UpdateHeaderLabel(Panel headerPanel, bool isExpanded)
-        {
-            var label = headerPanel.Controls.OfType<Label>().FirstOrDefault();
-            if (label == null) return;
-
-            var panelType = (headerPanel.Parent as Panel)?.Tag?.ToString() ?? "";
-            switch (panelType)
-            {
-                case "beelink":
-                    label.Text = isExpanded ? "SSH Beelink ▼" : "SSH Beelink ▶";
-                    break;
-                case "webserver":
-                    label.Text = isExpanded ? "Веб-сервер ▼" : "Веб-сервер ▶";
-                    break;
-                case "demo":
-                    label.Text = isExpanded ? "ЛК-ВИЗ через route.json ▼" : "ЛК-ВИЗ через route.json ▶";
-                    break;
-
-                case "usrtransfer":
-                    label.Text = isExpanded ? "ИР-0652 ▼" : "ИР-0652 ▶";
-                    break;
-                case "hermes":
-                    label.Text = isExpanded ? "Гермес ▼" : "Гермес ▶";
-                    break;
-                case "httppay":
-                    label.Text = isExpanded ? "Протокол HTTP ▼" : "Протокол HTTP ▶";
-                    break;
-                case "httpprotokol":
-                    label.Text = isExpanded
-                        ? "Протокол JSON-RPC ▼" : "Протокол JSON-RPC ▶";
-                    break;
-                case "sekop":
-                    label.Text = isExpanded
-                        ? "Протокол СЭКОП ▼" : "Протокол СЭКОП ▶";
-                    break;
-                case "emergency":
-                    label.Text = isExpanded
-                        ? "Команды МЧС ▼": "Команды МЧС ▶";
-                    break;
-            }
-        }
-
-        private void UpdateLayout()
-        {
-            leftFlowLayout?.PerformLayout();
-        }
+        private void UpdateLayout() => leftFlowLayout?.PerformLayout();
         #endregion
 
         #region Обработчики SSH подключения
@@ -832,6 +665,8 @@ namespace MKtest
                 _webServerService?.Dispose();
                 _httpPayManager?.Stop();
                 _httpPayService?.Dispose();
+                _demoModeController?.Dispose();
+                _collapsiblePanelController?.Dispose();
                 _demoManager?.Cleanup();
                 _logManager?.AppendLog("Приложение закрывается");
                 if (_hermesManager != null)
@@ -1268,57 +1103,5 @@ namespace MKtest
         }
         #endregion
 
-        #region
-        private TaskCompletionSource<bool>? _manualStepTcs;
-        private EventHandler? _autoStartHandler;
-
-        private void rbAutoMode_CheckedChanged(object sender, EventArgs e)
-        {
-            if (rbAutoMode.Checked)
-            {
-                btnNextStep.Visible = false;
-                // Убираем свой обработчик, возвращаем автоматический
-                btnStartDemo.Click -= BtnStartDemo_Click;
-                if (_autoStartHandler != null)
-                    btnStartDemo.Click += _autoStartHandler;
-            }
-        }
-
-        private void rbManualMode_CheckedChanged(object sender, EventArgs e)
-        {
-            if (rbManualMode.Checked)
-            {
-                btnNextStep.Visible = true;
-                // Убираем автоматический обработчик, ставим свой
-                if (_autoStartHandler != null)
-                    btnStartDemo.Click -= _autoStartHandler;
-                btnStartDemo.Click += BtnStartDemo_Click;
-            }
-        }
-
-        private void BtnStartDemo_Click(object sender, EventArgs e)
-        {
-            string? scenarioName = cmbDemoScenarios.SelectedItem?.ToString();
-            if (string.IsNullOrEmpty(scenarioName))
-            {
-                _logManager?.AppendLog("Ошибка: не выбран сценарий");
-                return;
-            }
-
-            _logManager?.AppendLog($"Запуск сценария: {scenarioName} (ручной режим)");
-            _demoScenarioService?.StartScenarioManual(scenarioName,
-                () => _manualStepTcs?.Task ?? Task.CompletedTask);
-        }
-
-        private void btnNextStep_Click(object sender, EventArgs e)
-        {
-            if (_manualStepTcs != null && !_manualStepTcs.Task.IsCompleted)
-            {
-                _manualStepTcs.TrySetResult(true);
-                _manualStepTcs = new TaskCompletionSource<bool>();
-            }
-        }
-
-        #endregion
     }
 }
