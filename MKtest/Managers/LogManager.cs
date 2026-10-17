@@ -28,6 +28,14 @@ namespace MKtest.Managers
             _uiSink = uiSink ?? throw new ArgumentNullException(nameof(uiSink));
         }
 
+        /// <summary>
+        /// The returned logger saves to the same file and displays to both
+        /// the general log and the selected block; never to other blocks.
+        /// </summary>
+        public LogManager CreateScope(TextBox localTextBox) =>
+            new(_loggerService, new ScopedLogSink(
+                _uiSink, new WinFormsLogSink(localTextBox)));
+
         public void AppendLog(string message)
         {
             // File and in-memory history are written immediately.
