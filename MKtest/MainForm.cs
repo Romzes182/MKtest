@@ -20,6 +20,8 @@ using MKtest.UI.Sekop;
 using MKtest.UI.Logging;
 using MKtest.UI.JSONRPC;
 using MKtest.UI.HTTPpay;
+using MKtest.UI.Hermes;
+using MKtest.UI.Emergency;
 
 namespace MKtest
 {
@@ -67,6 +69,8 @@ namespace MKtest
         private SekopUiController? _sekopUiController;
         private JsonRpcUiController? _jsonRpcUiController;
         private HttpPayUiController? _httpPayUiController;
+        private HermesUiController? _hermesUiController;
+        private EmergencyUiController? _emergencyUiController;
         private BlockLogPanelRegistry? _blockLogs;
         private RightPanelFlowController? _rightPanelLayout;
         private ScrollablePanelStackController? _leftPanelLayout;
@@ -235,6 +239,7 @@ namespace MKtest
             if (_emergencyService == null)
                 throw new InvalidOperationException("EmergencyService не инициализирован");
             _emergencyManager = new EmergencyManager(_emergencyService,ConfigService.Config.Emergency);
+            _emergencyUiController = new EmergencyUiController(_emergencyManager, _emergencyLog!.AppendLog);
             InitializeSekopProtocolMain();
 
             InitializeDemoServices();
@@ -524,141 +529,46 @@ namespace MKtest
         #endregion
 
         #region Hermes Main
-
         private HermesPassengerManager? _hermesManager;
         private IHermesPassengerService? _hermesService;
 
         private void InitializeHermesMain()
         {
-            if (_logManager == null) return;
+            if (_hermesLog == null) return;
 
             var cfg = ConfigService.Config.HermesSSH;
-            _hermesService = new HermesPassengerService(_hermesLog!, cfg);
-            _hermesManager = new HermesPassengerManager(_hermesService, _hermesLog!);
-            _hermesManager.StatusChanged += HermesManager_StatusChanged;
-
-            hermesEnteredTextBox.Text = "0";
-            hermesExitedTextBox.Text = "0";
-            lblHermesStatus.Text = "Статус: Остановлено";
-            SetHermesButtons(false);
+            _hermesService = new HermesPassengerService(_hermesLog, cfg);
+            _hermesManager = new HermesPassengerManager(_hermesService, _hermesLog);
+            _hermesUiController = new HermesUiController(
+                _hermesManager,
+                new HermesControls(
+                    hermesEnteredTextBox, hermesExitedTextBox,
+                    btnHermesStart, btnHermesStop, btnHermesTest,
+                    btnHermesUpdate, lblHermesStatus),
+                _hermesLog.AppendLog);
         }
 
+        // Designer event adapters. UI state/validation live in HermesUiController.
         private async void btnHermesStart_Click(object sender, EventArgs e)
         {
-            if (_hermesManager == null || _logManager == null) return;
-            if (!TryReadHermesValues(out var entered, out var exited)) return;
-            if (_hermesManager.IsRunning) return;
-
-            SetHermesButtons(true);
-            lblHermesStatus.Text = "Статус: Запуск...";
-
-            try
-            {
-                await _hermesManager.StartAsync(entered, exited);
-            }
-            catch (Exception ex)
-            {
-                _hermesLog!.AppendLog($"Hermes start error: {ex.Message}");
-                lblHermesStatus.Text = "Статус: Ошибка подключения";
-                MessageBox.Show($"Hermes недоступен:\n{ex.Message}", "Hermes",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-            finally
-            {
-                if (_hermesManager.IsRunning == false)
-                    SetHermesButtons(false);
-            }
+            if (_hermesUiController != null)
+                await _hermesUiController.StartAsync();
         }
 
         private async void btnHermesStop_Click(object sender, EventArgs e)
         {
-            if (_hermesManager == null || _logManager == null) return;
-
-            try
-            {
-                await _hermesManager.StopAsync();
-            }
-            catch (Exception ex)
-            {
-                _hermesLog!.AppendLog($"Hermes stop error: {ex.Message}");
-            }
-            finally
-            {
-                SetHermesButtons(false);
-                lblHermesStatus.Text = "Статус: Остановлено";
-            }
+            if (_hermesUiController != null)
+                await _hermesUiController.StopAsync();
         }
 
         private async void btnHermesTest_Click(object sender, EventArgs e)
         {
-            if (_hermesManager == null || _logManager == null) return;
-
-            try
-            {
-                lblHermesStatus.Text = "Статус: Тест...";
-                var ok = await _hermesManager.TestConnectionAsync();
-                lblHermesStatus.Text = ok ? "Статус: Доступно" : "Статус: Недоступно";
-                _hermesLog!.AppendLog(ok
-                    ? "Hermes SSH: подключение успешно"
-                    : "Hermes SSH: подключение не удалось");
-            }
-            catch (Exception ex)
-            {
-                _hermesLog!.AppendLog($"Hermes test fatal: {ex.Message}");
-                lblHermesStatus.Text = "Статус: Ошибка";
-            }
+            if (_hermesUiController != null)
+                await _hermesUiController.TestAsync();
         }
 
-        private void btnHermesUpdate_Click(object sender, EventArgs e)
-        {
-            if (_hermesManager == null || _logManager == null) return;
-            if (!TryReadHermesValues(out var entered, out var exited)) return;
-
-            _hermesManager.UpdateValues(entered, exited);
-            _hermesLog!.AppendLog($"Hermes: обновлены значения A={entered}, B={exited}");
-        }
-
-        private bool TryReadHermesValues(out int entered, out int exited)
-        {
-            entered = 0;
-            exited = 0;
-
-            if (!int.TryParse(hermesEnteredTextBox.Text, out entered) || entered < 0 || entered > 255)
-            {
-                MessageBox.Show("Поле 'Вошло' должно быть числом 0..255", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!int.TryParse(hermesExitedTextBox.Text, out exited) || exited < 0 || exited > 255)
-            {
-                MessageBox.Show("Поле 'Вышло' должно быть числом 0..255", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            return true;
-        }
-
-        private void HermesManager_StatusChanged(string status)
-        {
-            if (InvokeRequired)
-            {
-                Invoke(new Action(() => HermesManager_StatusChanged(status)));
-                return;
-            }
-
-            lblHermesStatus.Text = $"Статус: {status}";
-            SetHermesButtons(_hermesManager?.IsRunning == true);
-        }
-
-        private void SetHermesButtons(bool running)
-        {
-            btnHermesStart.Enabled = !running;
-            btnHermesStop.Enabled = running;
-            btnHermesTest.Enabled = !running;
-            btnHermesUpdate.Enabled = true;
-        }
+        private void btnHermesUpdate_Click(object sender, EventArgs e) =>
+            _hermesUiController?.Update();
 
         #endregion
 
@@ -671,6 +581,7 @@ namespace MKtest
             {
                 _usrTransferManager?.StopInSequence();
                 _usrTransferUiController?.Dispose();
+                _hermesUiController?.Dispose();
                 _sekopUiController?.Dispose();
                 if (_sekopProtocolManager?.IsRunning == true)
                     _sekopProtocolManager.Stop();
@@ -925,35 +836,29 @@ namespace MKtest
         #endregion
 
         #region МЧС
-        private async void btnEmergency1_Click(object sender,EventArgs e)
+        // Existing buttons remain connected in MainForm.Designer.cs.
+        private async void btnEmergency1_Click(object sender, EventArgs e)
         {
-            if (_emergencyManager == null)
-                return;
-
-            await _emergencyManager.SendCommand1Async();
+            if (_emergencyUiController != null)
+                await _emergencyUiController.SendAsync(1);
         }
 
-        private async void btnEmergency2_Click(object sender,EventArgs e)
+        private async void btnEmergency2_Click(object sender, EventArgs e)
         {
-            if (_emergencyManager == null)
-                return;
-
-            await _emergencyManager.SendCommand2Async();
+            if (_emergencyUiController != null)
+                await _emergencyUiController.SendAsync(2);
         }
 
-        private async void btnEmergency3_Click(object sender,EventArgs e)
+        private async void btnEmergency3_Click(object sender, EventArgs e)
         {
-            if (_emergencyManager == null)
-                return;
-
-            await _emergencyManager.SendCommand3Async();
+            if (_emergencyUiController != null)
+                await _emergencyUiController.SendAsync(3);
         }
+
         private async void btnEmergency4_Click(object sender, EventArgs e)
         {
-            if (_emergencyManager == null)
-                return;
-
-            await _emergencyManager.SendCommand4Async();
+            if (_emergencyUiController != null)
+                await _emergencyUiController.SendAsync(4);
         }
         #endregion
 
