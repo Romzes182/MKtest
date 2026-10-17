@@ -106,7 +106,7 @@ namespace MKtest
             _logManager = new LogManager(beelinkLogTextBox);
             _sshService = new SSHService();
             _timeService = new TimeCommandsService(_sshService);
-            _webServerService = new WebServerService(_logManager);
+            _webServerService = new WebServerService();
             _routeService = new RouteService();
             _usrTransferService = new USRTransferService(_logManager);
             _httpProtokolService = new JSONRPCprotokolService(ConfigService.Config.HTTPprotokol);
