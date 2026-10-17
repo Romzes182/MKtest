@@ -36,8 +36,13 @@ namespace MKtest.Services.Demoscripts
                 .Where(s => s.ExecutionMode == StepExecutionMode.PerLoop)
                 .ToArray();
 
-            // A scenario with no repeating steps should finish rather than busy-spin.
-            if (loopSteps.Length == 0)
+            // An empty loop, or a loop containing no actionable steps in this mode,
+            // must finish rather than consume CPU indefinitely.
+            if (loopSteps.Length == 0 ||
+                loopSteps.All(step =>
+                    (string.IsNullOrEmpty(step.SourceFile) ||
+                     string.IsNullOrEmpty(step.TargetFile)) &&
+                    (options.ManualMode || step.DelayMs <= 0)))
                 return;
 
             while (true)
