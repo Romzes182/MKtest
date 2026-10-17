@@ -400,7 +400,7 @@
             webServerHeaderPanel.Name = "webServerHeaderPanel";
             webServerHeaderPanel.Size = new Size(356, 24);
             webServerHeaderPanel.TabIndex = 0;
-            webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
+           
             // 
             // webServerHeaderLabel
             // 
@@ -516,7 +516,7 @@
             demoHeaderPanel.Name = "demoHeaderPanel";
             demoHeaderPanel.Size = new Size(359, 23);
             demoHeaderPanel.TabIndex = 0;
-            demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
+           
             // 
             // demoHeaderLabel
             // 
@@ -680,7 +680,7 @@
             usrTransferHeaderPanel.Name = "usrTransferHeaderPanel";
             usrTransferHeaderPanel.Size = new Size(359, 24);
             usrTransferHeaderPanel.TabIndex = 0;
-            usrTransferHeaderPanel.Click += CollapsiblePanelHeader_Click;
+            
             // 
             // usrTransferHeaderLabel
             // 
@@ -1048,7 +1048,7 @@
             beelinkHeaderPanel.Name = "beelinkHeaderPanel";
             beelinkHeaderPanel.Size = new Size(365, 24);
             beelinkHeaderPanel.TabIndex = 0;
-            beelinkHeaderPanel.Click += CollapsiblePanelHeader_Click;
+           
             // 
             // beelinkHeaderLabel
             // 
@@ -1410,7 +1410,7 @@
             hermesHeaderPanel.Name = "hermesHeaderPanel";
             hermesHeaderPanel.Size = new Size(366, 24);
             hermesHeaderPanel.TabIndex = 0;
-            hermesHeaderPanel.Click += CollapsiblePanelHeader_Click;
+           
             // 
             // hermesHeaderLabel
             // 
@@ -1421,7 +1421,7 @@
             hermesHeaderLabel.Size = new Size(366, 24);
             hermesHeaderLabel.TabIndex = 0;
             hermesHeaderLabel.Text = "Гермес";
-            hermesHeaderLabel.Click += CollapsiblePanelHeader_Click;
+            
             // 
             // logPanel
             // 
