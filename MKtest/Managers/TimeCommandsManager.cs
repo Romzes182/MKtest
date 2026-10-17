@@ -42,8 +42,9 @@ namespace MKtest.Managers
         }
 
         /// <summary>
-        /// Gets the normal timedatectl status and a separately received
-        /// local clock value. SSH work is off the WinForms UI thread.
+        /// Read the local time from timedatectl status first. This is already
+        /// part of the response shown in the log (e.g. Russian "Сб 2026... MSK").
+        /// Ask the remote shell for date only if timedatectl has no local time.
         /// </summary>
         public async Task<string?> CheckTimeStatusAndReadTimeAsync()
         {
@@ -53,12 +54,19 @@ namespace MKtest.Managers
             string status = await Task.Run(() => _timeService.CheckTimeStatus());
             _logManager.AppendLog($"Статус времени:\n{status}");
 
-            string rawTime = await Task.Run(() => _timeService.ReadCurrentTime());
-            string? remoteTime = BeelinkTimeValueParser.Extract(rawTime);
+            string? remoteTime = BeelinkTimeValueParser.ExtractFromTimedatectl(status);
+            if (remoteTime == null)
+            {
+                _logManager.AppendLog("Локальное время в timedatectl не найдено, запрос date...");
+                string rawTime = await Task.Run(() => _timeService.ReadCurrentTime());
+                remoteTime = BeelinkTimeValueParser.Extract(rawTime);
 
-            _logManager.AppendLog(remoteTime == null
-                ? $"Не удалось определить время Beelink из ответа: {rawTime}"
-                : $"Получено время Beelink: {remoteTime}");
+                if (remoteTime == null)
+                    _logManager.AppendLog($"Время Beelink не распознано. Ответ date: {rawTime}");
+            }
+
+            if (remoteTime != null)
+                _logManager.AppendLog($"Получено локальное время Beelink: {remoteTime}");
 
             return remoteTime;
         }
