@@ -18,6 +18,8 @@ using MKtest.Services.HTTPpay;
 using MKtest.Services.SekopProtocol;
 using MKtest.UI.Sekop;
 using MKtest.UI.Logging;
+using MKtest.UI.JSONRPC;
+using MKtest.UI.HTTPpay;
 
 namespace MKtest
 {
@@ -63,6 +65,8 @@ namespace MKtest
         private Button? _btnPreviousDemoStep;
         private USRTransferUiController? _usrTransferUiController;
         private SekopUiController? _sekopUiController;
+        private JsonRpcUiController? _jsonRpcUiController;
+        private HttpPayUiController? _httpPayUiController;
         private BlockLogPanelRegistry? _blockLogs;
         private LogManager? _sshLog, _webLog, _demoLog, _usrLog, _hermesLog;
         private LogManager? _httpPayLog, _jsonLog, _sekopLog, _emergencyLog;
@@ -616,6 +620,7 @@ namespace MKtest
                 _sshService?.Dispose();
                 _webServerService?.Dispose();
                 _httpPayManager?.Stop();
+                _httpProtokolManager?.Stop();
                 _httpPayService?.Dispose();
                 _demoModeController?.Dispose();
                 _collapsiblePanelController?.Dispose();
@@ -678,14 +683,13 @@ namespace MKtest
 
         private void InitializeHTTPprotokol()
         {
-            if (_httpProtokolService == null || _logManager == null)
-                return;
-            _httpProtokolManager = new JSONRPCprotokolManager(_httpProtokolService, _jsonLog!);
-            httpProtokolTrCounterTextBox.Text = "0";
-            httpProtokolIntervalTextBox.Text = "5";
-            lblHttpStatus.Text = "Статус: Остановлено";
-            btnHttpProtokolStart.Enabled = true;
-            btnHttpProtokolStop.Enabled = false;
+            if (_httpProtokolService == null || _jsonLog == null) return;
+            _httpProtokolManager = new JSONRPCprotokolManager(_httpProtokolService, _jsonLog);
+            _jsonRpcUiController = new JsonRpcUiController(
+                _httpProtokolManager, _httpProtokolService,
+                httpProtokolTrCounterTextBox, httpProtokolIntervalTextBox,
+                btnHttpProtokolStart, btnHttpProtokolStop, lblHttpStatus,
+                _jsonLog.AppendLog);
         }
 
         private void httpProtokolSaveButton_Click(object sender, EventArgs e)
@@ -720,152 +724,42 @@ namespace MKtest
             }
         }
 
-        private void btnHttpProtokolStart_Click(object sender, EventArgs e)
-        {
-            if (_httpProtokolManager == null)
-                return;
-            try
-            {
-                int trCounter = int.Parse(httpProtokolTrCounterTextBox.Text);
-                int interval = int.Parse(httpProtokolIntervalTextBox.Text);
-                _httpProtokolManager.Start(trCounter, interval);
-                btnHttpProtokolStart.Enabled = false;
-                btnHttpProtokolStop.Enabled = true;
-                lblHttpStatus.Text = "Статус: Запущено"; _jsonLog?.AppendLog("JSONRPC запущен");
-            }
-            catch (Exception ex)
-            {
-                _jsonLog?.AppendLog(ex.Message);
-            }
-        }
+        // WinForms Designer handlers delegate all protocol UI logic.
+        private void btnHttpProtokolStart_Click(object sender, EventArgs e) =>
+            _jsonRpcUiController?.Start();
 
-        private void btnHttpProtokolStop_Click(object sender, EventArgs e)
-        {
-            if (_httpProtokolManager == null)
-                return;
-            _httpProtokolManager.Stop();
-            btnHttpProtokolStart.Enabled = true;
-            btnHttpProtokolStop.Enabled = false;
-            lblHttpStatus.Text = "Статус: Остановлено";
-            _jsonLog?.AppendLog("JsonRPCprotokol остановлен");
-        }
+        private void btnHttpProtokolStop_Click(object sender, EventArgs e) =>
+            _jsonRpcUiController?.Stop();
+
         private async void btnHttpProtokolTest_Click(object sender, EventArgs e)
         {
-            if (_httpProtokolService == null)
-                return;
-            try
-            {
-                int trCounter = int.Parse(httpProtokolTrCounterTextBox.Text);
-                await _httpProtokolService.SendAsync(trCounter, CancellationToken.None);
-                _jsonLog?.AppendLog("JSONRPC тест отправлен");
-            }
-            catch (Exception ex)
-            {
-                _jsonLog?.AppendLog(ex.Message);
-            }
+            if (_jsonRpcUiController != null)
+                await _jsonRpcUiController.TestAsync();
         }
-        private void btnHttpProtokolUpdate_Click(object sender, EventArgs e)
-        {
-            if (_httpProtokolManager == null)
-                return;
 
-            try
-            {
-                int trCounter =
-                    int.Parse(httpProtokolTrCounterTextBox.Text);
-
-                int interval =
-                    int.Parse(httpProtokolIntervalTextBox.Text);
-
-                _httpProtokolManager.UpdateValues(
-                    trCounter,
-                    interval);
-
-                _jsonLog?.AppendLog(
-                    "JSONRPCprotokol параметры обновлены");
-            }
-            catch (Exception ex)
-            {
-                _jsonLog?.AppendLog(ex.Message);
-            }
-        }
+        private void btnHttpProtokolUpdate_Click(object sender, EventArgs e) =>
+            _jsonRpcUiController?.Update();
         #endregion
 
         #region HTTPpay Main
 
         private void InitializeHTTPpayMain()
         {
-            if (_httpPayService == null || _logManager == null)
-                return;
-
-            _httpPayManager =
-                new HTTPpayManager(
-                    _httpPayService,
-                    _httpPayLog!);
-
-            httpPayTotalNumeric.Value =
-                Math.Min(
-                    httpPayTotalNumeric.Maximum,
-                    (decimal)ConfigService.Config.HTTPpay.TotalPayments);
-
-            lblHttpPayStatus.Text = "Статус: Остановлено";
-            SetHttpPayButtons(false);
+            if (_httpPayService == null || _httpPayLog == null) return;
+            _httpPayManager = new HTTPpayManager(_httpPayService, _httpPayLog);
+            _httpPayUiController = new HttpPayUiController(
+                _httpPayManager,
+                () => ConfigService.Config.HTTPpay.IntervalSeconds,
+                httpPayTotalNumeric, ConfigService.Config.HTTPpay.TotalPayments,
+                btnHttpPayStart, btnHttpPayStop, lblHttpPayStatus,
+                _httpPayLog.AppendLog);
         }
 
-        private void btnHttpPayStart_Click(object sender, EventArgs e)
-        {
-            if (_httpPayManager == null || _logManager == null)
-                return;
+        private void btnHttpPayStart_Click(object sender, EventArgs e) =>
+            _httpPayUiController?.Start();
 
-            if (_httpPayManager.IsRunning)
-                return;
-
-            var intervalSeconds =
-                ConfigService.Config.HTTPpay.IntervalSeconds;
-
-            // ВАЖНО:
-            // передаём метод чтения, а не готовое число.
-            // Поэтому pTotal читается заново перед каждой отправкой.
-            _httpPayManager.Start(
-                ReadHttpPayTotal,
-                intervalSeconds);
-
-            lblHttpPayStatus.Text = "Статус: Запущено";
-            SetHttpPayButtons(true);
-
-            _httpPayLog!.AppendLog(
-                $"HTTPpay запущен, интервал {intervalSeconds} сек");
-        }
-
-        private void btnHttpPayStop_Click(object sender, EventArgs e)
-        {
-            _httpPayManager?.Stop();
-
-            lblHttpPayStatus.Text = "Статус: Остановлено";
-            SetHttpPayButtons(false);
-        }
-
-        private int ReadHttpPayTotal()
-        {
-            if (httpPayTotalNumeric.InvokeRequired)
-            {
-                return (int)httpPayTotalNumeric.Invoke(
-                    new Func<int>(() => (int)httpPayTotalNumeric.Value));
-            }
-
-            return (int)httpPayTotalNumeric.Value;
-        }
-
-        private void SetHttpPayButtons(bool running)
-        {
-            btnHttpPayStart.Enabled = !running;
-            btnHttpPayStop.Enabled = running;
-
-            // ВАЖНО:
-            // pTotal не отключаем во время работы,
-            // чтобы его можно было менять на лету.
-            httpPayTotalNumeric.Enabled = true;
-        }
+        private void btnHttpPayStop_Click(object sender, EventArgs e) =>
+            _httpPayUiController?.Stop();
 
         #endregion
 
