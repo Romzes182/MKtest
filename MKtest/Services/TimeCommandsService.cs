@@ -20,6 +20,13 @@ namespace MKtest.Services
             return _commands.ExecuteCommand("timedatectl status");
         }
 
+        /// <summary>
+        /// Actual local system time from the Beelink, not the operator's PC.
+        /// ISO-style separator makes the command echo distinguishable from data.
+        /// </summary>
+        public string ReadCurrentTime() =>
+            _commands.ExecuteCommand("date '+%Y-%m-%dT%H:%M:%S'");
+
         public string EnableNTP()
         {
             OnCommandExecuted?.Invoke("Включение NTP синхронизации...");
