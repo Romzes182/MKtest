@@ -150,6 +150,12 @@ namespace MKtest.Checklists
             _grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells;
             _grid.EditMode = DataGridViewEditMode.EditOnEnter;
             _grid.DataError += (_, args) => args.ThrowException = false;
+            _grid.CurrentCellDirtyStateChanged += (_, _) =>
+            {
+                if (_grid.IsCurrentCellDirty)
+                    _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            };
+            _grid.CellValueChanged += (_, _) => Autosave();
             AddColumn(new DataGridViewCheckBoxColumn(),
                 "Выбрать", nameof(ChecklistCase.Selected), 56);
             AddColumn(new DataGridViewTextBoxColumn(),
@@ -242,6 +248,12 @@ namespace MKtest.Checklists
                 _grid.EndEdit();
             var shown = VisibleCases().ToList();
             _grid.DataSource = new BindingList<ChecklistCase>(shown);
+            if (_document.Cases.Count == 0)
+            {
+                _summary.Text = "Сначала нажмите «Импорт Excel» и выберите " +
+                    "объединённый файл MKtest_единый_чек-лист.xlsx или исходные четыре отчёта.";
+                return;
+            }
             _summary.Text = $"Показано: {shown.Count}  /  Всего в тест-листе: " +
                 $"{_document.Cases.Count}.  " +
                 "Для бумажной проверки: □ Есть  □ Баг  □ Нет. " +
