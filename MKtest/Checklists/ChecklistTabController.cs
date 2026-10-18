@@ -304,21 +304,85 @@ namespace MKtest.Checklists
         {
             if (_masterCatalog.Count == 0)
             {
-                MessageBox.Show(this,
-                    "Сначала загрузите общий список кнопкой «Импорт Excel».",
-                    "Чек-листы");
+                MessageBox.Show(this, "Каталог проверок пока пуст.", "Чек-листы");
                 return;
             }
-            if (MessageBox.Show(this,
-                "Начать новый общий проход? Текущие отметки будут сброшены. " +
-                "Сначала сохраните лист, если они нужны.",
-                "Новый проход", MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+            using var window = new Form
+            {
+                Text = "Новый тестовый проход",
+                StartPosition = FormStartPosition.CenterParent,
+                Size = new Size(475, 260),
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false, MinimizeBox = false
+            };
+            var panel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false, Padding = new Padding(15)
+            };
+            panel.Controls.Add(new Label
+            {
+                Text = "Какие проверки включить в новый проход?",
+                AutoSize = true
+            });
+            var pick = new ComboBox
+            {
+                Width = 405, DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            pick.Items.AddRange(new object[]
+            {
+                "Все проверки",
+                "Android",
+                "Linux",
+                "МЧС",
+                "Безбилетники"
+            });
+            pick.SelectedIndex = 0;
+            panel.Controls.Add(pick);
+            panel.Controls.Add(new Label
+            {
+                AutoSize = true, MaximumSize = new Size(410, 45),
+                Text = "Новый проход начнётся с пустыми результатами. " +
+                    "Предыдущие обходы останутся в истории."
+            });
+            var create = new Button
+            {
+                Text = "Создать проход", Width = 160, Height = 32,
+                DialogResult = DialogResult.OK
+            };
+            panel.Controls.Add(create);
+            window.AcceptButton = create;
+            window.Controls.Add(panel);
+            if (window.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            string selection = pick.SelectedItem?.ToString() ?? "Все проверки";
+            var selectedCases = _masterCatalog.Where(item => selection switch
+            {
+                "Android" => item.Platforms.Contains("Android",
+                    StringComparison.OrdinalIgnoreCase),
+                "Linux" => item.Platforms.Contains("Linux",
+                    StringComparison.OrdinalIgnoreCase),
+                "МЧС" => item.Category.Contains("МЧС",
+                    StringComparison.OrdinalIgnoreCase),
+                "Безбилетники" => item.Category.Contains("Безбилет",
+                    StringComparison.OrdinalIgnoreCase),
+                _ => true
+            }).ToList();
+
             Autosave();
             ReadMetadata();
-            var newRun = _document.CreateSubset(_masterCatalog,
-                "Общий чек-лист медиакомплекса");
+            var newRun = _document.CreateSubset(selectedCases,
+                selection == "Все проверки"
+                    ? "Общий чек-лист медиакомплекса"
+                    : "Чек-лист — " + selection);
             newRun.Date = DateTime.Today;
+            newRun.Environment = selection == "Все проверки"
+                ? _environment.Text : selection;
+            _search.Clear();
+            _platform.SelectedIndex = 0;
             SetDocument(newRun);
         }
 
