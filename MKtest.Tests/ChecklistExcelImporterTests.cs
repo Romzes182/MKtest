@@ -27,7 +27,7 @@ public sealed class ChecklistExcelImporterTests
         try
         {
             var items = ChecklistExcelImporter.Import([file]);
-            Assert.HasCount(1, items);
+            Assert.AreEqual(1, items.Count);
             Assert.AreEqual("FARE-004", items[0].Id);
             Assert.AreEqual("Linux, Android 7, Android 11", items[0].Platforms);
             Assert.AreEqual("ИР-0652 / Json RPC", items[0].Module);
@@ -51,7 +51,7 @@ public sealed class ChecklistExcelImporterTests
         try
         {
             var items = ChecklistExcelImporter.Import([android, linux]);
-            Assert.HasCount(1, items);
+            Assert.AreEqual(1, items.Count);
             Assert.AreEqual("AND-001 / LIN-001", items[0].Id);
             StringAssert.Contains(items[0].Platforms, "Android 11");
             StringAssert.Contains(items[0].Platforms, "Linux");
@@ -71,7 +71,7 @@ public sealed class ChecklistExcelImporterTests
         try
         {
             var items = ChecklistExcelImporter.Import([emergency]);
-            Assert.HasCount(1, items);
+            Assert.AreEqual(1, items.Count);
             Assert.AreEqual("MCH-Т2.1", items[0].Id);
             Assert.AreEqual("Видео запускается автоматически", items[0].Expected);
             Assert.AreEqual("", items[0].Bug);
