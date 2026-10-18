@@ -73,7 +73,7 @@ namespace MKtest.Checklists
             y += 36;
 
             // Relative widths adapt to A4 landscape and the active printer.
-            float[] relative = { .08f, .15f, .09f, .28f, .24f, .09f, .07f };
+            float[] relative = { .07f, .13f, .08f, .25f, .22f, .10f, .15f };
             float[] widths = relative.Select(x => x * area.Width).ToArray();
             float[] x = new float[widths.Length];
             x[0] = left;
@@ -82,7 +82,7 @@ namespace MKtest.Checklists
 
             const float headingHeight = 24;
             string[] columns =
-                { "ID", "Раздел", "ОС", "Проверка", "Ожидается", "Отметка", "№ бага" };
+                { "ID", "Раздел", "ОС", "Проверка", "Ожидается", "Отметка", "Замечание / баг" };
             for (int col = 0; col < columns.Length; col++)
             {
                 var rect = new RectangleF(x[col], y, widths[col], headingHeight);
@@ -104,7 +104,7 @@ namespace MKtest.Checklists
                 string[] cells = {
                     item.Id, item.Category,
                     item.Platforms, item.Action, item.Expected,
-                    "□ Есть\n□ Баг\n□ Нет", ""
+                    "□ Есть\n□ Баг\n□ Нет", item.Bug + "\n" + item.Notes
                 };
                 float h = 46;
                 for (int i = 0; i < cells.Length; i++)
