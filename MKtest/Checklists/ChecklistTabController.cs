@@ -256,7 +256,7 @@ namespace MKtest.Checklists
                 Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 10,
                 Padding = new Padding(12, 2, 0, 0)
             };
-            foreach (var size in new[] { 40, 27, 111, 28, 95, 44, 37, 29, 0, 40 })
+            foreach (var size in new[] { 40, 25, 88, 25, 76, 42, 31, 31, 0, 40 })
             {
                 detail.RowStyles.Add(size == 0
                     ? new RowStyle(SizeType.Percent, 100)
@@ -344,7 +344,7 @@ namespace MKtest.Checklists
                 Dock = DockStyle.Fill, ColumnCount = 2,
                 RowCount = 1
             };
-            bugRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 135));
+            bugRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160));
             bugRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             bugRow.Controls.Add(new Label
             {
@@ -355,12 +355,23 @@ namespace MKtest.Checklists
             bugRow.Controls.Add(_bug, 1, 0);
             detail.Controls.Add(bugRow, 0, 7);
 
-            var notesPanel = new Panel { Dock = DockStyle.Fill };
-            notesPanel.Controls.Add(_notes);
+            var notesPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill, RowCount = 2, ColumnCount = 1
+            };
+            notesPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+            notesPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            notesPanel.Controls.Add(new Label
+            {
+                Text = "Замечания / фактический результат",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            }, 0, 0);
             _notes.Dock = DockStyle.Fill;
             _notes.Multiline = true;
             _notes.ScrollBars = ScrollBars.Vertical;
-            _notes.PlaceholderText = "Замечания с бумаги и фактический результат...";
+            _notes.PlaceholderText = "Перепиши наблюдения с распечатки...";
+            notesPanel.Controls.Add(_notes, 0, 1);
             detail.Controls.Add(notesPanel, 0, 8);
 
             var navigation = new FlowLayoutPanel
