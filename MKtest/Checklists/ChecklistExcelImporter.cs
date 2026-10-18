@@ -118,11 +118,23 @@ namespace MKtest.Checklists
             {
                 string id = Read(row.Cells, "A");
                 if (string.IsNullOrWhiteSpace(id)) continue;
-                var item = new ChecklistCase { Id = id, Section = section };
+                var item = new ChecklistCase
+                {
+                    Id = combined ? id :
+                        section == "МЧС" ? "MCH-" + id :
+                        (section == "Linux" ? "LIN-" :
+                         section == "Безбилетники" ? "FARE-" : "AND-") +
+                        (int.TryParse(id, out int serial)
+                            ? serial.ToString("000") : id),
+                    Section = section
+                };
                 if (combined)
                 {
                     item.Category = Read(row.Cells, "B");
-                    item.Platforms = Read(row.Cells, "C");
+                    string platformAndModule = Read(row.Cells, "C").Replace("\r", "");
+                    string[] split = platformAndModule.Split('\n', 2);
+                    item.Platforms = split[0];
+                    item.Module = split.Length > 1 ? split[1] : "";
                     item.Action = Read(row.Cells, "D");
                     item.Expected = Read(row.Cells, "E");
                     item.Section = "Общий";
@@ -146,7 +158,7 @@ namespace MKtest.Checklists
                 else
                 {
                     item.Category = Read(row.Cells, "B");
-                    item.Platforms = section;
+                    item.Platforms = section == "Android" ? "Android 11" : "Linux";
                     item.Action = Read(row.Cells, "C");
                 }
                 if (string.IsNullOrWhiteSpace(item.Action))
