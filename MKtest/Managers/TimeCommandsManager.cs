@@ -41,13 +41,8 @@ namespace MKtest.Managers
             return false;
         }
 
-        /// <summary>Shown when user presses Time Status while disconnected.</summary>
-        public void CheckTimeStatus()
-        {
-            if (!CheckConnection()) return;
-            // Retained for compatibility; all buttons now use the async API.
-            _ = CheckTimeStatusAndReadTimeAsync();
-        }
+        /// <summary>Show the existing connection warning on the UI thread.</summary>
+        public bool EnsureConnected() => CheckConnection();
 
         public Task<string?> CheckTimeStatusAndReadTimeAsync() =>
             ExecuteAndReadTimeAsync(null);
