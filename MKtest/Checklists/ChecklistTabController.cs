@@ -158,7 +158,11 @@ namespace MKtest.Checklists
                 if (_grid.IsCurrentCellDirty)
                     _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
             };
-            _grid.CellValueChanged += (_, _) => Autosave();
+            _grid.CellValueChanged += (_, _) =>
+            {
+                Autosave();
+                RefreshSummary();
+            };
             foreach (var field in new[] { _title, _version, _environment, _tester })
                 field.Leave += (_, _) => Autosave();
             AddColumn(new DataGridViewCheckBoxColumn(),
@@ -251,18 +255,28 @@ namespace MKtest.Checklists
         {
             if (_grid.IsCurrentCellInEditMode)
                 _grid.EndEdit();
-            var shown = VisibleCases().ToList();
-            _grid.DataSource = new BindingList<ChecklistCase>(shown);
+            _grid.DataSource = new BindingList<ChecklistCase>(
+                VisibleCases().ToList());
+            RefreshSummary();
+        }
+
+        private void RefreshSummary()
+        {
             if (_document.Cases.Count == 0)
             {
                 _summary.Text = "В проходе нет проверок. Создайте проход из каталога.";
                 return;
             }
-            int checkedCount = _document.Cases.Count(x => x.Result != "Не проверено");
+
+            int checkedCount = _document.Cases.Count(
+                x => x.Result != "Не проверено");
             int errors = _document.Cases.Count(x => x.Result == "Баг");
-            _summary.Text = $"Проход {_document.RunId[..Math.Min(8, _document.RunId.Length)]} • " +
+            int shown = VisibleCases().Count();
+
+            _summary.Text =
+                $"Проход {_document.RunId[..Math.Min(8, _document.RunId.Length)]} • " +
                 $"Отмечено: {checkedCount}/{_document.Cases.Count} • " +
-                $"Багов: {errors} • Показано: {shown.Count}. " +
+                $"Багов: {errors} • Показано: {shown}. " +
                 "Печать → бумажная проверка → перенос галочек в программу.";
         }
 
