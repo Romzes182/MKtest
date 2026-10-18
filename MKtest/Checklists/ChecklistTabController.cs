@@ -48,7 +48,7 @@ namespace MKtest.Checklists
             Text = "Следующая после отметки",
             Checked = true, AutoSize = true, Margin = new Padding(6, 9, 0, 0)
         };
-        private readonly Timer _saveTimer = new() { Interval = 600 };
+        private readonly System.Windows.Forms.Timer _saveTimer = new() { Interval = 600 };
         private bool _rendering;
         private int _currentIndex = -1;
 
@@ -369,9 +369,9 @@ namespace MKtest.Checklists
                 FlowDirection = FlowDirection.LeftToRight, AutoScroll = true
             };
             navigation.Controls.Add(ActionButton("← Назад",
-                (_, _) => Move(-1), 92));
+                (_, _) => MoveToAdjacent(-1), 92));
             navigation.Controls.Add(ActionButton("Сохранить →",
-                (_, _) => Move(1), 111));
+                (_, _) => MoveToAdjacent(1), 111));
             navigation.Controls.Add(ActionButton("Следующий без отметки",
                 (_, _) => FindUnchecked(), 185));
             navigation.Controls.Add(ActionButton("Печать этого теста",
@@ -584,7 +584,7 @@ namespace MKtest.Checklists
             RefreshList();
         }
 
-        private void Move(int offset)
+        private void MoveToAdjacent(int offset)
         {
             SaveEdits();
             if (_document.Cases.Count == 0) return;
