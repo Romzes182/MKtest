@@ -16,6 +16,7 @@ namespace MKtest.Checklists
     public sealed class ChecklistTabController : UserControl
     {
         private ChecklistDocument _document = new();
+        private List<ChecklistCase> _masterCatalog = new();
         private readonly DataGridView _grid = new();
         private readonly TextBox _search = new();
         private readonly ComboBox _group = new();
@@ -28,6 +29,9 @@ namespace MKtest.Checklists
         private readonly string _autosave = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MKtest", "Checklists", "current.json");
+        private readonly string _catalogFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MKtest", "Checklists", "catalog.json");
 
         public ChecklistTabController()
         {
@@ -261,7 +265,15 @@ namespace MKtest.Checklists
                 var imported = ChecklistExcelImporter.Import(dialog.FileNames);
                 if (imported.Count == 0)
                     throw new InvalidDataException("В книгах нет строк проверок.");
-                SetDocument(new ChecklistDocument { Cases = imported });
+                _masterCatalog = imported.Select(x => x.NewBlankResult()).ToList();
+                Write(_catalogFile, new ChecklistDocument { Cases = _masterCatalog });
+                _search.Clear();
+                _platform.SelectedIndex = 0;
+                SetDocument(new ChecklistDocument
+                {
+                    Title = "Общий чек-лист медиакомплекса",
+                    Cases = imported.Select(x => x.NewBlankResult()).ToList()
+                });
             }
             catch (Exception ex)
             {
@@ -272,14 +284,20 @@ namespace MKtest.Checklists
 
         private void ResetToCatalog()
         {
-            if (_document.Cases.Count == 0) return;
+            if (_masterCatalog.Count == 0)
+            {
+                MessageBox.Show(this,
+                    "Сначала загрузите общий список кнопкой «Импорт Excel».",
+                    "Чек-листы");
+                return;
+            }
             if (MessageBox.Show(this,
                 "Начать новый общий проход? Текущие отметки будут сброшены. " +
                 "Сначала сохраните лист, если они нужны.",
                 "Новый проход", MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question) != DialogResult.Yes) return;
             ReadMetadata();
-            SetDocument(_document.CreateSubset(_document.Cases,
+            SetDocument(_document.CreateSubset(_masterCatalog,
                 "Общий чек-лист медиакомплекса"));
         }
 
@@ -385,8 +403,17 @@ namespace MKtest.Checklists
         {
             try
             {
+                if (File.Exists(_catalogFile))
+                    _masterCatalog = Read(_catalogFile).Cases
+                        .Select(x => x.NewBlankResult()).ToList();
+
                 if (File.Exists(_autosave))
                     SetDocument(Read(_autosave));
+                else if (_masterCatalog.Count > 0)
+                    SetDocument(new ChecklistDocument
+                    {
+                        Cases = _masterCatalog.Select(x => x.NewBlankResult()).ToList()
+                    });
                 else
                     SetDocument(new ChecklistDocument());
             }
@@ -412,7 +439,11 @@ namespace MKtest.Checklists
         protected override void Dispose(bool disposing)
         {
             if (disposing)
+            {
+                if (_grid.IsCurrentCellInEditMode)
+                    _grid.EndEdit();
                 Autosave();
+            }
             base.Dispose(disposing);
         }
 
