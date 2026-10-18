@@ -113,9 +113,9 @@ namespace MKtest.Checklists
                 string[] cells = {
                     stableNumber.ToString("000") + " / " + item.Id, item.Category,
                     item.Platforms, item.Action, item.Expected,
-                    "□ Есть\n□ Баг\n□ Нет", item.Bug + "\n" + item.Notes
+                    "□ Есть\n□ Баг\n□ Нет\n□ Н/П", item.Bug + "\n" + item.Notes
                 };
-                float h = 56;
+                float h = 64;
                 for (int i = 0; i < cells.Length; i++)
                 {
                     float measured = g.MeasureString(cells[i], small,
