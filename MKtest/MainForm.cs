@@ -371,8 +371,12 @@ namespace MKtest
         private void beelinkDisconnectButton_Click(object sender, EventArgs e)
         {
             _sshManager?.Disconnect();
-            beelinkRemoteTimeTex        #region Обработчики команд времени
-        // All four time operations use one guarded asynchronous path.
+            beelinkRemoteTimeTextBox.Text = "—";
+        }
+        #endregion
+
+        #region Обработчики команд времени
+        // All time/NTP operations use one guarded asynchronous path.
         private async Task RunBeelinkTimeActionAsync(
             Func<TimeCommandsManager, Task<string?>> action,
             string progressText)
@@ -437,7 +441,6 @@ namespace MKtest
                 manager => manager.SetManualDateTimeAndReadTimeAsync(chosenDate, chosenTime),
                 "Установка времени...");
         }
-nualDatePicker.Value, manualTimePicker.Value);
         #endregion
 
         #region Обработчики UI
