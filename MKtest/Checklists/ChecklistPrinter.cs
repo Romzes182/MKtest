@@ -26,6 +26,10 @@ namespace MKtest.Checklists
             printer.DocumentName = document.Title;
             printer.DefaultPageSettings.Landscape = !single;
             printer.DefaultPageSettings.Margins = new Margins(35, 35, 40, 40);
+            var a4 = printer.PrinterSettings.PaperSizes.Cast<PaperSize>()
+                .FirstOrDefault(p => p.Kind == PaperKind.A4);
+            if (a4 != null)
+                printer.DefaultPageSettings.PaperSize = a4;
 
             int row = 0, page = 0;
             printer.PrintPage += (_, args) =>
