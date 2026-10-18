@@ -47,7 +47,7 @@ public sealed class TimeCommandsServiceTests
         CollectionAssert.AreEqual(new[] { "date '+%Y-%m-%dT%H:%M:%S'" }, fake.Commands);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(true, "timedatectl set-ntp true", "Включение NTP синхронизации...")]
     [DataRow(false, "timedatectl set-ntp false", "Отключение NTP синхронизации...")]
     public void SetNtp_UsesExactCommand(bool enabled, string expectedCommand, string expectedMessage)
