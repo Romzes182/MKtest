@@ -26,11 +26,15 @@ namespace MKtest.Checklists
             foreach (var fields in cases)
             {
                 if (fields.Length < 5) continue;
+                string[] platformAndModule =
+                    fields[2].Replace("\r", "").Split('\n', 2);
                 result.Add(new ChecklistCase
                 {
                     Id = fields[0],
                     Category = fields[1],
-                    Platforms = fields[2],
+                    Platforms = platformAndModule[0],
+                    Module = platformAndModule.Length > 1
+                        ? platformAndModule[1] : "",
                     Action = fields[3],
                     Expected = fields[4],
                     Section = "Общий",
