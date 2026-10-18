@@ -110,7 +110,7 @@ namespace MKtest.Checklists
                 for (int i = 0; i < cells.Length; i++)
                 {
                     float measured = g.MeasureString(cells[i], small,
-                        Math.Max(30, widths[i] - 7)).Height + 9;
+                        (int)Math.Max(30, widths[i] - 7)).Height + 9;
                     h = Math.Max(h, Math.Min(155, measured));
                 }
                 if (y + h > area.Bottom - 22)
