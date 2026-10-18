@@ -17,7 +17,7 @@ public sealed class SekopProtocolTests
     public void BuildPacket_ZeroCounters_PreservesAll14Bytes()
     {
         byte[] packet = SekopPacketBuilder.BuildPacket(0, 0);
-        Assert.HasCount(14, packet);
+        Assert.AreEqual(14, packet.Length);
         CollectionAssert.AreEqual(ZeroPacket, packet);
     }
 
