@@ -60,7 +60,7 @@ namespace MKtest.Checklists
                 RowCount = 4, Padding = new Padding(8)
             };
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 116));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 27));
 
@@ -90,18 +90,18 @@ namespace MKtest.Checklists
                 Dock = DockStyle.Fill, AutoScroll = true,
                 WrapContents = true, FlowDirection = FlowDirection.LeftToRight
             };
-            toolbar.Controls.Add(Button("Импорт Excel", (_, _) => ImportExcel()));
-            toolbar.Controls.Add(Button("Новый проход", (_, _) => ResetToCatalog()));
+            toolbar.Controls.Add(Button("1. Новый проход", (_, _) => ResetToCatalog()));
             toolbar.Controls.Add(Button("Из выбранных", (_, _) => NewFromSelected()));
-            toolbar.Controls.Add(Button("Добавить", (_, _) => AddCase()));
+            toolbar.Controls.Add(Button("2. Печать списка", (_, _) => PrintList()));
+            toolbar.Controls.Add(Button("Печать теста", (_, _) => PrintSingle()));
+            toolbar.Controls.Add(Button("3. Отметки с бумаги", (_, _) => EnterPaperResults()));
+            toolbar.Controls.Add(Button("История проходов", (_, _) => OpenRunHistory()));
+            toolbar.Controls.Add(Button("Сохранить лист", (_, _) => SaveDocument()));
+            toolbar.Controls.Add(Button("Открыть лист", (_, _) => OpenDocument()));
+            toolbar.Controls.Add(Button("Импорт Excel", (_, _) => ImportExcel()));
+            toolbar.Controls.Add(Button("Добавить проверку", (_, _) => AddCase()));
             toolbar.Controls.Add(Button("Изменить", (_, _) => EditCurrent()));
             toolbar.Controls.Add(Button("Удалить", (_, _) => RemoveCurrent()));
-            toolbar.Controls.Add(Button("История проходов", (_, _) => OpenRunHistory()));
-            toolbar.Controls.Add(Button("Отметки с бумаги", (_, _) => EnterPaperResults()));
-            toolbar.Controls.Add(Button("Открыть лист", (_, _) => OpenDocument()));
-            toolbar.Controls.Add(Button("Сохранить лист", (_, _) => SaveDocument()));
-            toolbar.Controls.Add(Button("Печать списка", (_, _) => PrintList()));
-            toolbar.Controls.Add(Button("Печать теста", (_, _) => PrintSingle()));
 
             var filters = new FlowLayoutPanel
             {
@@ -139,7 +139,7 @@ namespace MKtest.Checklists
             var bar = new Panel { Dock = DockStyle.Fill };
             bar.Controls.Add(filters);
             bar.Controls.Add(toolbar);
-            toolbar.Height = 44;
+            toolbar.Height = 82;
             toolbar.Dock = DockStyle.Top;
 
             _grid.Dock = DockStyle.Fill;
@@ -260,10 +260,10 @@ namespace MKtest.Checklists
             }
             int checkedCount = _document.Cases.Count(x => x.Result != "Не проверено");
             int errors = _document.Cases.Count(x => x.Result == "Баг");
-            _summary.Text = $"Проход {_document.RunId[..8]} • " +
+            _summary.Text = $"Проход {_document.RunId[..Math.Min(8, _document.RunId.Length)]} • " +
                 $"Отмечено: {checkedCount}/{_document.Cases.Count} • " +
                 $"Багов: {errors} • Показано: {shown.Count}. " +
-                "После обхода используйте «Отметки с бумаги».";
+                "Печать → бумажная проверка → перенос галочек в программу.";
         }
 
         private ChecklistCase? CurrentCase() =>
@@ -473,6 +473,7 @@ namespace MKtest.Checklists
         {
             _grid.EndEdit();
             ReadMetadata();
+            Autosave(); // The printed walk-through now exists in run history.
             ChecklistPrinter.Preview(this, _document,
                 VisibleCases().ToList(), false);
         }
@@ -481,6 +482,7 @@ namespace MKtest.Checklists
         {
             _grid.EndEdit();
             ReadMetadata();
+            Autosave();
             if (CurrentCase() is ChecklistCase item)
                 ChecklistPrinter.Preview(this, _document,
                     new List<ChecklistCase> { item }, true);
