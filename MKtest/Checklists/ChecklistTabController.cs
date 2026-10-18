@@ -1,0 +1,431 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Windows.Forms;
+
+namespace MKtest.Checklists
+{
+    /// <summary>
+    /// Owns the checklist tab. A master library and separately saved individual
+    /// runs have the same document format; no protocol service is modified.
+    /// </summary>
+    public sealed class ChecklistTabController : UserControl
+    {
+        private ChecklistDocument _document = new();
+        private readonly DataGridView _grid = new();
+        private readonly TextBox _search = new();
+        private readonly ComboBox _group = new();
+        private readonly ComboBox _platform = new();
+        private readonly TextBox _title = new();
+        private readonly TextBox _version = new();
+        private readonly TextBox _environment = new();
+        private readonly TextBox _tester = new();
+        private readonly Label _summary = new();
+        private readonly string _autosave = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MKtest", "Checklists", "current.json");
+
+        public ChecklistTabController()
+        {
+            Dock = DockStyle.Fill;
+            InitializeLayout();
+            RestoreAutosave();
+        }
+
+        private static Button Button(string text, EventHandler action)
+        {
+            var button = new Button
+            {
+                Text = text, AutoSize = true, Height = 29,
+                Margin = new Padding(2, 2, 5, 2)
+            };
+            button.Click += action;
+            return button;
+        }
+
+        private void InitializeLayout()
+        {
+            var root = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill, ColumnCount = 1,
+                RowCount = 4, Padding = new Padding(8)
+            };
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 27));
+
+            var metadata = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill, ColumnCount = 8, RowCount = 1
+            };
+            for (int i = 0; i < 8; i++)
+                metadata.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,
+                    i is 1 or 3 or 5 or 7 ? 20 : 5));
+
+            var labels = new[] { "Название:", "Версия:", "Устройство:", "Проверял:" };
+            var fields = new[] { _title, _version, _environment, _tester };
+            for (int i = 0; i < 4; i++)
+            {
+                metadata.Controls.Add(new Label
+                {
+                    Text = labels[i], Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleLeft
+                }, i * 2, 0);
+                fields[i].Dock = DockStyle.Fill;
+                metadata.Controls.Add(fields[i], i * 2 + 1, 0);
+            }
+
+            var toolbar = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill, AutoScroll = true,
+                WrapContents = true, FlowDirection = FlowDirection.LeftToRight
+            };
+            toolbar.Controls.Add(Button("Импорт Excel", (_, _) => ImportExcel()));
+            toolbar.Controls.Add(Button("Новый общий", (_, _) => ResetToCatalog()));
+            toolbar.Controls.Add(Button("Из выбранных", (_, _) => NewFromSelected()));
+            toolbar.Controls.Add(Button("Добавить", (_, _) => AddCase()));
+            toolbar.Controls.Add(Button("Изменить", (_, _) => EditCurrent()));
+            toolbar.Controls.Add(Button("Удалить", (_, _) => RemoveCurrent()));
+            toolbar.Controls.Add(Button("Открыть лист", (_, _) => OpenDocument()));
+            toolbar.Controls.Add(Button("Сохранить лист", (_, _) => SaveDocument()));
+            toolbar.Controls.Add(Button("Печать списка", (_, _) => PrintList()));
+            toolbar.Controls.Add(Button("Печать теста", (_, _) => PrintSingle()));
+
+            var filters = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom, Height = 28,
+                FlowDirection = FlowDirection.LeftToRight, WrapContents = false
+            };
+            filters.Controls.Add(new Label
+            {
+                Text = "Поиск:", AutoSize = true,
+                TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(2, 6, 2, 0)
+            });
+            _search.Width = 270;
+            _search.TextChanged += (_, _) => RefreshGrid();
+            filters.Controls.Add(_search);
+            filters.Controls.Add(new Label
+            {
+                Text = "Раздел:", AutoSize = true, Margin = new Padding(10, 6, 2, 0)
+            });
+            _group.DropDownStyle = ComboBoxStyle.DropDownList;
+            _group.Width = 160;
+            _group.SelectedIndexChanged += (_, _) => RefreshGrid();
+            filters.Controls.Add(_group);
+            filters.Controls.Add(new Label
+            {
+                Text = "ОС:", AutoSize = true, Margin = new Padding(10, 6, 2, 0)
+            });
+            _platform.DropDownStyle = ComboBoxStyle.DropDownList;
+            _platform.Width = 130;
+            _platform.Items.AddRange(new object[]
+                { "Все", "Android", "Android 7", "Android 11", "Linux" });
+            _platform.SelectedIndex = 0;
+            _platform.SelectedIndexChanged += (_, _) => RefreshGrid();
+            filters.Controls.Add(_platform);
+
+            var bar = new Panel { Dock = DockStyle.Fill };
+            bar.Controls.Add(filters);
+            bar.Controls.Add(toolbar);
+            toolbar.Height = 44;
+            toolbar.Dock = DockStyle.Top;
+
+            _grid.Dock = DockStyle.Fill;
+            _grid.AllowUserToAddRows = false;
+            _grid.RowHeadersVisible = false;
+            _grid.AutoGenerateColumns = false;
+            _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            _grid.MultiSelect = false;
+            _grid.RowTemplate.Height = 48;
+            _grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            _grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells;
+            _grid.EditMode = DataGridViewEditMode.EditOnEnter;
+            _grid.DataError += (_, args) => args.ThrowException = false;
+            AddColumn(new DataGridViewCheckBoxColumn(),
+                "Выбрать", nameof(ChecklistCase.Selected), 56);
+            AddColumn(new DataGridViewTextBoxColumn(),
+                "ID", nameof(ChecklistCase.Id), 85);
+            AddColumn(new DataGridViewTextBoxColumn(),
+                "Раздел", nameof(ChecklistCase.Category), 145);
+            AddColumn(new DataGridViewTextBoxColumn(),
+                "ОС", nameof(ChecklistCase.Platforms), 145);
+            AddColumn(new DataGridViewTextBoxColumn(),
+                "Сценарий / модуль", nameof(ChecklistCase.Module), 140);
+            AddColumn(new DataGridViewTextBoxColumn(),
+                "Проверка", nameof(ChecklistCase.Action), 320);
+            AddColumn(new DataGridViewTextBoxColumn(),
+                "Ожидаемый результат", nameof(ChecklistCase.Expected), 300);
+            var status = new DataGridViewComboBoxColumn
+            {
+                HeaderText = "Результат", DataPropertyName = nameof(ChecklistCase.Result),
+                Width = 120, FlatStyle = FlatStyle.Flat
+            };
+            status.Items.AddRange("Не проверено", "Есть", "Баг", "Нет", "Н/П");
+            _grid.Columns.Add(status);
+            AddColumn(new DataGridViewTextBoxColumn(),
+                "№ бага / ссылка", nameof(ChecklistCase.Bug), 115);
+            AddColumn(new DataGridViewTextBoxColumn(),
+                "Комментарий", nameof(ChecklistCase.Notes), 200);
+
+            _summary.Dock = DockStyle.Fill;
+            _summary.TextAlign = ContentAlignment.MiddleLeft;
+            _summary.ForeColor = Color.FromArgb(65, 85, 105);
+            root.Controls.Add(metadata, 0, 0);
+            root.Controls.Add(bar, 0, 1);
+            root.Controls.Add(_grid, 0, 2);
+            root.Controls.Add(_summary, 0, 3);
+            Controls.Add(root);
+        }
+
+        private void AddColumn(DataGridViewColumn col, string header,
+            string property, int width)
+        {
+            col.HeaderText = header;
+            col.DataPropertyName = property;
+            col.Width = width;
+            _grid.Columns.Add(col);
+        }
+
+        private void SetDocument(ChecklistDocument document)
+        {
+            _document = document;
+            _title.Text = document.Title;
+            _version.Text = document.Version;
+            _environment.Text = document.Environment;
+            _tester.Text = document.Tester;
+            var selection = _group.SelectedItem?.ToString();
+            _group.Items.Clear();
+            _group.Items.Add("Все");
+            foreach (string category in _document.Cases.Select(x => x.Category)
+                         .Distinct().OrderBy(x => x))
+                _group.Items.Add(category);
+            _group.SelectedItem = selection != null && _group.Items.Contains(selection)
+                ? selection : "Все";
+            RefreshGrid();
+            Autosave();
+        }
+
+        private void ReadMetadata()
+        {
+            _document.Title = _title.Text.Trim();
+            _document.Version = _version.Text.Trim();
+            _document.Environment = _environment.Text.Trim();
+            _document.Tester = _tester.Text.Trim();
+        }
+
+        private IEnumerable<ChecklistCase> VisibleCases()
+        {
+            string text = _search.Text.Trim();
+            string category = _group.SelectedItem?.ToString() ?? "Все";
+            string platform = _platform.SelectedItem?.ToString() ?? "Все";
+            return _document.Cases.Where(x =>
+                (category == "Все" || x.Category == category) &&
+                (platform == "Все" || x.Platforms.Contains(platform,
+                    StringComparison.OrdinalIgnoreCase)) &&
+                (text.Length == 0 ||
+                    new[] { x.Id, x.Category, x.Module, x.Action, x.Expected, x.Bug }
+                        .Any(s => s.Contains(text, StringComparison.OrdinalIgnoreCase))));
+        }
+
+        private void RefreshGrid()
+        {
+            if (_grid.IsCurrentCellInEditMode)
+                _grid.EndEdit();
+            var shown = VisibleCases().ToList();
+            _grid.DataSource = new BindingList<ChecklistCase>(shown);
+            _summary.Text = $"Показано: {shown.Count}  /  Всего в тест-листе: " +
+                $"{_document.Cases.Count}.  " +
+                "Для бумажной проверки: □ Есть  □ Баг  □ Нет. " +
+                "Результаты прежних отчётов не проставляются автоматически.";
+        }
+
+        private ChecklistCase? CurrentCase() =>
+            _grid.CurrentRow?.DataBoundItem as ChecklistCase;
+
+        private void ImportExcel()
+        {
+            using var dialog = new OpenFileDialog
+            {
+                Filter = "Книги Excel (*.xlsx)|*.xlsx",
+                Multiselect = true,
+                Title = "Импорт чек-листов Android / Linux / МЧС / Безбилетники"
+            };
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            try
+            {
+                var imported = ChecklistExcelImporter.Import(dialog.FileNames);
+                if (imported.Count == 0)
+                    throw new InvalidDataException("В книгах нет строк проверок.");
+                SetDocument(new ChecklistDocument { Cases = imported });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Ошибка импорта",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ResetToCatalog()
+        {
+            if (_document.Cases.Count == 0) return;
+            if (MessageBox.Show(this,
+                "Начать новый общий проход? Текущие отметки будут сброшены. " +
+                "Сначала сохраните лист, если они нужны.",
+                "Новый проход", MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question) != DialogResult.Yes) return;
+            ReadMetadata();
+            SetDocument(_document.CreateSubset(_document.Cases,
+                "Общий чек-лист медиакомплекса"));
+        }
+
+        private void NewFromSelected()
+        {
+            _grid.EndEdit();
+            var chosen = _document.Cases.Where(x => x.Selected).ToList();
+            if (chosen.Count == 0 && CurrentCase() is ChecklistCase current)
+                chosen.Add(current);
+            if (chosen.Count == 0) return;
+            ReadMetadata();
+            SetDocument(_document.CreateSubset(chosen,
+                chosen.Count == 1 ? "Единичный тест-лист" : "Выборочный тест-лист"));
+        }
+
+        private void AddCase()
+        {
+            var item = new ChecklistCase
+            {
+                Id = "NEW-" + (_document.Cases.Count + 1),
+                Category = "Новая проверка", Action = "Новая проверка"
+            };
+            if (!ChecklistEditDialog.Edit(this, item)) return;
+            _document.Cases.Add(item);
+            SetDocument(_document);
+        }
+
+        private void EditCurrent()
+        {
+            if (CurrentCase() is not ChecklistCase item) return;
+            if (!ChecklistEditDialog.Edit(this, item)) return;
+            SetDocument(_document);
+        }
+
+        private void RemoveCurrent()
+        {
+            if (CurrentCase() is not ChecklistCase item) return;
+            if (MessageBox.Show(this, "Удалить проверку из текущего листа?",
+                "Удаление", MessageBoxButtons.YesNo, MessageBoxIcon.Warning)
+                != DialogResult.Yes) return;
+            _document.Cases.Remove(item);
+            SetDocument(_document);
+        }
+
+        private void SaveDocument()
+        {
+            _grid.EndEdit();
+            ReadMetadata();
+            using var dialog = new SaveFileDialog
+            {
+                Filter = "Тест-лист MKtest (*.json)|*.json",
+                FileName = "MKtest_Checklist_" + DateTime.Now.ToString("yyyyMMdd_HHmm") + ".json",
+                DefaultExt = "json", OverwritePrompt = true
+            };
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            try
+            {
+                Write(dialog.FileName, _document);
+                Autosave();
+                MessageBox.Show(this, "Тест-лист сохранён.", "MKtest");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Ошибка сохранения");
+            }
+        }
+
+        private void OpenDocument()
+        {
+            using var dialog = new OpenFileDialog
+            {
+                Filter = "Тест-лист MKtest (*.json)|*.json"
+            };
+            if (dialog.ShowDialog(this) != DialogResult.OK) return;
+            try
+            {
+                SetDocument(Read(dialog.FileName));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Ошибка открытия");
+            }
+        }
+
+        private void PrintList()
+        {
+            _grid.EndEdit();
+            ReadMetadata();
+            ChecklistPrinter.Preview(this, _document,
+                VisibleCases().ToList(), false);
+        }
+
+        private void PrintSingle()
+        {
+            _grid.EndEdit();
+            ReadMetadata();
+            if (CurrentCase() is ChecklistCase item)
+                ChecklistPrinter.Preview(this, _document,
+                    new List<ChecklistCase> { item }, true);
+        }
+
+        private void RestoreAutosave()
+        {
+            try
+            {
+                if (File.Exists(_autosave))
+                    SetDocument(Read(_autosave));
+                else
+                    SetDocument(new ChecklistDocument());
+            }
+            catch
+            {
+                SetDocument(new ChecklistDocument());
+            }
+        }
+
+        private void Autosave()
+        {
+            try
+            {
+                ReadMetadata();
+                Write(_autosave, _document);
+            }
+            catch
+            {
+                // Manual saving is always available.
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                Autosave();
+            base.Dispose(disposing);
+        }
+
+        private static ChecklistDocument Read(string file) =>
+            JsonSerializer.Deserialize<ChecklistDocument>(File.ReadAllText(file))
+            ?? throw new InvalidDataException("Некорректный тест-лист");
+
+        private static void Write(string path, ChecklistDocument document)
+        {
+            string? dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            File.WriteAllText(path, JsonSerializer.Serialize(document,
+                new JsonSerializerOptions { WriteIndented = true }));
+        }
+    }
+}
