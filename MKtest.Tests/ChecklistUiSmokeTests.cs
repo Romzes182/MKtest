@@ -42,6 +42,6 @@ public sealed class ChecklistUiSmokeTests
             "ChecklistTab construction exceeded 15 seconds.");
         if (error != null)
             Assert.Fail("Checklist tab must open without crashing: " + error);
-        Assert.IsGreaterThan(0, checkCount);
+        Assert.IsTrue(checkCount > 0);
     }
 }
