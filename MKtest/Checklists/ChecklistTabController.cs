@@ -570,7 +570,7 @@ namespace MKtest.Checklists
                 _bug.Focus();
             }
             else if (_autoNext.Checked)
-                Move(1);
+                MoveToAdjacent(1);
             else
                 RefreshRowStatus();
         }
