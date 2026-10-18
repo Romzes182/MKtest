@@ -23,7 +23,7 @@ public sealed class HttpPayProtocolTests
         Assert.AreEqual("192.0.2.25", uri.Host);
         Assert.AreEqual(13180, uri.Port);
         Assert.AreEqual("/payments", uri.AbsolutePath);
-        Assert.AreEqual(7, fields.Count);
+        Assert.AreEqual(6, fields.Count);
         Assert.AreEqual("T 1/02", fields["terminal"]);
         Assert.AreEqual("48&5", fields["route"]);
         Assert.AreEqual("2", fields["trip"]);
@@ -44,7 +44,7 @@ public sealed class HttpPayProtocolTests
         DateTime after = DateTime.Now.AddSeconds(2);
         var fields = ParseQuery(new Uri(url).Query);
 
-        Assert.AreEqual(8, fields.Count);
+        Assert.AreEqual(7, fields.Count);
         Assert.AreEqual("100", fields["pTotal"]);
         Assert.AreEqual("9", fields["pCurrent"]);
         Assert.IsTrue(
