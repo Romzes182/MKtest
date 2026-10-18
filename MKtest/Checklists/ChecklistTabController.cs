@@ -437,6 +437,7 @@ namespace MKtest.Checklists
         private void RefreshList()
         {
             if (_rendering) return;
+            if (_saveTimer.Enabled) SaveEdits();
             int keep = _currentIndex;
             string needle = _search.Text.Trim();
             string category = _categoryFilter.SelectedItem?.ToString() ?? "Все разделы";
@@ -563,10 +564,10 @@ namespace MKtest.Checklists
 
             if (result == "Баг")
             {
-                _bug.Focus();
+                RefreshRowStatus();
                 _status.Text = "Результат: ! Баг";
                 _status.ForeColor = Color.Firebrick;
-                RefreshRowStatus();
+                _bug.Focus();
             }
             else if (_autoNext.Checked)
                 Move(1);
@@ -685,6 +686,12 @@ namespace MKtest.Checklists
 
         private void NewRun()
         {
+            if (_catalog.Count == 0)
+            {
+                MessageBox.Show(this, "Каталог проверок пуст. Загрузите Excel через «Ещё».",
+                    "Чек-листы", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
             SaveEdits();
             using var dialog = new Form
             {
@@ -770,6 +777,7 @@ namespace MKtest.Checklists
 
         private void PrintRun()
         {
+            if (_document.Cases.Count == 0) return;
             SaveEdits();
             // Print the exact stored run, never only the current search results.
             ChecklistPrinter.Preview(this, _document, _document.Cases, false);
