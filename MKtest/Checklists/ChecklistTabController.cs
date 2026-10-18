@@ -334,7 +334,9 @@ namespace MKtest.Checklists
             pick.Items.AddRange(new object[]
             {
                 "Все проверки",
-                "Android",
+                "Android (все)",
+                "Android 7",
+                "Android 11",
                 "Linux",
                 "МЧС",
                 "Безбилетники"
@@ -361,8 +363,12 @@ namespace MKtest.Checklists
             string selection = pick.SelectedItem?.ToString() ?? "Все проверки";
             var selectedCases = _masterCatalog.Where(item => selection switch
             {
-                "Android" => item.Platforms.Contains("Android",
+                "Android (все)" => item.Platforms.Contains("Android",
                     StringComparison.OrdinalIgnoreCase),
+                "Android 7" => item.Platforms.Split(',')
+                    .Any(p => p.Trim() is "Android" or "Android 7"),
+                "Android 11" => item.Platforms.Split(',')
+                    .Any(p => p.Trim() is "Android" or "Android 11"),
                 "Linux" => item.Platforms.Contains("Linux",
                     StringComparison.OrdinalIgnoreCase),
                 "МЧС" => item.Category.Contains("МЧС",
