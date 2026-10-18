@@ -28,6 +28,9 @@ namespace MKtest.Checklists
 
     public sealed class ChecklistDocument
     {
+        /// <summary>Stable ID links a printed sheet and the editable electronic run.</summary>
+        public string RunId { get; set; } = Guid.NewGuid().ToString("N");
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
         public string Title { get; set; } = "Общий чек-лист медиакомплекса";
         public string Environment { get; set; } = "";
         public string Version { get; set; } = "";
