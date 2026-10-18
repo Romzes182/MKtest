@@ -23,6 +23,7 @@ using MKtest.UI.HTTPpay;
 using MKtest.UI.Hermes;
 using MKtest.UI.Emergency;
 using MKtest.UI.Beelink;
+using MKtest.Checklists;
 
 namespace MKtest
 {
@@ -100,6 +101,7 @@ namespace MKtest
                 SetupGeneralLogToolbar();
                 InitializeManagers();
                 SetupUI();
+                InitializeChecklistsTab();
                 _logManager?.AppendLog("Приложение инициализировано");
             }
             catch (Exception ex)
@@ -107,6 +109,18 @@ namespace MKtest
                 MessageBox.Show($"Ошибка инициализации: {ex.Message}",
                     "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void InitializeChecklistsTab()
+        {
+            var page = new TabPage("Чек-листы")
+            {
+                Name = "checklistsTabPage",
+                Padding = new Padding(3),
+                UseVisualStyleBackColor = true
+            };
+            page.Controls.Add(new ChecklistTabController());
+            mainTabControl.TabPages.Add(page);
         }
 
         private void RepositionLogPanel()
