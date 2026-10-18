@@ -30,6 +30,7 @@ namespace MKtest.Services.Logging
 
             CurrentFile = Path.Combine(directory,
                 $"{DateTime.Now:yyyyMMdd_HHmmss_fff}_{safeName}_{Guid.NewGuid():N}.txt");
+            File.WriteAllText(CurrentFile, string.Empty);
         }
 
         public void AppendLine(string message)
