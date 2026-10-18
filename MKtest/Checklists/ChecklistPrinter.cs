@@ -32,6 +32,9 @@ namespace MKtest.Checklists
                 printer.DefaultPageSettings.PaperSize = a4;
 
             int row = 0, page = 0;
+            // Preview can render repeatedly, then the user can print. Each
+            // rendering must start at the first inspection point again.
+            printer.BeginPrint += (_, _) => { row = 0; page = 0; };
             printer.PrintPage += (_, args) =>
             {
                 page++;
