@@ -64,10 +64,10 @@ namespace MKtest.Checklists
             float right = area.Right;
             float y = area.Top;
 
-            using var title = new Font("Segoe UI", 12, FontStyle.Bold);
+            using var title = new Font("Segoe UI", 13, FontStyle.Bold);
             using var body = new Font("Segoe UI", 8);
             using var bold = new Font("Segoe UI", 8, FontStyle.Bold);
-            using var small = new Font("Segoe UI", 7);
+            using var small = new Font("Segoe UI", 8);
             using var pen = new Pen(Color.LightGray);
 
             g.DrawString(document.Title, title, Brushes.Black,
@@ -113,14 +113,14 @@ namespace MKtest.Checklists
                 string[] cells = {
                     stableNumber.ToString("000") + " / " + item.Id, item.Category,
                     item.Platforms, item.Action, item.Expected,
-                    "□ Есть\n□ Баг\n□ Нет\n□ Н/П", item.Bug + "\n" + item.Notes
+                    "□ Есть  □ Баг\n□ Нет   □ Н/П", ""
                 };
-                float h = 64;
+                float h = 51;
                 for (int i = 0; i < cells.Length; i++)
                 {
                     float measured = g.MeasureString(cells[i], small,
                         (int)Math.Max(30, widths[i] - 7)).Height + 9;
-                    h = Math.Max(h, Math.Min(155, measured));
+                    h = Math.Max(h, Math.Min(175, measured));
                 }
                 if (y + h > area.Bottom - 22)
                 {
@@ -140,7 +140,7 @@ namespace MKtest.Checklists
                 y += h;
             }
             g.DrawString($"Страница {page} • {items.Count} проверок • " +
-                $"Отметьте один вариант для каждой строки",
+                $"№ пункта совпадает с электронной карточкой. Отметьте один вариант.",
                 small, Brushes.DimGray,
                 new RectangleF(left, area.Bottom - 18, area.Width, 18));
             if (next >= items.Count)
