@@ -71,6 +71,18 @@ namespace MKtest.UI.Logging
                 Width = 75,
                 Height = 23
             };
+            // Compact icon keeps the name of the protocol block readable.
+            var save = new Button
+            {
+                Text = "💾",
+                Dock = DockStyle.Right,
+                Width = 33,
+                Height = 23,
+                AccessibleName = "Сохранить полный журнал блока"
+            };
+            var saveHint = new ToolTip();
+            saveHint.SetToolTip(save, "Сохранить полный журнал блока в файл");
+            logContainer.Disposed += (_, _) => saveHint.Dispose();
             var logText = new TextBox
             {
                 Name = $"blockLog_{_sections.Count}",
@@ -83,14 +95,17 @@ namespace MKtest.UI.Logging
 
             header.Controls.Add(caption);
             header.Controls.Add(clear);
+            header.Controls.Add(save);
             header.Controls.Add(toBottom);
             header.Controls.Add(collapse);
 
             logContainer.Controls.Add(logText);
             logContainer.Controls.Add(header);
 
-            var scopedLog = _generalLog.CreateScope(logText);
+            var scopedLog = _generalLog.CreateScope(logText, blockName);
             clear.Click += (_, _) => scopedLog.ClearLog();
+            save.Click += async (_, _) =>
+                await LogExportDialog.SaveAsync(container.FindForm(), scopedLog, blockName);
             toBottom.Click += (_, _) => scopedLog.ResumeLogScroll();
 
             bool collapsed = false;
