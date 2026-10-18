@@ -43,7 +43,7 @@ public sealed class BeelinkTimeValueParserTests
             BeelinkTimeValueParser.ExtractFromTimedatectl(output));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Universal time: Sat 2026-10-17 17:47:51 UTC\nRTC time: Sat 2026-10-17 17:47:51")]
     [DataRow("")]
     [DataRow("timedatectl status\nERROR: Нет подключения")]
@@ -59,7 +59,7 @@ public sealed class BeelinkTimeValueParserTests
         Assert.IsNull(BeelinkTimeValueParser.ExtractFromTimedatectl(null));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("2026-10-18T18:20:30", "2026-10-18 18:20:30")]
     [DataRow("2026-10-18 18:20:30", "2026-10-18 18:20:30")]
     [DataRow("date '+%Y-%m-%dT%H:%M:%S'\r\n2026-10-18T18:20:30", "2026-10-18 18:20:30")]
@@ -68,7 +68,7 @@ public sealed class BeelinkTimeValueParserTests
         Assert.AreEqual(expected, BeelinkTimeValueParser.Extract(input));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("date '+%Y-%m-%dT%H:%M:%S'")]
     [DataRow("2026-13-18T18:20:30")]
     [DataRow("2026-10-18T25:20:30")]
