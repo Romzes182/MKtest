@@ -183,7 +183,7 @@ namespace MKtest.Checklists
             if (advance && _index + 1 < _document.Cases.Count)
                 Navigate(1);
             else
-                ShowProgress();
+                ShowCase(); // Update the displayed result before entering bug details.
             if (result == "Баг") _bug.Focus();
         }
 
