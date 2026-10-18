@@ -22,6 +22,7 @@ using MKtest.UI.JSONRPC;
 using MKtest.UI.HTTPpay;
 using MKtest.UI.Hermes;
 using MKtest.UI.Emergency;
+using MKtest.UI.Beelink;
 
 namespace MKtest
 {
@@ -71,12 +72,12 @@ namespace MKtest
         private HttpPayUiController? _httpPayUiController;
         private HermesUiController? _hermesUiController;
         private EmergencyUiController? _emergencyUiController;
+        private BeelinkTimeUiController? _beelinkTimeUiController;
         private BlockLogPanelRegistry? _blockLogs;
         private RightPanelFlowController? _rightPanelLayout;
         private ScrollablePanelStackController? _leftPanelLayout;
         private bool _shutdownStarted;
         private bool _shutdownCompleted;
-        private bool _timeOperationInProgress;
         private LogManager? _sshLog, _webLog, _demoLog, _usrLog, _hermesLog;
         private LogManager? _httpPayLog, _jsonLog, _sekopLog, _emergencyLog;
         #endregion
@@ -235,6 +236,14 @@ namespace MKtest
             if (_timeService == null || _logManager == null || _sshManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
             _timeManager = new TimeCommandsManager(_timeService, _sshLog!, () => _sshManager.IsConnected());
+            _beelinkTimeUiController = new BeelinkTimeUiController(
+                _timeManager,
+                () => _sshManager?.IsConnected() == true,
+                () => _shutdownStarted,
+                timeGroupBox,
+                beelinkDisconnectButton,
+                beelinkRemoteTimeTextBox,
+                message => _sshLog?.AppendLog(message));
             if (_sekopProtocolService == null || _logManager == null)
                 throw new InvalidOperationException("Сервисы протокола СЭКОП не инициализированы");
             _sekopProtocolManager = new SekopProtocolManager(_sekopProtocolService,_sekopLog!);
@@ -363,7 +372,7 @@ namespace MKtest
                 return;
             }
 
-            beelinkRemoteTimeTextBox.Text = "—";
+            _beelinkTimeUiController?.ClearReadout();
             var config = ConfigService.Config.SSHBeelink;
             await _sshManager.ConnectAsync(config);
         }
@@ -371,75 +380,35 @@ namespace MKtest
         private void beelinkDisconnectButton_Click(object sender, EventArgs e)
         {
             _sshManager?.Disconnect();
-            beelinkRemoteTimeTextBox.Text = "—";
+            _beelinkTimeUiController?.ClearReadout();
         }
         #endregion
 
         #region Обработчики команд времени
-        // All time/NTP operations use one guarded asynchronous path.
-        private async Task RunBeelinkTimeActionAsync(
-            Func<TimeCommandsManager, Task<string?>> action,
-            string progressText)
+        // WinForms Designer handlers remain stable. Behavior lives in the UI controller.
+        private async void timeCheckButton_Click(object sender, EventArgs e)
         {
-            var manager = _timeManager;
-            if (manager == null || _timeOperationInProgress || _shutdownStarted)
-                return;
-
-            if (_sshManager?.IsConnected() != true)
-            {
-                beelinkRemoteTimeTextBox.Text = "Нет подключения";
-                manager.EnsureConnected();
-                return;
-            }
-
-            _timeOperationInProgress = true;
-            timeGroupBox.Enabled = false;
-            beelinkDisconnectButton.Enabled = false;
-            beelinkRemoteTimeTextBox.Text = progressText;
-
-            try
-            {
-                string? receivedTime = await action(manager);
-                if (!IsDisposed && !_shutdownStarted && !beelinkRemoteTimeTextBox.IsDisposed)
-                    beelinkRemoteTimeTextBox.Text = receivedTime ?? "Нет данных";
-            }
-            catch (Exception ex)
-            {
-                if (!IsDisposed && !_shutdownStarted && !beelinkRemoteTimeTextBox.IsDisposed)
-                    beelinkRemoteTimeTextBox.Text = "Ошибка выполнения";
-                _sshLog?.AppendLog($"Ошибка команды времени Beelink: {ex.Message}");
-            }
-            finally
-            {
-                _timeOperationInProgress = false;
-                if (!IsDisposed && !_shutdownStarted && !timeGroupBox.IsDisposed)
-                {
-                    bool connected = _sshManager?.IsConnected() == true;
-                    timeGroupBox.Enabled = connected;
-                    beelinkDisconnectButton.Enabled = connected;
-                }
-            }
+            if (_beelinkTimeUiController != null)
+                await _beelinkTimeUiController.CheckAsync();
         }
 
-        private async void timeCheckButton_Click(object sender, EventArgs e) =>
-            await RunBeelinkTimeActionAsync(
-                manager => manager.CheckTimeStatusAndReadTimeAsync(), "Получение...");
+        private async void timeEnableNTPButton_Click(object sender, EventArgs e)
+        {
+            if (_beelinkTimeUiController != null)
+                await _beelinkTimeUiController.EnableNtpAsync();
+        }
 
-        private async void timeEnableNTPButton_Click(object sender, EventArgs e) =>
-            await RunBeelinkTimeActionAsync(
-                manager => manager.EnableNTPAndReadTimeAsync(), "Включение NTP...");
-
-        private async void timeDisableNTPButton_Click(object sender, EventArgs e) =>
-            await RunBeelinkTimeActionAsync(
-                manager => manager.DisableNTPAndReadTimeAsync(), "Отключение NTP...");
+        private async void timeDisableNTPButton_Click(object sender, EventArgs e)
+        {
+            if (_beelinkTimeUiController != null)
+                await _beelinkTimeUiController.DisableNtpAsync();
+        }
 
         private async void timeSetButton_Click(object sender, EventArgs e)
         {
-            DateTime chosenDate = manualDatePicker.Value;
-            DateTime chosenTime = manualTimePicker.Value;
-            await RunBeelinkTimeActionAsync(
-                manager => manager.SetManualDateTimeAndReadTimeAsync(chosenDate, chosenTime),
-                "Установка времени...");
+            if (_beelinkTimeUiController != null)
+                await _beelinkTimeUiController.SetManualTimeAsync(
+                    manualDatePicker.Value, manualTimePicker.Value);
         }
         #endregion
 
@@ -668,6 +637,7 @@ namespace MKtest
                 TryStop("Demo UI", () => _demoModeController?.Dispose());
                 TryStop("ИР-0652 UI", () => _usrTransferUiController?.Dispose());
                 TryStop("Гермес UI", () => _hermesUiController?.Dispose());
+                TryStop("Время Beelink UI", () => _beelinkTimeUiController?.Dispose());
                 TryStop("СЭКОП UI", () => _sekopUiController?.Dispose());
                 TryStop("Панели", () => _collapsiblePanelController?.Dispose());
                 TryStop("Левая колонка", () => _leftPanelLayout?.Dispose());
