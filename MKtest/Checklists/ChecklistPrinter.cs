@@ -70,14 +70,15 @@ namespace MKtest.Checklists
             g.DrawString(document.Title, title, Brushes.Black,
                 new RectangleF(left, y, area.Width, 25));
             y += 28;
-            string details = $"Версия: {document.Version}    Устройство: {document.Environment}" +
-                $"    Проверял: {document.Tester}    Дата: {document.Date:dd.MM.yyyy}";
+            string details = $"Обход: {document.RunId[..8]}    Версия: {document.Version}    " +
+                $"Устройство: {document.Environment}    Проверял: {document.Tester}    " +
+                $"Дата: {document.Date:dd.MM.yyyy}";
             g.DrawString(details, body, Brushes.Black,
                 new RectangleF(left, y, area.Width, 32));
             y += 36;
 
             // Relative widths adapt to A4 landscape and the active printer.
-            float[] relative = { .07f, .13f, .08f, .25f, .22f, .10f, .15f };
+            float[] relative = { .12f, .10f, .08f, .25f, .19f, .11f, .15f };
             float[] widths = relative.Select(x => x * area.Width).ToArray();
             float[] x = new float[widths.Length];
             x[0] = left;
@@ -86,7 +87,7 @@ namespace MKtest.Checklists
 
             const float headingHeight = 24;
             string[] columns =
-                { "ID", "Раздел", "ОС", "Проверка", "Ожидается", "Отметка", "Замечание / баг" };
+                { "№ / ID", "Раздел", "ОС", "Проверка", "Ожидается", "Галочки", "Замечание / баг" };
             for (int col = 0; col < columns.Length; col++)
             {
                 var rect = new RectangleF(x[col], y, widths[col], headingHeight);
@@ -105,12 +106,13 @@ namespace MKtest.Checklists
             while (next < items.Count)
             {
                 ChecklistCase item = items[next];
+                int stableNumber = document.Cases.IndexOf(item) + 1;
                 string[] cells = {
-                    item.Id, item.Category,
+                    stableNumber.ToString("000") + " / " + item.Id, item.Category,
                     item.Platforms, item.Action, item.Expected,
                     "□ Есть\n□ Баг\n□ Нет", item.Bug + "\n" + item.Notes
                 };
-                float h = 46;
+                float h = 56;
                 for (int i = 0; i < cells.Length; i++)
                 {
                     float measured = g.MeasureString(cells[i], small,
@@ -156,8 +158,10 @@ namespace MKtest.Checklists
             g.DrawString("ИНДИВИДУАЛЬНЫЙ ТЕСТ-ЛИСТ MKtest",
                 title, Brushes.Black, x, y);
             y += 40;
-            g.DrawString($"№: {item.Id}    Дата: {document.Date:dd.MM.yyyy}" +
-                $"    Проверял: {document.Tester}",
+            int number = document.Cases.IndexOf(item) + 1;
+            g.DrawString($"№ на листе: {number:000}  •  ID: {item.Id}  •  " +
+                $"Проход: {document.RunId[..8]}  •  Дата: {document.Date:dd.MM.yyyy}" +
+                $"  •  Проверял: {document.Tester}",
                 normal, Brushes.Black, x, y);
             y += 28;
             void Field(string caption, string value, int height)
