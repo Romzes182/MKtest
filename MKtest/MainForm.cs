@@ -130,13 +130,14 @@ namespace MKtest
             {
                 Dock = DockStyle.Bottom,
                 Height = 31,
-                ColumnCount = 2,
+                ColumnCount = 3,
                 RowCount = 1,
                 Padding = Padding.Empty,
                 Margin = Padding.Empty
             };
             toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
+            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 105));
+            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95));
 
             logPanel.Controls.Remove(beelinkClearLogButton);
             beelinkClearLogButton.Dock = DockStyle.Fill;
@@ -152,7 +153,22 @@ namespace MKtest
                 UseVisualStyleBackColor = true
             };
             latestButton.Click += (_, _) => _logManager?.ResumeLogScroll();
-            toolbar.Controls.Add(latestButton, 1, 0);
+
+            var saveButton = new Button
+            {
+                Name = "btnSaveGeneralLog",
+                Text = "Сохранить",
+                Dock = DockStyle.Fill,
+                Margin = Padding.Empty,
+                UseVisualStyleBackColor = true
+            };
+            saveButton.Click += async (_, _) =>
+            {
+                if (_logManager != null)
+                    await LogExportDialog.SaveAsync(this, _logManager, "Общий");
+            };
+            toolbar.Controls.Add(saveButton, 1, 0);
+            toolbar.Controls.Add(latestButton, 2, 0);
             logPanel.Controls.Add(toolbar);
             toolbar.BringToFront();
         }
