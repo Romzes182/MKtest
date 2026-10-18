@@ -17,6 +17,7 @@ namespace MKtest.Checklists
     {
         private ChecklistDocument _document = new();
         private List<ChecklistCase> _masterCatalog = new();
+        private readonly ChecklistRunStore _runs = new();
         private readonly DataGridView _grid = new();
         private readonly TextBox _search = new();
         private readonly ComboBox _group = new();
@@ -90,11 +91,13 @@ namespace MKtest.Checklists
                 WrapContents = true, FlowDirection = FlowDirection.LeftToRight
             };
             toolbar.Controls.Add(Button("Импорт Excel", (_, _) => ImportExcel()));
-            toolbar.Controls.Add(Button("Новый общий", (_, _) => ResetToCatalog()));
+            toolbar.Controls.Add(Button("Новый проход", (_, _) => ResetToCatalog()));
             toolbar.Controls.Add(Button("Из выбранных", (_, _) => NewFromSelected()));
             toolbar.Controls.Add(Button("Добавить", (_, _) => AddCase()));
             toolbar.Controls.Add(Button("Изменить", (_, _) => EditCurrent()));
             toolbar.Controls.Add(Button("Удалить", (_, _) => RemoveCurrent()));
+            toolbar.Controls.Add(Button("История проходов", (_, _) => OpenRunHistory()));
+            toolbar.Controls.Add(Button("Отметки с бумаги", (_, _) => EnterPaperResults()));
             toolbar.Controls.Add(Button("Открыть лист", (_, _) => OpenDocument()));
             toolbar.Controls.Add(Button("Сохранить лист", (_, _) => SaveDocument()));
             toolbar.Controls.Add(Button("Печать списка", (_, _) => PrintList()));
@@ -156,6 +159,8 @@ namespace MKtest.Checklists
                     _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
             };
             _grid.CellValueChanged += (_, _) => Autosave();
+            foreach (var field in new[] { _title, _version, _environment, _tester })
+                field.Leave += (_, _) => Autosave();
             AddColumn(new DataGridViewCheckBoxColumn(),
                 "Выбрать", nameof(ChecklistCase.Selected), 56);
             AddColumn(new DataGridViewTextBoxColumn(),
@@ -250,14 +255,15 @@ namespace MKtest.Checklists
             _grid.DataSource = new BindingList<ChecklistCase>(shown);
             if (_document.Cases.Count == 0)
             {
-                _summary.Text = "Сначала нажмите «Импорт Excel» и выберите " +
-                    "объединённый файл MKtest_единый_чек-лист.xlsx или исходные четыре отчёта.";
+                _summary.Text = "В проходе нет проверок. Создайте проход из каталога.";
                 return;
             }
-            _summary.Text = $"Показано: {shown.Count}  /  Всего в тест-листе: " +
-                $"{_document.Cases.Count}.  " +
-                "Для бумажной проверки: □ Есть  □ Баг  □ Нет. " +
-                "Результаты прежних отчётов не проставляются автоматически.";
+            int checkedCount = _document.Cases.Count(x => x.Result != "Не проверено");
+            int errors = _document.Cases.Count(x => x.Result == "Баг");
+            _summary.Text = $"Проход {_document.RunId[..8]} • " +
+                $"Отмечено: {checkedCount}/{_document.Cases.Count} • " +
+                $"Багов: {errors} • Показано: {shown.Count}. " +
+                "После обхода используйте «Отметки с бумаги».";
         }
 
         private ChecklistCase? CurrentCase() =>
@@ -308,9 +314,12 @@ namespace MKtest.Checklists
                 "Сначала сохраните лист, если они нужны.",
                 "Новый проход", MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question) != DialogResult.Yes) return;
+            Autosave();
             ReadMetadata();
-            SetDocument(_document.CreateSubset(_masterCatalog,
-                "Общий чек-лист медиакомплекса"));
+            var newRun = _document.CreateSubset(_masterCatalog,
+                "Общий чек-лист медиакомплекса");
+            newRun.Date = DateTime.Today;
+            SetDocument(newRun);
         }
 
         private void NewFromSelected()
@@ -320,6 +329,7 @@ namespace MKtest.Checklists
             if (chosen.Count == 0 && CurrentCase() is ChecklistCase current)
                 chosen.Add(current);
             if (chosen.Count == 0) return;
+            Autosave();
             ReadMetadata();
             SetDocument(_document.CreateSubset(chosen,
                 chosen.Count == 1 ? "Единичный тест-лист" : "Выборочный тест-лист"));
@@ -394,6 +404,71 @@ namespace MKtest.Checklists
             }
         }
 
+        private void EnterPaperResults()
+        {
+            _grid.EndEdit();
+            ReadMetadata();
+            if (_document.Cases.Count == 0) return;
+            using var dialog = new ChecklistPaperEntryDialog(_document, () =>
+            {
+                Autosave();
+            });
+            dialog.ShowDialog(this);
+            RefreshGrid();
+        }
+
+        private void OpenRunHistory()
+        {
+            Autosave();
+            var runs = _runs.List();
+            if (runs.Count == 0)
+            {
+                MessageBox.Show(this, "Сохранённых проходов ещё нет.", "История");
+                return;
+            }
+
+            using var window = new Form
+            {
+                Text = "История обходов MKtest",
+                StartPosition = FormStartPosition.CenterParent,
+                Size = new Size(750, 440)
+            };
+            var list = new ListBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10),
+                DisplayMember = nameof(InspectionHistoryItem.Caption)
+            };
+            foreach (var run in runs)
+            {
+                int filled = run.Cases.Count(x => x.Result != "Не проверено");
+                int bugs = run.Cases.Count(x => x.Result == "Баг");
+                list.Items.Add(new InspectionHistoryItem(run.RunId,
+                    $"{run.CreatedAt:dd.MM.yyyy HH:mm}  •  {run.Title}  •  " +
+                    $"{run.Version}  •  {filled}/{run.Cases.Count}  •  Багов: {bugs}"));
+            }
+
+            var open = new Button
+            {
+                Text = "Открыть выбранный проход",
+                Dock = DockStyle.Bottom, Height = 40
+            };
+            open.Click += (_, _) =>
+            {
+                if (list.SelectedItem is not InspectionHistoryItem selected)
+                    return;
+                SetDocument(_runs.Load(selected.RunId));
+                window.DialogResult = DialogResult.OK;
+                window.Close();
+            };
+            list.DoubleClick += (_, _) => open.PerformClick();
+            window.Controls.Add(list);
+            window.Controls.Add(open);
+            window.ShowDialog(this);
+        }
+
+        private sealed record InspectionHistoryItem(string RunId, string Caption);
+
         private void PrintList()
         {
             _grid.EndEdit();
@@ -415,22 +490,33 @@ namespace MKtest.Checklists
         {
             try
             {
-                if (File.Exists(_catalogFile))
-                    _masterCatalog = Read(_catalogFile).Cases
-                        .Select(x => x.NewBlankResult()).ToList();
+                // A complete default catalog is available at first launch.
+                // User-imported or extended catalog takes precedence on later runs.
+                _masterCatalog = File.Exists(_catalogFile)
+                    ? Read(_catalogFile).Cases.Select(x => x.NewBlankResult()).ToList()
+                    : BuiltInChecklistCatalog.Load();
 
                 if (File.Exists(_autosave))
-                    SetDocument(Read(_autosave));
-                else if (_masterCatalog.Count > 0)
+                {
+                    var existing = Read(_autosave);
+                    SetDocument(existing.Cases.Count > 0 ? existing :
+                        new ChecklistDocument
+                        {
+                            Cases = _masterCatalog.Select(x => x.NewBlankResult()).ToList()
+                        });
+                }
+                else
                     SetDocument(new ChecklistDocument
                     {
                         Cases = _masterCatalog.Select(x => x.NewBlankResult()).ToList()
                     });
-                else
-                    SetDocument(new ChecklistDocument());
             }
-            catch
+            catch (Exception ex)
             {
+                // Do not silently conceal an invalid built-in catalog.
+                MessageBox.Show(this,
+                    "Не удалось загрузить каталог проверок: " + ex.Message,
+                    "Чек-листы MKtest", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 SetDocument(new ChecklistDocument());
             }
         }
@@ -441,6 +527,8 @@ namespace MKtest.Checklists
             {
                 ReadMetadata();
                 Write(_autosave, _document);
+                if (_document.Cases.Count > 0)
+                    _runs.Save(_document);
             }
             catch
             {
