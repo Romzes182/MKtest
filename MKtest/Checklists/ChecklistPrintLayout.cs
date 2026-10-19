@@ -40,6 +40,34 @@ namespace MKtest.Checklists
             return values.Length == 0 ? "Не указана" : string.Join(", ", values);
         }
 
+        public static string RunOperatingSystem(
+            ChecklistDocument document, IEnumerable<ChecklistCase> cases)
+        {
+            if (!string.IsNullOrWhiteSpace(document.RunPlatform))
+                return document.RunPlatform.Trim();
+
+            // Migration of existing runs: the selected environment used to be
+            // stored in Environment; prefer it over per-check platform lists.
+            string legacy = (document.Environment ?? "").Trim();
+            if (legacy.Equals("Android 7", StringComparison.OrdinalIgnoreCase) ||
+                legacy.Equals("Android 11", StringComparison.OrdinalIgnoreCase) ||
+                legacy.Equals("Linux", StringComparison.OrdinalIgnoreCase) ||
+                legacy.Equals("Android (все)", StringComparison.OrdinalIgnoreCase))
+                return legacy;
+
+            return OperatingSystems(cases);
+        }
+
+        public static string HeaderEnvironment(
+            ChecklistDocument document, IEnumerable<ChecklistCase> cases)
+        {
+            string platform = RunOperatingSystem(document, cases);
+            string details = document.PrintHeader?.EnvironmentDetails?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(details)) return platform;
+            return platform == "Не указана"
+                ? details : platform + ", " + details;
+        }
+
         public static string Section(ChecklistCase item) =>
             string.IsNullOrWhiteSpace(item.Algorithm)
                 ? item.Category
