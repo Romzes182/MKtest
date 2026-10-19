@@ -288,7 +288,7 @@ namespace MKtest.Checklists
                 Heading("ОБЪЁМ ТЕСТИРОВАНИЯ");
                 foreach (var row in header.ScopeRows())
                     Field(row.Caption, row.Value);
-                Heading("СПЕЦИАЛЬНО РАЗРАБОТАННОЕ СРЕДСТВО ТЕСТИРОВАНИЯ");
+                Heading("СПЕЦИАЛЬНО РАЗРАБОТАННОЕ АВТОМАТИЗИРОВАННОЕ СРЕДСТВО ТЕСТИРОВАНИЯ");
                 foreach (var row in header.ToolRows())
                     Field(row.Caption, row.Value);
                 float metaHeight = text.GetHeight(g) + 10;
