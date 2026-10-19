@@ -114,14 +114,15 @@ namespace MKtest.Checklists
                 WrapContents = false, AutoScroll = true
             };
             actions.Controls.Add(ActionButton("Новый обход", (_, _) => NewRun(), 124));
-            actions.Controls.Add(ActionButton("Печать бланка A4", (_, _) => PrintRun(), 154));
+            actions.Controls.Add(ActionButton("Настроить шапку", (_, _) => EditHeader(), 146));
+            actions.Controls.Add(ActionButton("Просмотр A4", (_, _) => PrintRun(), 123));
+            actions.Controls.Add(ActionButton("Печать страниц", (_, _) => PrintSelectedPages(), 145));
             actions.Controls.Add(ActionButton("История", (_, _) => OpenHistory(), 95));
             var catalogButton = ActionButton("Редактировать каталог",
                 (_, _) => OpenCatalogEditor(), 174);
             catalogButton.Name = "ChecklistCatalogEditButton";
             actions.Controls.Add(catalogButton);
-            actions.Controls.Add(ActionButton("Отдельный тест", (_, _) => MakeSingleTest(), 132));
-            actions.Controls.Add(ActionButton("Итоги и баги", (_, _) => ShowReport(), 125));
+            // Less-used actions stay in the More menu so print controls remain visible.
 
             var extra = ActionButton("Ещё ▾", (_, _) => ShowMoreMenu(), 75);
             extra.Name = "ChecklistMoreActions";
@@ -790,8 +791,13 @@ namespace MKtest.Checklists
             var fresh = _document.CreateSubset(cases,
                 kind == "Весь медиакомплекс" ? "Общий чек-лист медиакомплекса"
                     : "Проверка: " + kind);
-            fresh.Environment = kind == "Весь медиакомплекс"
-                ? _document.Environment : kind;
+            fresh.Environment = _document.Environment;
+            fresh.RunPlatform = kind is "Android 7" or "Android 11" or "Linux"
+                or "Android (все)" ? kind : "";
+            fresh.PrintHeader.Project = kind.StartsWith("Android",
+                StringComparison.OrdinalIgnoreCase)
+                ? "МК Android" : kind == "Linux" ? "МК Linux"
+                : fresh.PrintHeader.Project;
             SetRun(fresh);
         }
 
@@ -831,12 +837,30 @@ namespace MKtest.Checklists
             SetRun(one);
         }
 
+        private void EditHeader()
+        {
+            SaveEdits();
+            if (!ChecklistHeaderDialog.Edit(this, _document)) return;
+            _version.Text = _document.Version;
+            _device.Text = _document.Environment;
+            _tester.Text = _document.Tester;
+            SaveEdits();
+        }
+
         private void PrintRun()
         {
             if (_document.Cases.Count == 0) return;
             SaveEdits();
-            // Print the exact stored run, never only the current search results.
+            // Preview the whole run, regardless of filtering in the list.
             ChecklistPrinter.Preview(this, _document, _document.Cases, false);
+        }
+
+        private void PrintSelectedPages()
+        {
+            if (_document.Cases.Count == 0) return;
+            SaveEdits();
+            ChecklistPrinter.PrintSelectedPages(this, _document,
+                _document.Cases, false);
         }
 
         private void PrintSingle()
@@ -908,6 +932,13 @@ namespace MKtest.Checklists
             // and may access its native handle after the Closed event.
             if (_moreMenu.Items.Count == 0)
             {
+                _moreMenu.Items.Add("Отдельный тест", null,
+                    (_, _) => MakeSingleTest());
+                _moreMenu.Items.Add("Итоги и баги", null,
+                    (_, _) => ShowReport());
+                _moreMenu.Items.Add("Печать выбранного теста", null,
+                    (_, _) => PrintSingle());
+                _moreMenu.Items.Add(new ToolStripSeparator());
                 _moreMenu.Items.Add("Импорт Excel в каталог", null,
                     (_, _) => ImportExcel());
                 _moreMenu.Items.Add(new ToolStripSeparator());
