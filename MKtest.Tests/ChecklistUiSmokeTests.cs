@@ -9,6 +9,49 @@ namespace MKtest.Tests;
 public sealed class ChecklistUiSmokeTests
 {
     [TestMethod]
+    public void MoreMenu_RemainsUsableUntilTheChecklistTabIsDisposed()
+    {
+        Exception? error = null;
+        bool menuWasReused = false;
+        bool disposedWithTab = false;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var tab = new ChecklistTabController();
+                try
+                {
+                    var button = tab.Controls.Find("ChecklistMoreActions", true)
+                        .OfType<Button>().Single();
+                    var menu = button.ContextMenuStrip;
+                    Assert.IsNotNull(menu, "The button should own one reusable context menu.");
+                    Assert.IsFalse(menu.IsDisposed);
+                    menu.Close();
+                    Assert.IsFalse(menu.IsDisposed,
+                        "Closing the menu must not dispose it during WinForms message handling.");
+                    menuWasReused = ReferenceEquals(menu, button.ContextMenuStrip);
+                }
+                finally
+                {
+                    var menu = tab.Controls.Find("ChecklistMoreActions", true)
+                        .OfType<Button>().Single().ContextMenuStrip;
+                    tab.Dispose();
+                    disposedWithTab = menu?.IsDisposed == true;
+                }
+            }
+            catch (Exception ex) { error = ex; }
+        }) { IsBackground = true };
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(15)));
+        if (error != null) Assert.Fail(error.ToString());
+        Assert.IsTrue(menuWasReused);
+        Assert.IsTrue(disposedWithTab);
+    }
+
+    [TestMethod]
     public void ChecklistTab_InitializesAndLaysOutOnStaThread()
     {
         // Windows Forms controls must be created on an STA thread.
