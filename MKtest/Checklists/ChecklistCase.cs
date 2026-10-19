@@ -35,6 +35,9 @@ namespace MKtest.Checklists
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public string Title { get; set; } = "Общий чек-лист медиакомплекса";
         public string Environment { get; set; } = "";
+        /// <summary>Platform selected for this run, e.g. Android 7 (never aggregated).</summary>
+        public string RunPlatform { get; set; } = "";
+        public ChecklistPrintHeader PrintHeader { get; set; } = new();
         public string Version { get; set; } = "";
         public string Tester { get; set; } = "";
         public DateTime Date { get; set; } = DateTime.Today;
@@ -45,6 +48,8 @@ namespace MKtest.Checklists
         {
             Title = title,
             Environment = Environment,
+            RunPlatform = RunPlatform,
+            PrintHeader = (PrintHeader ?? new ChecklistPrintHeader()).Clone(),
             Version = Version,
             Tester = Tester,
             Date = DateTime.Today,
