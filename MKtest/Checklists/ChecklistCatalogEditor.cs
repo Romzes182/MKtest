@@ -115,9 +115,15 @@ namespace MKtest.Checklists
             {
                 Dock = DockStyle.Fill, WrapContents = false
             };
-            commands.Controls.Add(MakeButton("Добавить", (_, _) => AddCase(), 106));
-            commands.Controls.Add(MakeButton("Изменить", (_, _) => EditSelected(), 106));
-            commands.Controls.Add(MakeButton("Удалить", (_, _) => DeleteSelected(), 106));
+            var addButton = MakeButton("Добавить", (_, _) => AddCase(), 106);
+            addButton.Name = "CatalogAddButton";
+            commands.Controls.Add(addButton);
+            var editButton = MakeButton("Изменить", (_, _) => EditSelected(), 106);
+            editButton.Name = "CatalogEditButton";
+            commands.Controls.Add(editButton);
+            var deleteButton = MakeButton("Удалить", (_, _) => DeleteSelected(), 106);
+            deleteButton.Name = "CatalogDeleteButton";
+            commands.Controls.Add(deleteButton);
             _status.Dock = DockStyle.Bottom;
             _status.ForeColor = Color.DimGray;
             commands.Controls.Add(_status);
