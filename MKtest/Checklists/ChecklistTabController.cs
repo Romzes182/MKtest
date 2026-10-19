@@ -796,7 +796,11 @@ namespace MKtest.Checklists
             var fresh = _document.CreateSubset(cases,
                 kind == "Весь медиакомплекс" ? "Общий чек-лист медиакомплекса"
                     : "Проверка: " + kind);
-            fresh.Environment = _document.Environment;
+            // Old inspection runs used Environment for the OS name. Do not
+            // leak that value into the new "Device / stand" header field.
+            string oldDevice = _document.Environment.Trim();
+            fresh.Environment = oldDevice is "Android 7" or "Android 11"
+                or "Linux" or "Android (все)" ? "" : oldDevice;
             fresh.RunPlatform = kind is "Android 7" or "Android 11" or "Linux"
                 or "Android (все)" ? kind : "";
             fresh.PrintHeader.Project = kind.StartsWith("Android",
