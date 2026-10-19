@@ -111,7 +111,9 @@ namespace MKtest.Checklists
                 ChecklistCase item = items[next];
                 int stableNumber = document.Cases.IndexOf(item) + 1;
                 string[] cells = {
-                    stableNumber.ToString("000") + " / " + item.Id, item.Category,
+                    stableNumber.ToString("000") + " / " + item.Id,
+                    item.Category + (string.IsNullOrWhiteSpace(item.Algorithm)
+                        ? "" : "\n" + item.Algorithm),
                     item.Platforms, item.Action, item.Expected,
                     "□ Есть  □ Баг\n□ Нет   □ Н/П", ""
                 };
@@ -178,8 +180,9 @@ namespace MKtest.Checklists
 
             Field("Версия / устройство", document.Version + " / " +
                 document.Environment, 56);
-            Field("Раздел / платформа", item.Category + " / " +
-                item.Platforms, 60);
+            Field("Раздел / алгоритм / платформа",
+                item.Category + (string.IsNullOrWhiteSpace(item.Algorithm)
+                    ? "" : " / " + item.Algorithm) + " / " + item.Platforms, 60);
             Field("Модуль / сценарий", item.Module, 58);
             Field("Проверка и шаги", item.Action, 110);
             Field("Ожидаемый результат", item.Expected, 110);
