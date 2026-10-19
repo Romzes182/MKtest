@@ -10,6 +10,7 @@ namespace MKtest.Checklists
         public string Id { get; set; } = "";
         public string Section { get; set; } = "";
         public string Category { get; set; } = "";
+        public string Algorithm { get; set; } = "";
         public string Platforms { get; set; } = "";
         public string Module { get; set; } = "";
         public string Action { get; set; } = "";
@@ -21,6 +22,7 @@ namespace MKtest.Checklists
         public ChecklistCase NewBlankResult() => new()
         {
             Id = Id, Section = Section, Category = Category,
+            Algorithm = Algorithm,
             Platforms = Platforms, Module = Module,
             Action = Action, Expected = Expected
         };
