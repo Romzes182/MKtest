@@ -432,6 +432,11 @@ namespace MKtest.Checklists
             _rendering = true;
             _saveTimer.Stop();
             _document = run;
+            // Preserve the platform from pre-upgrade inspections before the
+            // device/stend field is edited on screen.
+            if (string.IsNullOrWhiteSpace(run.RunPlatform) &&
+                run.Environment is "Android 7" or "Android 11" or "Linux")
+                run.RunPlatform = run.Environment;
             // Older files have a separate statistics section and no algorithm.
             // Normalize the active run without losing results or bug comments.
             foreach (ChecklistCase item in _document.Cases)
