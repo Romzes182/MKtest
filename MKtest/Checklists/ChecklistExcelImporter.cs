@@ -51,8 +51,11 @@ namespace MKtest.Checklists
                 dedup[key] = item;
             }
 
-            return dedup.Values.OrderBy(x => x.Category)
-                .ThenBy(x => x.Id).ToList();
+            var result = dedup.Values.ToList();
+            foreach (ChecklistCase item in result)
+                ChecklistCatalogRules.Normalize(item);
+            return result.OrderBy(x => x.Category)
+                .ThenBy(x => x.Algorithm).ThenBy(x => x.Id).ToList();
         }
 
         private static IEnumerable<ChecklistCase> ReadFile(string path)
