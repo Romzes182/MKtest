@@ -134,7 +134,7 @@ namespace MKtest.Checklists
             TextBox protocols = Field("Протоколы оплаты", current.PaymentProtocols, true);
             TextBox reliability = Field("Надежность", current.Reliability, true);
 
-            Heading("СПЕЦИАЛЬНО РАЗРАБОТАННОЕ СРЕДСТВО ТЕСТИРОВАНИЯ");
+            Heading("СПЕЦИАЛЬНО РАЗРАБОТАННОЕ АВТОМАТИЗИРОВАННОЕ СРЕДСТВО ТЕСТИРОВАНИЯ");
             TextBox setup = Field("Настройка тестового окружения",
                 current.EnvironmentSetup, true);
             TextBox operations = Field("Работа с прикладными протоколами",
