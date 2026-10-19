@@ -231,18 +231,43 @@ namespace MKtest.Checklists
             do { id = $"USER-{number++:000}"; }
             while (ChecklistCatalogRules.HasDuplicateId(_draft, id));
 
+            // Pre-fill from the highlighted check, but do not confuse a list
+            // filter with the destination. The add dialog requires an explicit
+            // destination category, algorithm and position that can be changed.
+            ChecklistCase? selected = CurrentCase;
+            string filteredCategory = _section.SelectedItem?.ToString() ?? "";
+            string filteredAlgorithm = _algorithm.SelectedItem?.ToString() ?? "";
             var item = new ChecklistCase
             {
                 Id = id,
-                Category = _section.SelectedItem?.ToString() is string group &&
-                           group != "Все разделы" ? group : "Дополнительные проверки",
-                Algorithm = _algorithm.SelectedItem?.ToString() is string algorithm &&
-                            algorithm != "Все алгоритмы" ? algorithm : ""
+                Category = filteredCategory != "Все разделы" &&
+                    !string.IsNullOrEmpty(filteredCategory)
+                    ? filteredCategory
+                    : selected?.Category ?? "Дополнительные проверки",
+                Algorithm = filteredAlgorithm != "Все алгоритмы" &&
+                    !string.IsNullOrEmpty(filteredAlgorithm)
+                    ? filteredAlgorithm : selected?.Algorithm ?? "",
+                Platforms = selected?.Platforms ?? "",
+                Module = selected?.Module ?? ""
             };
-            if (!ChecklistEditDialog.Edit(this, item)) return;
+            if (!ChecklistEditDialog.Add(this, item, _draft,
+                    out string? insertAfterId, selected?.Id)) return;
             ChecklistCatalogRules.Normalize(item);
             if (!ValidateCase(item)) return;
-            _draft.Add(item.NewBlankResult());
+
+            try
+            {
+                int index = ChecklistCatalogPlacement.InsertIndex(
+                    _draft, item, insertAfterId);
+                _draft.Insert(index, item.NewBlankResult());
+            }
+            catch (ArgumentException ex)
+            {
+                MessageBox.Show(this, ex.Message, "Место вставки",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             UpdateCategories();
             _section.SelectedItem = "Все разделы";
             _algorithm.SelectedIndex = 0;
@@ -255,11 +280,15 @@ namespace MKtest.Checklists
             var item = CurrentCase;
             if (item == null) return;
             var edited = item.NewBlankResult();
-            if (!ChecklistEditDialog.Edit(this, edited)) return;
+            if (!ChecklistEditDialog.Edit(this, edited, _draft)) return;
             ChecklistCatalogRules.Normalize(edited);
             if (!ValidateCase(edited, item)) return;
             int position = _draft.IndexOf(item);
-            _draft[position] = edited;
+            bool movedGroup = !ChecklistCatalogPlacement.SameGroup(item, edited);
+            _draft.RemoveAt(position);
+            _draft.Insert(movedGroup
+                ? ChecklistCatalogPlacement.InsertIndex(_draft, edited)
+                : position, edited);
             UpdateCategories();
             _section.SelectedItem = "Все разделы";
             _algorithm.SelectedIndex = 0;
