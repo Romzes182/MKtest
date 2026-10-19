@@ -116,8 +116,10 @@ namespace MKtest.Checklists
             actions.Controls.Add(ActionButton("Новый обход", (_, _) => NewRun(), 124));
             actions.Controls.Add(ActionButton("Печать бланка A4", (_, _) => PrintRun(), 154));
             actions.Controls.Add(ActionButton("История", (_, _) => OpenHistory(), 95));
-            actions.Controls.Add(ActionButton("Редактировать каталог",
-                (_, _) => OpenCatalogEditor(), 174));
+            var catalogButton = ActionButton("Редактировать каталог",
+                (_, _) => OpenCatalogEditor(), 174);
+            catalogButton.Name = "ChecklistCatalogEditButton";
+            actions.Controls.Add(catalogButton);
             actions.Controls.Add(ActionButton("Отдельный тест", (_, _) => MakeSingleTest(), 132));
             actions.Controls.Add(ActionButton("Итоги и баги", (_, _) => ShowReport(), 125));
 
