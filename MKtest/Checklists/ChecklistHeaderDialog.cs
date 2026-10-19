@@ -118,8 +118,8 @@ namespace MKtest.Checklists
             {
                 Format = DateTimePickerFormat.Custom,
                 CustomFormat = "dd.MM.yyyy",
-                Value = document.Date >= DateTimePicker.MinimumDateTime &&
-                        document.Date <= DateTimePicker.MaximumDateTime
+                Value = document.Date >= DateTimePicker.MinDateTime &&
+                        document.Date <= DateTimePicker.MaxDateTime
                     ? document.Date : DateTime.Today
             };
             AddRow("Дата тестирования", date);
