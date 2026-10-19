@@ -41,6 +41,8 @@ namespace MKtest.Checklists
                     Result = "Не проверено"
                 });
             }
+            foreach (ChecklistCase item in result)
+                ChecklistCatalogRules.Normalize(item);
             return result;
         }
     }
