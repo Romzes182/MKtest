@@ -116,6 +116,8 @@ namespace MKtest.Checklists
             actions.Controls.Add(ActionButton("Новый обход", (_, _) => NewRun(), 124));
             actions.Controls.Add(ActionButton("Печать бланка A4", (_, _) => PrintRun(), 154));
             actions.Controls.Add(ActionButton("История", (_, _) => OpenHistory(), 95));
+            actions.Controls.Add(ActionButton("Редактировать каталог",
+                (_, _) => OpenCatalogEditor(), 174));
             actions.Controls.Add(ActionButton("Отдельный тест", (_, _) => MakeSingleTest(), 132));
             actions.Controls.Add(ActionButton("Итоги и баги", (_, _) => ShowReport(), 125));
 
@@ -400,7 +402,7 @@ namespace MKtest.Checklists
             try
             {
                 _catalog = File.Exists(_catalogFile)
-                    ? Read(_catalogFile).Cases.Select(x => x.NewBlankResult()).ToList()
+                    ? ChecklistCatalogRules.NormalizeCopy(Read(_catalogFile).Cases)
                     : BuiltInChecklistCatalog.Load();
 
                 ChecklistDocument start = File.Exists(_currentFile)
@@ -427,6 +429,10 @@ namespace MKtest.Checklists
             _rendering = true;
             _saveTimer.Stop();
             _document = run;
+            // Older files have a separate statistics section and no algorithm.
+            // Normalize the active run without losing results or bug comments.
+            foreach (ChecklistCase item in _document.Cases)
+                ChecklistCatalogRules.Normalize(item);
             _currentIndex = -1;
             _version.Text = run.Version;
             _device.Text = run.Environment;
@@ -438,7 +444,20 @@ namespace MKtest.Checklists
             _categoryFilter.Items.Add("Все разделы");
             foreach (string section in _document.Cases.Select(x => x.Category)
                          .Distinct().OrderBy(x => x))
+            {
                 _categoryFilter.Items.Add(section);
+                if (section == ChecklistCatalogRules.FareCategory)
+                {
+                    foreach (string algorithm in new[] {
+                        ChecklistCatalogRules.CityAlgorithm,
+                        ChecklistCatalogRules.RegionalAlgorithm })
+                    {
+                        if (_document.Cases.Any(x => x.Category == section &&
+                            x.Algorithm == algorithm))
+                            _categoryFilter.Items.Add(section + " — " + algorithm);
+                    }
+                }
+            }
             _categoryFilter.SelectedIndex = 0;
             _resultFilter.SelectedIndex = 0;
             _rendering = false;
@@ -466,19 +485,25 @@ namespace MKtest.Checklists
                 for (int i = 0; i < _document.Cases.Count; i++)
                 {
                     ChecklistCase item = _document.Cases[i];
-                    if (category != "Все разделы" && item.Category != category)
+                    if (category != "Все разделы" &&
+                        !string.Equals(item.Category, category,
+                            StringComparison.OrdinalIgnoreCase) &&
+                        category != item.Category + " — " + item.Algorithm)
                         continue;
                     if (result != "Все результаты" && item.Result != result)
                         continue;
                     if (needle.Length > 0 && !(item.Id.Contains(needle,
                             StringComparison.OrdinalIgnoreCase) ||
                         item.Category.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
+                        item.Algorithm.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
                         item.Module.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
                         item.Action.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
                         item.Expected.Contains(needle, StringComparison.OrdinalIgnoreCase)))
                         continue;
-                    string description = string.IsNullOrWhiteSpace(item.Module)
-                        ? item.Action : item.Module + "\n" + item.Action;
+                    string description = (string.IsNullOrWhiteSpace(item.Algorithm)
+                        ? "" : item.Algorithm + " • ") +
+                        (string.IsNullOrWhiteSpace(item.Module)
+                            ? item.Action : item.Module + "\n" + item.Action);
                     int rowIndex = _list.Rows.Add((i + 1).ToString("000"),
                         description, DisplayStatus(item.Result));
                     _list.Rows[rowIndex].Tag = i;
@@ -543,7 +568,9 @@ namespace MKtest.Checklists
                 }
                 ChecklistCase item = _document.Cases[_currentIndex];
                 _number.Text = $"Пункт {_currentIndex + 1:000} · {item.Id}";
-                _context.Text = $"{item.Category} · {item.Platforms}";
+                _context.Text = string.IsNullOrWhiteSpace(item.Algorithm)
+                    ? $"{item.Category} · {item.Platforms}"
+                    : $"{item.Category} · {item.Algorithm} · {item.Platforms}";
                 _action.Text = item.Action;
                 if (!string.IsNullOrWhiteSpace(item.Module))
                     _action.Text = $"Сценарий: {item.Module}\r\n\r\n{item.Action}";
@@ -735,7 +762,10 @@ namespace MKtest.Checklists
             };
             choice.Items.AddRange(new object[] {
                 "Весь медиакомплекс", "Android (все)", "Android 7",
-                "Android 11", "Linux", "МЧС", "Безбилетники"
+                "Android 11", "Linux", "МЧС",
+                "Безбилетники (оба алгоритма)",
+                "Безбилетники — СПб ГКУ",
+                "Безбилетники — Региональный"
             });
             choice.SelectedIndex = 0;
             panel.Controls.Add(choice);
@@ -777,8 +807,16 @@ namespace MKtest.Checklists
                 StringComparison.OrdinalIgnoreCase),
             "МЧС" => item.Category.Contains("МЧС",
                 StringComparison.OrdinalIgnoreCase),
-            "Безбилетники" => item.Category.Contains("Безбилет",
-                StringComparison.OrdinalIgnoreCase),
+            "Безбилетники (оба алгоритма)" =>
+                item.Category == ChecklistCatalogRules.FareCategory,
+            "Безбилетники — СПб ГКУ" =>
+                ChecklistCatalogRules.MatchesFareAlgorithm(item,
+                    ChecklistCatalogRules.CityAlgorithm),
+            "Безбилетники — Региональный" =>
+                ChecklistCatalogRules.MatchesFareAlgorithm(item,
+                    ChecklistCatalogRules.RegionalAlgorithm),
+            "Безбилетники" =>
+                item.Category == ChecklistCatalogRules.FareCategory,
             _ => true
         };
 
@@ -870,8 +908,6 @@ namespace MKtest.Checklists
             {
                 _moreMenu.Items.Add("Импорт Excel в каталог", null,
                     (_, _) => ImportExcel());
-                _moreMenu.Items.Add("Добавить проверку в каталог", null,
-                    (_, _) => AddToCatalog());
                 _moreMenu.Items.Add(new ToolStripSeparator());
                 _moreMenu.Items.Add("Сохранить обход в JSON", null,
                     (_, _) => ExportJson());
@@ -917,19 +953,28 @@ namespace MKtest.Checklists
             }
         }
 
-        private void AddToCatalog()
+        private void OpenCatalogEditor()
         {
-            var item = new ChecklistCase
+            SaveEdits();
+            using var editor = new ChecklistCatalogEditor(_catalog);
+            if (editor.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            var replacement = ChecklistCatalogRules.NormalizeCopy(editor.EditedCases);
+            try
             {
-                Id = "USER-" + (_catalog.Count + 1).ToString("000"),
-                Category = "Дополнительные проверки"
-            };
-            if (!ChecklistEditDialog.Edit(this, item)) return;
-            _catalog.Add(item.NewBlankResult());
-            Write(_catalogFile, new ChecklistDocument { Cases = _catalog });
-            MessageBox.Show(this,
-                "Проверка добавлена в каталог. Её можно включить в новый обход.",
-                "Готово");
+                // Write first. If saving fails, the in-memory catalog is intact.
+                Write(_catalogFile, new ChecklistDocument { Cases = replacement });
+                _catalog = replacement;
+                _hint.Text = "Каталог обновлён. Изменения появятся в новых обходах.";
+                _hint.ForeColor = Color.DarkGreen;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this,
+                    "Не удалось сохранить каталог: " + ex.Message,
+                    "Каталог проверок", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void ExportJson()
