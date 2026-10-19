@@ -17,6 +17,9 @@ namespace MKtest.Checklists
     public sealed class ChecklistTabController : UserControl
     {
         private readonly ChecklistRunStore _runs = new();
+        // Reusable menu belongs to the checklist tab, not to an individual click.
+        private readonly ContextMenuStrip _moreMenu = new();
+        private Button? _moreMenuButton;
         private readonly string _dataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MKtest", "Checklists");
@@ -118,6 +121,8 @@ namespace MKtest.Checklists
 
             var extra = ActionButton("Ещё ▾", (_, _) => ShowMoreMenu(), 75);
             extra.Name = "ChecklistMoreActions";
+            extra.ContextMenuStrip = _moreMenu;
+            _moreMenuButton = extra;
             actions.Controls.Add(extra);
             top.Controls.Add(actions, 0, 0);
 
@@ -854,15 +859,28 @@ namespace MKtest.Checklists
 
         private void ShowMoreMenu()
         {
-            var menu = new ContextMenuStrip();
-            menu.Items.Add("Импорт Excel в каталог", null, (_, _) => ImportExcel());
-            menu.Items.Add("Добавить проверку в каталог", null,
-                (_, _) => AddToCatalog());
-            menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Сохранить обход в JSON", null, (_, _) => ExportJson());
-            menu.Items.Add("Открыть обход из JSON", null, (_, _) => ImportJson());
-            menu.Closed += (_, _) => menu.Dispose();
-            menu.Show(Cursor.Position);
+            if (IsDisposed || Disposing || _moreMenu.IsDisposed ||
+                _moreMenuButton == null || _moreMenuButton.IsDisposed)
+                return;
+
+            // Initialize once, then reuse. In particular, do NOT dispose in
+            // ContextMenuStrip.Closed: WinForms still processes menu dismissal
+            // and may access its native handle after the Closed event.
+            if (_moreMenu.Items.Count == 0)
+            {
+                _moreMenu.Items.Add("Импорт Excel в каталог", null,
+                    (_, _) => ImportExcel());
+                _moreMenu.Items.Add("Добавить проверку в каталог", null,
+                    (_, _) => AddToCatalog());
+                _moreMenu.Items.Add(new ToolStripSeparator());
+                _moreMenu.Items.Add("Сохранить обход в JSON", null,
+                    (_, _) => ExportJson());
+                _moreMenu.Items.Add("Открыть обход из JSON", null,
+                    (_, _) => ImportJson());
+            }
+
+            _moreMenu.Show(_moreMenuButton,
+                new Point(0, _moreMenuButton.Height));
         }
 
         private void ImportExcel()
@@ -1054,6 +1072,7 @@ namespace MKtest.Checklists
                 _saveTimer.Stop();
                 SaveEdits();
                 _saveTimer.Dispose();
+                _moreMenu.Dispose();
             }
             base.Dispose(disposing);
         }
