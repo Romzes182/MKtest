@@ -52,6 +52,33 @@ public sealed class ChecklistUiSmokeTests
     }
 
     [TestMethod]
+    public void CatalogEditor_DisplaysAddEditDeleteActionsOnWindows()
+    {
+        Exception? error = null;
+        bool ready = false;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var editor = new ChecklistCatalogEditor(
+                    BuiltInChecklistCatalog.Load());
+                editor.CreateControl();
+                editor.PerformLayout();
+                ready = new[] { "CatalogAddButton", "CatalogEditButton",
+                    "CatalogDeleteButton" }.All(name =>
+                    editor.Controls.Find(name, true).Length == 1);
+            }
+            catch (Exception ex) { error = ex; }
+        }) { IsBackground = true };
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(15)));
+        if (error != null) Assert.Fail(error.ToString());
+        Assert.IsTrue(ready);
+    }
+
+    [TestMethod]
     public void ChecklistTab_InitializesAndLaysOutOnStaThread()
     {
         // Windows Forms controls must be created on an STA thread.
