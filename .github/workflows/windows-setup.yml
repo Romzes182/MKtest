@@ -1,0 +1,159 @@
+name: MKtest Windows x64 Setup
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'MKtest/**'
+      - 'MKtest.Tests/**'
+      - 'installer/**'
+      - '.github/workflows/windows-setup.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-setup-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Test, publish, package and verify Win10 x64 installer
+    runs-on: windows-2022
+    timeout-minutes: 50
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install .NET 9 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore solution
+        run: dotnet restore MKtest.sln --verbosity minimal
+
+      - name: Build Release
+        run: dotnet build MKtest.sln --configuration Release --no-restore --verbosity minimal -p:ContinuousIntegrationBuild=true
+
+      - name: Run all regression tests
+        run: dotnet test MKtest.Tests/MKtest.Tests.csproj --configuration Release --no-build --no-restore --verbosity normal --logger "trx;LogFileName=MKtest.Setup.Tests.trx"
+
+      - name: Publish self-contained Windows x64
+        shell: pwsh
+        run: |
+          dotnet publish MKtest/MKtest.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output artifacts/publish/win-x64 `
+            -p:PlatformTarget=x64 `
+            -p:PublishSingleFile=false `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -p:ContinuousIntegrationBuild=true
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
+
+      - name: Validate published binary and bundled runtime
+        shell: pwsh
+        run: |
+          $dir = 'artifacts/publish/win-x64'
+          foreach ($name in @('MKtest.exe', 'hostfxr.dll', 'coreclr.dll')) {
+            if (-not (Test-Path (Join-Path $dir $name))) {
+              throw "Self-contained publish is missing $name"
+            }
+          }
+          $exe = Join-Path $dir 'MKtest.exe'
+          $stream = [System.IO.File]::OpenRead((Resolve-Path $exe).Path)
+          try {
+            $reader = [System.IO.BinaryReader]::new($stream)
+            $stream.Seek(0x3c, [System.IO.SeekOrigin]::Begin) | Out-Null
+            $peOffset = $reader.ReadInt32()
+            $stream.Seek($peOffset + 4, [System.IO.SeekOrigin]::Begin) | Out-Null
+            $machine = $reader.ReadUInt16()
+            if ($machine -ne 0x8664) {
+              throw "Application launcher is not x64. PE machine: $machine"
+            }
+          }
+          finally { $stream.Dispose() }
+          Write-Host "Verified win-x64 apphost and self-contained .NET runtime"
+          foreach ($contentFolder in @('DemoScenarios', 'JsonTemplates', 'Routes')) {
+            if (-not (Test-Path (Join-Path $dir $contentFolder))) {
+              throw "Required demo/template/route folder missing: $contentFolder"
+            }
+          }
+
+      - name: Install Inno Setup compiler if needed
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { throw "Inno Setup installation failed" }
+          }
+          if (-not (Test-Path $iscc)) {
+            throw "ISCC.exe not found"
+          }
+          Write-Host "Using $iscc"
+
+      - name: Compile setup.exe
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'
+          & $iscc 'installer/MKtest.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed" }
+          if (-not (Test-Path 'artifacts/installer/MKtest-Setup-win-x64.exe')) {
+            throw "Setup executable is missing"
+          }
+
+      - name: Verify silent installation and shortcuts
+        shell: pwsh
+        run: |
+          $installer = (Resolve-Path 'artifacts/installer/MKtest-Setup-win-x64.exe').Path
+          $installLog = Join-Path $env:RUNNER_TEMP 'MKtest-setup-install.log'
+          $process = Start-Process -FilePath $installer -Wait -PassThru -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-',
+            "/LOG=$installLog"
+          )
+          if ($process.ExitCode -ne 0) {
+            if (Test-Path $installLog) { Get-Content $installLog -Tail 70 }
+            throw "Silent installer returned exit code $($process.ExitCode)"
+          }
+          $installed = Join-Path $env:LOCALAPPDATA 'Programs/MKtest/MKtest.exe'
+          $desktop = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'MKtest.lnk'
+          $startMenu = Join-Path $env:APPDATA 'Microsoft/Windows/Start Menu/Programs/MKtest/MKtest.lnk'
+          foreach ($file in @($installed, $desktop, $startMenu)) {
+            if (-not (Test-Path $file)) { throw "Installation is missing $file" }
+          }
+          $shell = New-Object -ComObject WScript.Shell
+          foreach ($link in @($desktop, $startMenu)) {
+            $target = $shell.CreateShortcut($link).TargetPath
+            if ([System.IO.Path]::GetFullPath($target) -ne [System.IO.Path]::GetFullPath($installed)) {
+              throw "Shortcut $link does not point to installed MKtest.exe"
+            }
+          }
+          Write-Host "Setup installed and both shortcuts target the x64 application"
+
+      - name: Upload setup.exe
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: MKtest-Setup-Windows10-x64-${{ github.run_number }}
+          path: artifacts/installer/MKtest-Setup-win-x64.exe
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: MKtest-Setup-Test-Results-${{ github.run_number }}
+          path: MKtest.Tests/TestResults/*.trx
+          if-no-files-found: warn
+          retention-days: 14
