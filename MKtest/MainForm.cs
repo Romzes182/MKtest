@@ -1,5 +1,8 @@
 ﻿using MKtest.Configs;
+using MKtest.UI;
+using MKtest.UI.USRTransfer;
 using MKtest.Managers;
+using MKtest.Managers.Settings;
 using MKtest.Services;
 using MKtest.Services.Demoscripts;
 using MKtest.Services.HermesPassenger;
@@ -13,6 +16,14 @@ using System.Windows.Forms;
 using MKtest.Services.JSONRPCprotokol;
 using MKtest.Services.HTTPpay;
 using MKtest.Services.SekopProtocol;
+using MKtest.UI.Sekop;
+using MKtest.UI.Logging;
+using MKtest.UI.JSONRPC;
+using MKtest.UI.HTTPpay;
+using MKtest.UI.Hermes;
+using MKtest.UI.Emergency;
+using MKtest.UI.Beelink;
+using MKtest.Checklists;
 
 namespace MKtest
 {
@@ -52,8 +63,24 @@ namespace MKtest
         private WebServerStateManager? _webServerStateManager;
         #endregion
 
-        #region Поля для управления сворачиванием
-        private Dictionary<Panel, int> _originalHeights = new Dictionary<Panel, int>();
+        #region Контроллеры интерфейса
+        private CollapsiblePanelController? _collapsiblePanelController;
+        private DemoModeController? _demoModeController;
+        private Button? _btnPreviousDemoStep;
+        private USRTransferUiController? _usrTransferUiController;
+        private SekopUiController? _sekopUiController;
+        private JsonRpcUiController? _jsonRpcUiController;
+        private HttpPayUiController? _httpPayUiController;
+        private HermesUiController? _hermesUiController;
+        private EmergencyUiController? _emergencyUiController;
+        private BeelinkTimeUiController? _beelinkTimeUiController;
+        private BlockLogPanelRegistry? _blockLogs;
+        private RightPanelFlowController? _rightPanelLayout;
+        private ScrollablePanelStackController? _leftPanelLayout;
+        private bool _shutdownStarted;
+        private bool _shutdownCompleted;
+        private LogManager? _sshLog, _webLog, _demoLog, _usrLog, _hermesLog;
+        private LogManager? _httpPayLog, _jsonLog, _sekopLog, _emergencyLog;
         #endregion
 
         #region Конструктор
@@ -71,8 +98,10 @@ namespace MKtest
             {
                 RepositionLogPanel();
                 InitializeServices();
+                SetupGeneralLogToolbar();
                 InitializeManagers();
                 SetupUI();
+                InitializeChecklistsTab();
                 _logManager?.AppendLog("Приложение инициализировано");
             }
             catch (Exception ex)
@@ -80,6 +109,18 @@ namespace MKtest
                 MessageBox.Show($"Ошибка инициализации: {ex.Message}",
                     "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void InitializeChecklistsTab()
+        {
+            var page = new TabPage("Чек-листы")
+            {
+                Name = "checklistsTabPage",
+                Padding = new Padding(3),
+                UseVisualStyleBackColor = true
+            };
+            page.Controls.Add(new ChecklistTabController());
+            mainTabControl.TabPages.Add(page);
         }
 
         private void RepositionLogPanel()
@@ -93,31 +134,100 @@ namespace MKtest
             splitContainerMain.Dock = DockStyle.Fill;
             splitContainerMain.BringToFront();
         }
+        /// <summary>
+        /// A small toolbar for the shared log. The existing clear handler is
+        /// retained, and the new button resumes following incoming entries.
+        /// </summary>
+        private void SetupGeneralLogToolbar()
+        {
+            var toolbar = new TableLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 31,
+                ColumnCount = 3,
+                RowCount = 1,
+                Padding = Padding.Empty,
+                Margin = Padding.Empty
+            };
+            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 105));
+            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95));
+
+            logPanel.Controls.Remove(beelinkClearLogButton);
+            beelinkClearLogButton.Dock = DockStyle.Fill;
+            beelinkClearLogButton.Margin = Padding.Empty;
+            toolbar.Controls.Add(beelinkClearLogButton, 0, 0);
+
+            var latestButton = new Button
+            {
+                Name = "btnResumeGeneralLog",
+                Text = "Вниз ↓",
+                Dock = DockStyle.Fill,
+                Margin = Padding.Empty,
+                UseVisualStyleBackColor = true
+            };
+            latestButton.Click += (_, _) => _logManager?.ResumeLogScroll();
+
+            var saveButton = new Button
+            {
+                Name = "btnSaveGeneralLog",
+                Text = "Сохранить",
+                Dock = DockStyle.Fill,
+                Margin = Padding.Empty,
+                UseVisualStyleBackColor = true
+            };
+            saveButton.Click += async (_, _) =>
+            {
+                if (_logManager != null)
+                    await LogExportDialog.SaveAsync(this, _logManager, "Общий");
+            };
+            toolbar.Controls.Add(saveButton, 1, 0);
+            toolbar.Controls.Add(latestButton, 2, 0);
+            logPanel.Controls.Add(toolbar);
+            toolbar.BringToFront();
+        }
         #endregion
 
         #region Инициализация сервисов
         private void InitializeServices()
         {
             _logManager = new LogManager(beelinkLogTextBox);
+            InitializeBlockLogs();
             _sshService = new SSHService();
             _timeService = new TimeCommandsService(_sshService);
-            _webServerService = new WebServerService(_logManager);
+            _webServerService = new WebServerService();
             _routeService = new RouteService();
-            _usrTransferService = new USRTransferService(_logManager);
+            _usrTransferService = new USRTransferService(_usrLog!);
             _httpProtokolService = new JSONRPCprotokolService(ConfigService.Config.HTTPprotokol);
             _httpPayService = new HTTPpayService(ConfigService.Config.HTTPpay);
             _sekopPacketSenderService = new SekopPacketSenderService();
             _sekopProtocolService = new SekopProtocolService(ConfigService.Config.SekopProtocol,_sekopPacketSenderService);
-            _emergencyService = new EmergencyService(_logManager);
+            _emergencyService = new EmergencyService(_emergencyLog!);
 
         }
         #endregion
+
+        /// <summary>Dedicated log inside each existing protocol block.</summary>
+        private void InitializeBlockLogs()
+        {
+            if (_logManager == null) return;
+            _blockLogs = new BlockLogPanelRegistry(_logManager);
+            _sshLog = _blockLogs.Add("SSH Beelink", beelinkContentPanel, beelinkCollapsiblePanel);
+            _webLog = _blockLogs.Add("Веб-сервер", webServerContentPanel, webServerCollapsiblePanel);
+            _demoLog = _blockLogs.Add("ЛК-ВИЗ / Demo", demoContentPanel, demoCollapsiblePanel);
+            _usrLog = _blockLogs.Add("ИР-0652", usrTransferContentPanel, usrTransferCollapsiblePanel);
+            _hermesLog = _blockLogs.Add("Гермес", hermesContentPanel, hermesCollapsiblePanel);
+            _httpPayLog = _blockLogs.Add("HTTP-платежи", httpPayContentPanel, httpPayCollapsiblePanel);
+            _jsonLog = _blockLogs.Add("JSON-RPC", httpProtokolContentPanel, httpProtokolCollapsiblePanel);
+            _sekopLog = _blockLogs.Add("СЭКОП", sekopContentPanel, sekopCollapsiblePanel);
+            _emergencyLog = _blockLogs.Add("МЧС", emergencyContentPanel, emergencyCollapsiblePanel);
+        }
 
         #region Инициализация менеджеров
         private void InitializeManagers()
         {
             _stateManager = new ConnectionStateManager(
-                beelinkConnectButton, beelinkDisconnectButton, beelinkTestButton, beelinkStatusLabel,
+                beelinkConnectButton, beelinkDisconnectButton, beelinkStatusLabel,
                 timeCheckButton, timeEnableNTPButton, timeDisableNTPButton, timeSetButton,
                 manualDatePicker, manualTimePicker, timeGroupBox
             );
@@ -126,39 +236,59 @@ namespace MKtest
                 webServerStartButton, webServerStopButton, webServerStatusLabel
             );
 
+            var settingsStore = new ConfigServiceSettingsStore();
             _settingsManager = new SettingsManager(
-                ipTextBox, portNumeric, userTextBox, passwordUserTextBox, passwordRootTextBox,
-                webServerIpTextBox, webServerPortNumeric, usrTransferIpTextBox, usrTransferPortNumeric, hermesIpTextBox, hermesPortNumeric,
-                hermesUserTextBox, hermesPasswordTextBox, httpProtokolIpTextBox, httpProtokolPortNumeric, httpPayIpTextBox, httpPayPortNumeric,
-                httpPayTerminalTextBox, httpPayRouteTextBox, httpPayTripNumeric, httpPayTripDatePicker, httpPayCurrentNumeric, httpPayIntervalNumeric,
-                sekopIpTextBox, sekopPortNumeric
-            );
+                settingsStore,
+                new SshSettingsSection(settingsStore,
+                    ipTextBox, portNumeric, userTextBox, passwordUserTextBox, passwordRootTextBox),
+                new WebServerSettingsSection(settingsStore,
+                    webServerIpTextBox, webServerPortNumeric),
+                new UsrTransferSettingsSection(settingsStore,
+                    usrTransferIpTextBox, usrTransferPortNumeric),
+                new HermesSettingsSection(
+                    hermesIpTextBox, hermesPortNumeric, hermesUserTextBox, hermesPasswordTextBox),
+                new JsonRpcSettingsSection(settingsStore,
+                    httpProtokolIpTextBox, httpProtokolPortNumeric),
+                new HttpPaySettingsSection(settingsStore,
+                    httpPayIpTextBox, httpPayPortNumeric, httpPayTerminalTextBox, httpPayRouteTextBox,
+                    httpPayTripNumeric, httpPayTripDatePicker, httpPayCurrentNumeric, httpPayIntervalNumeric),
+                new SekopSettingsSection(settingsStore,
+                    sekopIpTextBox, sekopPortNumeric));
 
             if (_sshService == null || _logManager == null || _stateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
-            _sshManager = new SSHConnectionManager(_sshService, _logManager, _stateManager);
+            _sshManager = new SSHConnectionManager(_sshService, _sshLog!, _stateManager);
 
             if (_webServerService == null || _logManager == null || _webServerStateManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
-            _webServerManager = new WebServerManager(_webServerService, _logManager, _webServerStateManager);
+            _webServerManager = new WebServerManager(_webServerService, _webLog!, _webServerStateManager);
 
             if (_timeService == null || _logManager == null || _sshManager == null)
                 throw new InvalidOperationException("Зависимые сервисы не инициализированы");
-            _timeManager = new TimeCommandsManager(_timeService, _logManager, () => _sshManager.IsConnected());
+            _timeManager = new TimeCommandsManager(_timeService, _sshLog!, () => _sshManager.IsConnected());
+            _beelinkTimeUiController = new BeelinkTimeUiController(
+                _timeManager,
+                () => _sshManager?.IsConnected() == true,
+                () => _shutdownStarted,
+                timeGroupBox,
+                beelinkDisconnectButton,
+                beelinkRemoteTimeTextBox,
+                message => _sshLog?.AppendLog(message));
             if (_sekopProtocolService == null || _logManager == null)
                 throw new InvalidOperationException("Сервисы протокола СЭКОП не инициализированы");
-            _sekopProtocolManager = new SekopProtocolManager(_sekopProtocolService,_logManager);
+            _sekopProtocolManager = new SekopProtocolManager(_sekopProtocolService,_sekopLog!);
 
             if (_emergencyService == null)
                 throw new InvalidOperationException("EmergencyService не инициализирован");
             _emergencyManager = new EmergencyManager(_emergencyService,ConfigService.Config.Emergency);
+            _emergencyUiController = new EmergencyUiController(_emergencyManager, _emergencyLog!.AppendLog);
             InitializeSekopProtocolMain();
 
             InitializeDemoServices();
 
             if (_routeService == null || _usrTransferService == null || _logManager == null)
                 throw new InvalidOperationException("USR сервисы не инициализированы");
-            _usrTransferManager = new USRTransferManager(_routeService, _usrTransferService, _logManager);
+            _usrTransferManager = new USRTransferManager(_routeService, _usrTransferService, _usrLog!);
             InitializeUsrTransferUi();
             InitializeHermesMain();
             InitializeHTTPpayMain();
@@ -171,14 +301,14 @@ namespace MKtest
             {
                 var demoConfig = new DemoConfig();
                 _demoFileService = new DemoFileService(demoConfig);
-                _demoScenarioService = new DemoScenarioService(_demoFileService, _logManager!);
+                _demoScenarioService = new DemoScenarioService(_demoFileService, _demoLog!);
                 _demoManager = new DemoScenarioManager(cmbDemoScenarios, btnStartDemo, btnStopDemo,
-                    lblDemoStatus, beelinkLogTextBox, _demoScenarioService);
-                _logManager?.AppendLog("Демо-сервисы инициализированы");
+                    lblDemoStatus, _demoLog!, _demoScenarioService);
+                _demoLog?.AppendLog("Демо-сервисы инициализированы");
             }
             catch (Exception ex)
             {
-                _logManager?.AppendLog($"Ошибка инициализации демо-сервисов: {ex.Message}");
+                _demoLog?.AppendLog($"Ошибка инициализации демо-сервисов: {ex.Message}");
             }
         }
 
@@ -192,216 +322,73 @@ namespace MKtest
             manualTimePicker.Format = DateTimePickerFormat.Time;
             manualTimePicker.ShowUpDown = true;
 
-            SaveOriginalHeights();
+            // Both columns use a real scroll viewport with explicit content height.
+            // The old FlowLayoutPanel stays in Designer but is not used at runtime.
+            leftFlowLayout.Visible = false;
+            panelLeft.Dock = DockStyle.Fill;
+            panelDownRight.Dock = DockStyle.Fill;
 
-            beelinkHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            beelinkHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            beelinkCollapsiblePanel.Tag = "beelink";
+            _leftPanelLayout = new ScrollablePanelStackController(
+                panelLeft, webServerCollapsiblePanel, demoCollapsiblePanel,
+                usrTransferCollapsiblePanel, emergencyCollapsiblePanel);
+            _rightPanelLayout = new RightPanelFlowController(
+                panelDownRight, httpProtokolCollapsiblePanel, httpPayCollapsiblePanel,
+                sekopCollapsiblePanel, hermesCollapsiblePanel, beelinkCollapsiblePanel);
+            _collapsiblePanelController = new CollapsiblePanelController(UpdateLayout);
+            _collapsiblePanelController.Register(beelinkCollapsiblePanel, beelinkHeaderPanel, beelinkHeaderLabel, beelinkContentPanel, "SSH Beelink");
+            _collapsiblePanelController.Register(webServerCollapsiblePanel, webServerHeaderPanel, webServerHeaderLabel, webServerContentPanel, "Веб-сервер");
+            _collapsiblePanelController.Register(demoCollapsiblePanel, demoHeaderPanel, demoHeaderLabel, demoContentPanel, "ЛК-ВИЗ через route.json");
+            _collapsiblePanelController.Register(usrTransferCollapsiblePanel, usrTransferHeaderPanel, usrTransferHeaderLabel, usrTransferContentPanel, "ИР-0652");
+            _collapsiblePanelController.Register(hermesCollapsiblePanel, hermesHeaderPanel, hermesHeaderLabel, hermesContentPanel, "Гермес");
+            _collapsiblePanelController.Register(httpPayCollapsiblePanel, httpPayHeaderPanel, httpPayHeaderLabel, httpPayContentPanel, "Протокол HTTP");
+            _collapsiblePanelController.Register(httpProtokolCollapsiblePanel, httpProtokolHeaderPanel, httpProtokolHeaderLabel, httpProtokolContentPanel, "Протокол JSON-RPC");
 
-            webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            webServerHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            webServerCollapsiblePanel.Tag = "webserver";
+            // В Designer имена заголовка СЭКОП исторически переставлены:
+            // sekopHeaderLabel — Panel, sekopHeaderPanel — Label.
+            _collapsiblePanelController.Register(sekopCollapsiblePanel, sekopHeaderLabel, sekopHeaderPanel, sekopContentPanel, "Протокол СЭКОП");
+            _collapsiblePanelController.Register(emergencyCollapsiblePanel, emergencyHeaderPanel, emergencyHeaderLabel, emergencyContentPanel, "Команды МЧС");
 
-            demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            demoHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            demoCollapsiblePanel.Tag = "demo";
-
-            usrTransferHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            usrTransferHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            usrTransferCollapsiblePanel.Tag = "usrtransfer";
+            if (_blockLogs != null)
+                _blockLogs.LogHeightChanged += _collapsiblePanelController.AdjustExpandedHeight;
 
             webServerStartButton.Click += WebServerStartButton_Click;
             webServerStopButton.Click += WebServerStopButton_Click;
 
-
-            hermesCollapsiblePanel.Tag = "hermes";
-
-            httpPayHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            httpPayHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            httpPayCollapsiblePanel.Tag = "httppay";
-
-            httpProtokolHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            httpProtokolHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            httpProtokolCollapsiblePanel.Tag = "httpprotokol";
-
-            btnHttpProtokolStart.Click += btnHttpProtokolStart_Click;
-            btnHttpProtokolStop.Click += btnHttpProtokolStop_Click;
-            btnHttpProtokolTest.Click += btnHttpProtokolTest_Click;
-            btnHttpProtokolUpdate.Click += btnHttpProtokolUpdate_Click;
-
-
-            sekopHeaderPanel.Click -= CollapsiblePanelHeader_Click;
-            sekopHeaderLabel.Click -= CollapsiblePanelHeader_Click;
-
-            sekopHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            sekopHeaderLabel.Click += CollapsiblePanelHeader_Click;
-
-            sekopCollapsiblePanel.Tag = "sekop";
-            sekopTransactionsNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
-            sekopPassengersNumeric.ValueChanged += sekopValuesNumeric_ValueChanged;
-
-            emergencyHeaderPanel.Click += CollapsiblePanelHeader_Click;
-            emergencyHeaderLabel.Click += CollapsiblePanelHeader_Click;
-            emergencyCollapsiblePanel.Tag = "emergency";
-
-
             _settingsManager?.LoadSettings();
             Resize += MainForm_Resize;
-            CollapseAllPanels();
+            _collapsiblePanelController.CollapseAll();
 
-            // Сохраняем оригинальный обработчик кнопки «Запустить» (автоматический режим)
-            _autoStartHandler = _demoManager?.StartButtonHandler;
+            if (_demoScenarioService != null)
+            {
+                // The previous-step button is kept outside Designer.cs to avoid
+                // generated-code conflicts and is visible only in manual mode.
+                _btnPreviousDemoStep = new Button
+                {
+                    Name = "btnPreviousDemoStep",
+                    Text = "Назад",
+                    Location = new System.Drawing.Point(246, 37),
+                    Size = new System.Drawing.Size(71, 25),
+                    UseVisualStyleBackColor = true,
+                    TabIndex = btnNextStep.TabIndex + 1
+                };
+                demoContentPanel.Controls.Add(_btnPreviousDemoStep);
 
-            // Инициализация TCS для ручного режима
-            _manualStepTcs = new TaskCompletionSource<bool>();
-
-            // Подписка на радиокнопки и кнопку "Далее"
-            rbAutoMode.CheckedChanged += rbAutoMode_CheckedChanged;
-            rbManualMode.CheckedChanged += rbManualMode_CheckedChanged;
-            btnNextStep.Click += btnNextStep_Click;
-
-            // Установить начальное состояние (автоматический режим)
-            rbAutoMode.Checked = true;
-            rbAutoMode_CheckedChanged(rbAutoMode, EventArgs.Empty);
-
-        }
-
-        private void SaveOriginalHeights()
-        {
-            _originalHeights[beelinkCollapsiblePanel] = beelinkCollapsiblePanel.Height;
-            _originalHeights[webServerCollapsiblePanel] = webServerCollapsiblePanel.Height;
-            _originalHeights[demoCollapsiblePanel] = demoCollapsiblePanel.Height;
-            _originalHeights[usrTransferCollapsiblePanel] = usrTransferCollapsiblePanel.Height;
-            _originalHeights[hermesCollapsiblePanel] = hermesCollapsiblePanel.Height;
-            _originalHeights[httpPayCollapsiblePanel] = httpPayCollapsiblePanel.Height;
-            _originalHeights[httpProtokolCollapsiblePanel] = httpProtokolCollapsiblePanel.Height;
-            _originalHeights[sekopCollapsiblePanel] = sekopCollapsiblePanel.Height;
-            _originalHeights[emergencyCollapsiblePanel] = emergencyCollapsiblePanel.Height;
-        }
-
-        private void CollapseAllPanels()
-        {
-            beelinkContentPanel.Visible = false;
-            beelinkCollapsiblePanel.Height = beelinkHeaderPanel.Height;
-            beelinkHeaderLabel.Text = "SSH Beelink ▶";
-
-            webServerContentPanel.Visible = false;
-            webServerCollapsiblePanel.Height = webServerHeaderPanel.Height;
-            webServerHeaderLabel.Text = "Веб-сервер ▶";
-
-            demoContentPanel.Visible = false;
-            demoCollapsiblePanel.Height = demoHeaderPanel.Height;
-            demoHeaderLabel.Text = "ЛК-ВИЗ через route.json ▶";
-
-            usrTransferContentPanel.Visible = false;
-            usrTransferCollapsiblePanel.Height = usrTransferHeaderPanel.Height;
-            usrTransferHeaderLabel.Text = "ИР-0652 ▶";
-
-            hermesContentPanel.Visible = false;
-            hermesCollapsiblePanel.Height = hermesHeaderPanel.Height;
-            hermesHeaderLabel.Text = "Гермес ▶";
-
-            httpPayContentPanel.Visible = false;
-            httpPayCollapsiblePanel.Height = httpPayHeaderPanel.Height;
-            httpPayHeaderLabel.Text = "Протокол HTTP ▶";
-
-            httpProtokolContentPanel.Visible = false;
-            httpProtokolCollapsiblePanel.Height = httpProtokolHeaderPanel.Height;
-            httpProtokolHeaderLabel.Text = "Протокол JSON-RPC ▶";
-
-            sekopContentPanel.Visible = false;
-            sekopCollapsiblePanel.Height = sekopHeaderPanel.Height;
-            sekopHeaderLabel.Text = "Протокол СЭКОП ▶";
-
-            emergencyContentPanel.Visible = false;
-            emergencyCollapsiblePanel.Height = emergencyHeaderPanel.Height;
-            emergencyHeaderLabel.Text ="Команды МЧС ▶";
-            UpdateLayout();
+                _demoModeController = new DemoModeController(
+                    rbAutoMode, rbManualMode, btnStartDemo, btnNextStep,
+                    _btnPreviousDemoStep, cmbDemoScenarios, _demoScenarioService,
+                    message => _demoLog?.AppendLog(message));
+            }
         }
 
         private void MainForm_Resize(object? sender, EventArgs e)
         {
             if (mainTabControl.SelectedTab == mainTabPage) UpdateLayout();
         }
-        #endregion
-
-        #region Обработчики сворачиваемых панелей
-        private void CollapsiblePanelHeader_Click(object sender, EventArgs e)
-        {
-            Panel? headerPanel = sender as Panel ?? (sender as Label)?.Parent as Panel;
-            if (headerPanel == null) return;
-            ToggleCollapsiblePanel(headerPanel);
-        }
-
-        private void ToggleCollapsiblePanel(Panel headerPanel)
-        {
-            var collapsiblePanel = headerPanel.Parent as Panel;
-            if (collapsiblePanel == null || !_originalHeights.ContainsKey(collapsiblePanel)) return;
-
-            var contentPanel = collapsiblePanel.Controls.OfType<Panel>().FirstOrDefault(p => p != headerPanel);
-            if (contentPanel == null) return;
-
-            if (contentPanel.Visible)
-            {
-                contentPanel.Visible = false;
-                collapsiblePanel.Height = headerPanel.Height;
-                UpdateHeaderLabel(headerPanel, false);
-            }
-            else
-            {
-                contentPanel.Visible = true;
-                collapsiblePanel.Height = _originalHeights[collapsiblePanel];
-                UpdateHeaderLabel(headerPanel, true);
-            }
-
-            UpdateLayout();
-        }
-
-        private void UpdateHeaderLabel(Panel headerPanel, bool isExpanded)
-        {
-            var label = headerPanel.Controls.OfType<Label>().FirstOrDefault();
-            if (label == null) return;
-
-            var panelType = (headerPanel.Parent as Panel)?.Tag?.ToString() ?? "";
-            switch (panelType)
-            {
-                case "beelink":
-                    label.Text = isExpanded ? "SSH Beelink ▼" : "SSH Beelink ▶";
-                    break;
-                case "webserver":
-                    label.Text = isExpanded ? "Веб-сервер ▼" : "Веб-сервер ▶";
-                    break;
-                case "demo":
-                    label.Text = isExpanded ? "ЛК-ВИЗ через route.json ▼" : "ЛК-ВИЗ через route.json ▶";
-                    break;
-
-                case "usrtransfer":
-                    label.Text = isExpanded ? "ИР-0652 ▼" : "ИР-0652 ▶";
-                    break;
-                case "hermes":
-                    label.Text = isExpanded ? "Гермес ▼" : "Гермес ▶";
-                    break;
-                case "httppay":
-                    label.Text = isExpanded ? "Протокол HTTP ▼" : "Протокол HTTP ▶";
-                    break;
-                case "httpprotokol":
-                    label.Text = isExpanded
-                        ? "Протокол JSON-RPC ▼" : "Протокол JSON-RPC ▶";
-                    break;
-                case "sekop":
-                    label.Text = isExpanded
-                        ? "Протокол СЭКОП ▼" : "Протокол СЭКОП ▶";
-                    break;
-                case "emergency":
-                    label.Text = isExpanded
-                        ? "Команды МЧС ▼": "Команды МЧС ▶";
-                    break;
-            }
-        }
 
         private void UpdateLayout()
         {
-            leftFlowLayout?.PerformLayout();
+            _leftPanelLayout?.RefreshLayout();
+            _rightPanelLayout?.RefreshLayout();
         }
         #endregion
 
@@ -415,24 +402,44 @@ namespace MKtest
                 return;
             }
 
+            _beelinkTimeUiController?.ClearReadout();
             var config = ConfigService.Config.SSHBeelink;
             await _sshManager.ConnectAsync(config);
         }
 
-        private void beelinkDisconnectButton_Click(object sender, EventArgs e) => _sshManager?.Disconnect();
-
-        private void beelinkTestButton_Click(object sender, EventArgs e)
+        private void beelinkDisconnectButton_Click(object sender, EventArgs e)
         {
-            if (_sshManager?.IsConnected() == true) _sshManager.TestConnection();
-            else beelinkConnectButton_Click(sender, e);
+            _sshManager?.Disconnect();
+            _beelinkTimeUiController?.ClearReadout();
         }
         #endregion
 
         #region Обработчики команд времени
-        private void timeCheckButton_Click(object sender, EventArgs e) => _timeManager?.CheckTimeStatus();
-        private void timeEnableNTPButton_Click(object sender, EventArgs e) => _timeManager?.EnableNTP();
-        private void timeDisableNTPButton_Click(object sender, EventArgs e) => _timeManager?.DisableNTP();
-        private void timeSetButton_Click(object sender, EventArgs e) => _timeManager?.SetManualDateTime(manualDatePicker.Value, manualTimePicker.Value);
+        // WinForms Designer handlers remain stable. Behavior lives in the UI controller.
+        private async void timeCheckButton_Click(object sender, EventArgs e)
+        {
+            if (_beelinkTimeUiController != null)
+                await _beelinkTimeUiController.CheckAsync();
+        }
+
+        private async void timeEnableNTPButton_Click(object sender, EventArgs e)
+        {
+            if (_beelinkTimeUiController != null)
+                await _beelinkTimeUiController.EnableNtpAsync();
+        }
+
+        private async void timeDisableNTPButton_Click(object sender, EventArgs e)
+        {
+            if (_beelinkTimeUiController != null)
+                await _beelinkTimeUiController.DisableNtpAsync();
+        }
+
+        private async void timeSetButton_Click(object sender, EventArgs e)
+        {
+            if (_beelinkTimeUiController != null)
+                await _beelinkTimeUiController.SetManualTimeAsync(
+                    manualDatePicker.Value, manualTimePicker.Value);
+        }
         #endregion
 
         #region Обработчики UI
@@ -440,8 +447,8 @@ namespace MKtest
 
         private void beelinkLogTextBox_TextChanged(object sender, EventArgs e)
         {
-            beelinkLogTextBox.SelectionStart = beelinkLogTextBox.Text.Length;
-            beelinkLogTextBox.ScrollToCaret();
+            // Viewport position is owned by WinFormsLogSink.
+            // Forcing ScrollToCaret here prevents reading earlier records.
         }
         #endregion
 
@@ -500,7 +507,7 @@ namespace MKtest
         #endregion
 
         #region Обработчики веб-сервера
-        private void WebServerStartButton_Click(object sender, EventArgs e)
+        private void WebServerStartButton_Click(object? sender, EventArgs e)
         {
             if (_webServerManager == null)
             {
@@ -512,146 +519,48 @@ namespace MKtest
             _webServerManager.StartServer(ConfigService.Config.WebServer);
         }
 
-        private void WebServerStopButton_Click(object sender, EventArgs e) => _webServerManager?.StopServer();
+        private void WebServerStopButton_Click(object? sender, EventArgs e) => _webServerManager?.StopServer();
         #endregion
 
         #region USR Transfer
+        // Адаптеры для обработчиков, привязанных в MainForm.Designer.cs.
+        // Вся логика представления ИР-0652 находится в USRTransferUiController.
         private void InitializeUsrTransferUi()
         {
-            if (_usrTransferManager == null) return;
+            if (_usrTransferManager == null || _logManager == null) return;
 
-            _usrTransferManager.ProgressChanged += UsrTransferManager_ProgressChanged;
-            LoadUsrRoutesToUi();
-            SetUsrButtons(false);
-
-            if (lblUsrStatus != null) lblUsrStatus.Text = "Статус: Остановлен";
-            if (lblUsrStep != null) lblUsrStep.Text = "Шаг: 0/0";
-            if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
-
-            cmbInMode.Items.Clear();
-            cmbInMode.Items.Add("Все подряд");
-            cmbInMode.Items.Add("С выбранного");
-            cmbInMode.Items.Add("Только выбранный");
-            cmbInMode.SelectedIndex = 0;
+            _usrTransferUiController = new USRTransferUiController(
+                _usrTransferManager,
+                new USRTransferControls(
+                    cmbUsrRoutes, cmbInMode, lstSvcFiles, lstInFiles,
+                    btnUsrTest, btnUsrSendSvc, btnUsrStartIn, btnUsrStopIn,
+                    lblUsrStatus, lblUsrStep, lblUsrCountdown),
+                _usrLog!.AppendLog);
         }
 
-        private void LoadUsrRoutesToUi()
-        {
-            if (_usrTransferManager == null || cmbUsrRoutes == null) return;
-
-            cmbUsrRoutes.Items.Clear();
-            foreach (var route in _usrTransferManager.LoadRoutes())
-                cmbUsrRoutes.Items.Add(route.RouteNumber);
-
-            if (cmbUsrRoutes.Items.Count > 0) cmbUsrRoutes.SelectedIndex = 0;
-        }
-
-        private void cmbUsrRoutes_SelectedIndexChanged(object? sender, EventArgs e)
-        {
-            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null) return;
-
-            var selected = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
-            var route = _usrTransferManager.LoadRoutes().FirstOrDefault(r => r.RouteNumber == selected);
-
-            lstSvcFiles?.Items.Clear();
-            lstInFiles?.Items.Clear();
-            if (route == null) return;
-
-            foreach (var svc in route.SvcFilePaths) lstSvcFiles?.Items.Add(System.IO.Path.GetFileName(svc));
-            foreach (var inf in route.InFilePaths) lstInFiles?.Items.Add(System.IO.Path.GetFileName(inf));
-
-            if (lblUsrStatus != null) lblUsrStatus.Text = $"Статус: Маршрут {route.RouteNumber}";
-            if (lblUsrStep != null) lblUsrStep.Text = $"Шаг: 0/{route.InFilePaths.Count}";
-            if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
-        }
+        private void cmbUsrRoutes_SelectedIndexChanged(object? sender, EventArgs e) =>
+            _usrTransferUiController?.RouteChanged();
 
         private async void btnUsrTest_Click(object? sender, EventArgs e)
         {
-            if (_usrTransferManager == null || _logManager == null) return;
-            var ok = await _usrTransferManager.TestConnectionAsync();
-            _logManager.AppendLog(ok ? "USR: подключение установлено" : "USR: тест не пройден (timeout/ошибка)");
+            if (_usrTransferUiController != null)
+                await _usrTransferUiController.TestConnectionAsync();
         }
 
         private async void btnUsrSendSvc_Click(object? sender, EventArgs e)
         {
-            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null || lstSvcFiles?.SelectedItem == null)
-            {
-                _logManager?.AppendLog("Выберите маршрут и SVC файл");
-                return;
-            }
-
-            var routeNumber = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
-            var svcFileName = lstSvcFiles.SelectedItem.ToString() ?? string.Empty;
-            await _usrTransferManager.SendSelectedSvcAsync(routeNumber, svcFileName);
+            if (_usrTransferUiController != null)
+                await _usrTransferUiController.SendSelectedSvcAsync();
         }
 
         private async void btnUsrStartIn_Click(object? sender, EventArgs e)
         {
-            if (_usrTransferManager == null || cmbUsrRoutes?.SelectedItem == null) return;
-            if (_usrTransferManager.IsSequenceRunning) return;
-
-            var routeNumber = cmbUsrRoutes.SelectedItem.ToString() ?? string.Empty;
-            var mode = cmbInMode?.SelectedItem?.ToString() ?? "Все подряд";
-            var selectedIn = lstInFiles?.SelectedItem?.ToString() ?? string.Empty;
-
-            SetUsrButtons(true);
-            try
-            {
-                if (mode == "Все подряд")
-                {
-                    await _usrTransferManager.StartInSequenceAsync(routeNumber);
-                }
-                else if (mode == "С выбранного")
-                {
-                    if (string.IsNullOrWhiteSpace(selectedIn))
-                    {
-                        _logManager?.AppendLog("Выберите IN файл для режима 'С выбранного'");
-                        return;
-                    }
-                    await _usrTransferManager.StartInFromSelectedAsync(routeNumber, selectedIn);
-                }
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(selectedIn))
-                    {
-                        _logManager?.AppendLog("Выберите IN файл для режима 'Только выбранный'");
-                        return;
-                    }
-                    await _usrTransferManager.SendSingleInAsync(routeNumber, selectedIn);
-                }
-            }
-            finally
-            {
-                SetUsrButtons(false);
-                if (lblUsrCountdown != null) lblUsrCountdown.Text = "След. через: -- сек";
-            }
+            if (_usrTransferUiController != null)
+                await _usrTransferUiController.StartInAsync();
         }
 
-        private void btnUsrStopIn_Click(object? sender, EventArgs e) => _usrTransferManager?.StopInSequence();
-
-        private void UsrTransferManager_ProgressChanged(object? sender, TransferProgressEventArgs e)
-        {
-            if (InvokeRequired)
-            {
-                Invoke(new Action(() => UsrTransferManager_ProgressChanged(sender, e)));
-                return;
-            }
-
-            if (lblUsrStatus != null) lblUsrStatus.Text = $"Статус: {e.Status}";
-            if (lblUsrStep != null) lblUsrStep.Text = $"Шаг: {e.CurrentStep}/{e.TotalSteps}";
-            if (lblUsrCountdown != null)
-                lblUsrCountdown.Text = e.CountdownSeconds > 0
-                    ? $"След. через: {e.CountdownSeconds} сек"
-                    : "След. через: -- сек";
-        }
-
-        private void SetUsrButtons(bool isRunning)
-        {
-            if (btnUsrStartIn != null) btnUsrStartIn.Enabled = !isRunning;
-            if (btnUsrSendSvc != null) btnUsrSendSvc.Enabled = !isRunning;
-            if (btnUsrStopIn != null) btnUsrStopIn.Enabled = isRunning;
-            if (btnUsrTest != null) btnUsrTest.Enabled = !isRunning;
-        }
+        private void btnUsrStopIn_Click(object? sender, EventArgs e) =>
+            _usrTransferUiController?.StopIn();
         #endregion
 
         #region Обработчики настроек USR Transfer
@@ -682,165 +591,147 @@ namespace MKtest
         #endregion
 
         #region Hermes Main
-
         private HermesPassengerManager? _hermesManager;
         private IHermesPassengerService? _hermesService;
 
         private void InitializeHermesMain()
         {
-            if (_logManager == null) return;
+            if (_hermesLog == null) return;
 
             var cfg = ConfigService.Config.HermesSSH;
-            _hermesService = new HermesPassengerService(_logManager, cfg);
-            _hermesManager = new HermesPassengerManager(_hermesService, _logManager);
-            _hermesManager.StatusChanged += HermesManager_StatusChanged;
-
-            hermesEnteredTextBox.Text = "0";
-            hermesExitedTextBox.Text = "0";
-            lblHermesStatus.Text = "Статус: Остановлено";
-            SetHermesButtons(false);
+            _hermesService = new HermesPassengerService(_hermesLog, cfg);
+            _hermesManager = new HermesPassengerManager(_hermesService, _hermesLog);
+            _hermesUiController = new HermesUiController(
+                _hermesManager,
+                new HermesControls(
+                    hermesEnteredTextBox, hermesExitedTextBox,
+                    btnHermesStart, btnHermesStop, btnHermesTest,
+                    btnHermesUpdate, lblHermesStatus),
+                _hermesLog.AppendLog);
         }
 
+        // Designer event adapters. UI state/validation live in HermesUiController.
         private async void btnHermesStart_Click(object sender, EventArgs e)
         {
-            if (_hermesManager == null || _logManager == null) return;
-            if (!TryReadHermesValues(out var entered, out var exited)) return;
-            if (_hermesManager.IsRunning) return;
-
-            SetHermesButtons(true);
-            lblHermesStatus.Text = "Статус: Запуск...";
-
-            try
-            {
-                await _hermesManager.StartAsync(entered, exited);
-            }
-            catch (Exception ex)
-            {
-                _logManager.AppendLog($"Hermes start error: {ex.Message}");
-                lblHermesStatus.Text = "Статус: Ошибка подключения";
-                MessageBox.Show($"Hermes недоступен:\n{ex.Message}", "Hermes",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-            finally
-            {
-                if (_hermesManager.IsRunning == false)
-                    SetHermesButtons(false);
-            }
+            if (_hermesUiController != null)
+                await _hermesUiController.StartAsync();
         }
 
         private async void btnHermesStop_Click(object sender, EventArgs e)
         {
-            if (_hermesManager == null || _logManager == null) return;
-
-            try
-            {
-                await _hermesManager.StopAsync();
-            }
-            catch (Exception ex)
-            {
-                _logManager.AppendLog($"Hermes stop error: {ex.Message}");
-            }
-            finally
-            {
-                SetHermesButtons(false);
-                lblHermesStatus.Text = "Статус: Остановлено";
-            }
+            if (_hermesUiController != null)
+                await _hermesUiController.StopAsync();
         }
 
         private async void btnHermesTest_Click(object sender, EventArgs e)
         {
-            if (_hermesManager == null || _logManager == null) return;
-
-            try
-            {
-                lblHermesStatus.Text = "Статус: Тест...";
-                var ok = await _hermesManager.TestConnectionAsync();
-                lblHermesStatus.Text = ok ? "Статус: Доступно" : "Статус: Недоступно";
-                _logManager.AppendLog(ok
-                    ? "Hermes SSH: подключение успешно"
-                    : "Hermes SSH: подключение не удалось");
-            }
-            catch (Exception ex)
-            {
-                _logManager.AppendLog($"Hermes test fatal: {ex.Message}");
-                lblHermesStatus.Text = "Статус: Ошибка";
-            }
+            if (_hermesUiController != null)
+                await _hermesUiController.TestAsync();
         }
 
-        private void btnHermesUpdate_Click(object sender, EventArgs e)
-        {
-            if (_hermesManager == null || _logManager == null) return;
-            if (!TryReadHermesValues(out var entered, out var exited)) return;
-
-            _hermesManager.UpdateValues(entered, exited);
-            _logManager.AppendLog($"Hermes: обновлены значения A={entered}, B={exited}");
-        }
-
-        private bool TryReadHermesValues(out int entered, out int exited)
-        {
-            entered = 0;
-            exited = 0;
-
-            if (!int.TryParse(hermesEnteredTextBox.Text, out entered) || entered < 0 || entered > 255)
-            {
-                MessageBox.Show("Поле 'Вошло' должно быть числом 0..255", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            if (!int.TryParse(hermesExitedTextBox.Text, out exited) || exited < 0 || exited > 255)
-            {
-                MessageBox.Show("Поле 'Вышло' должно быть числом 0..255", "Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            return true;
-        }
-
-        private void HermesManager_StatusChanged(string status)
-        {
-            if (InvokeRequired)
-            {
-                Invoke(new Action(() => HermesManager_StatusChanged(status)));
-                return;
-            }
-
-            lblHermesStatus.Text = $"Статус: {status}";
-            SetHermesButtons(_hermesManager?.IsRunning == true);
-        }
-
-        private void SetHermesButtons(bool running)
-        {
-            btnHermesStart.Enabled = !running;
-            btnHermesStop.Enabled = running;
-            btnHermesTest.Enabled = !running;
-            btnHermesUpdate.Enabled = true;
-        }
+        private void btnHermesUpdate_Click(object sender, EventArgs e) =>
+            _hermesUiController?.Update();
 
         #endregion
 
         #region События формы
         private void MainForm_Load(object sender, EventArgs e) => _logManager?.AppendLog("Приложение запущено");
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (_shutdownCompleted)
+                return;
+
+            // Cancel the first close request, then close again after asynchronous
+            // network workers have actually stopped. This keeps the UI responsive.
+            e.Cancel = true;
+            if (_shutdownStarted)
+                return;
+
+            _shutdownStarted = true;
+            Enabled = false;
+
             try
             {
-                _usrTransferManager?.StopInSequence();
-                _sshService?.Dispose();
-                _webServerService?.Dispose();
-                _httpPayManager?.Stop();
-                _httpPayService?.Dispose();
-                _demoManager?.Cleanup();
-                _logManager?.AppendLog("Приложение закрывается");
-                if (_hermesManager != null)
-                    _hermesManager.StopAsync().Wait(1500);
+                await ShutdownServicesAsync();
             }
             catch (Exception ex)
             {
-                _logManager?.AppendLog($"Ошибка при закрытии: {ex.Message}");
+                try { _logManager?.AppendLog($"Ошибка завершения MKtest: {ex.Message}"); }
+                catch { }
+            }
+            finally
+            {
+                // Every UI resource is released separately: one exception must
+                // not leave the application permanently disabled.
+                TryStop("Demo UI", () => _demoModeController?.Dispose());
+                TryStop("ИР-0652 UI", () => _usrTransferUiController?.Dispose());
+                TryStop("Гермес UI", () => _hermesUiController?.Dispose());
+                TryStop("Время Beelink UI", () => _beelinkTimeUiController?.Dispose());
+                TryStop("СЭКОП UI", () => _sekopUiController?.Dispose());
+                TryStop("Панели", () => _collapsiblePanelController?.Dispose());
+                TryStop("Левая колонка", () => _leftPanelLayout?.Dispose());
+                TryStop("Правая колонка", () => _rightPanelLayout?.Dispose());
 
+                TryStop("Журналы", () => _logManager?.AppendLog("Приложение закрывается"));
+                try { _blockLogs?.Dispose(); } catch { }
+                try { _logManager?.Dispose(); } catch { }
+
+                _shutdownCompleted = true;
+                if (!IsDisposed)
+                    Close();
+            }
+        }
+
+        private Task ShutdownServicesAsync()
+        {
+            var shutdown = new ApplicationShutdownCoordinator(
+                message => _logManager?.AppendLog(message));
+
+            shutdown.AddCancel("ИР-0652", () => _usrTransferManager?.StopInSequence());
+            shutdown.AddCancel("JSON-RPC", () => _httpProtokolManager?.Stop());
+            shutdown.AddCancel("HTTPpay", () => _httpPayManager?.Stop());
+            shutdown.AddCancel("Demo", () => _demoScenarioService?.StopScenario());
+            shutdown.AddCancel("СЭКОП", () => _sekopProtocolManager?.Stop());
+            shutdown.AddCancel("МЧС", () => _emergencyService?.Dispose());
+
+            shutdown.AddWait("ИР-0652", () =>
+                _usrTransferManager?.StopInSequenceAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("JSON-RPC", () =>
+                _httpProtokolManager?.StopAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("HTTPpay", () =>
+                _httpPayManager?.StopAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("Demo", () =>
+                _demoManager?.CleanupAsync() ??
+                _demoScenarioService?.StopScenarioAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("Гермес", () =>
+                _hermesManager?.StopAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("Время Beelink", () =>
+                _timeManager?.WaitForIdleAsync() ?? Task.CompletedTask);
+            shutdown.AddWait("СЭКОП", () =>
+                _sekopProtocolManager?.StopAsync() ?? Task.CompletedTask);
+
+            shutdown.AddDispose("SSH Beelink", () =>
+                Task.Run(() => _sshService?.Dispose()));
+            shutdown.AddDispose("Веб-сервер", () =>
+                Task.Run(() => _webServerService?.Dispose()));
+            shutdown.AddDispose("Гермес", () =>
+                Task.Run(() => _hermesService?.Dispose()));
+            shutdown.AddDispose("HTTPpay", () =>
+                Task.Run(() => _httpPayService?.Dispose()));
+            shutdown.AddDispose("СЭКОП TCP", () =>
+                Task.Run(() => _sekopPacketSenderService?.Dispose()));
+
+            return shutdown.RunAsync();
+        }
+
+        private void TryStop(string name, Action action)
+        {
+            try { action(); }
+            catch (Exception ex)
+            {
+                try { _logManager?.AppendLog($"Остановка {name}: {ex.Message}"); }
+                catch { }
             }
         }
 
@@ -886,14 +777,13 @@ namespace MKtest
 
         private void InitializeHTTPprotokol()
         {
-            if (_httpProtokolService == null || _logManager == null)
-                return;
-            _httpProtokolManager = new JSONRPCprotokolManager(_httpProtokolService, _logManager);
-            httpProtokolTrCounterTextBox.Text = "0";
-            httpProtokolIntervalTextBox.Text = "5";
-            lblHttpStatus.Text = "Статус: Остановлено";
-            btnHttpProtokolStart.Enabled = true;
-            btnHttpProtokolStop.Enabled = false;
+            if (_httpProtokolService == null || _jsonLog == null) return;
+            _httpProtokolManager = new JSONRPCprotokolManager(_httpProtokolService, _jsonLog);
+            _jsonRpcUiController = new JsonRpcUiController(
+                _httpProtokolManager, _httpProtokolService,
+                httpProtokolTrCounterTextBox, httpProtokolIntervalTextBox,
+                btnHttpProtokolStart, btnHttpProtokolStop, lblHttpStatus,
+                _jsonLog.AppendLog);
         }
 
         private void httpProtokolSaveButton_Click(object sender, EventArgs e)
@@ -928,152 +818,42 @@ namespace MKtest
             }
         }
 
-        private void btnHttpProtokolStart_Click(object sender, EventArgs e)
-        {
-            if (_httpProtokolManager == null)
-                return;
-            try
-            {
-                int trCounter = int.Parse(httpProtokolTrCounterTextBox.Text);
-                int interval = int.Parse(httpProtokolIntervalTextBox.Text);
-                _httpProtokolManager.Start(trCounter, interval);
-                btnHttpProtokolStart.Enabled = false;
-                btnHttpProtokolStop.Enabled = true;
-                lblHttpStatus.Text = "Статус: Запущено"; _logManager?.AppendLog("JSONRPC запущен");
-            }
-            catch (Exception ex)
-            {
-                _logManager?.AppendLog(ex.Message);
-            }
-        }
+        // WinForms Designer handlers delegate all protocol UI logic.
+        private void btnHttpProtokolStart_Click(object sender, EventArgs e) =>
+            _jsonRpcUiController?.Start();
 
-        private void btnHttpProtokolStop_Click(object sender, EventArgs e)
-        {
-            if (_httpProtokolManager == null)
-                return;
-            _httpProtokolManager.Stop();
-            btnHttpProtokolStart.Enabled = true;
-            btnHttpProtokolStop.Enabled = false;
-            lblHttpStatus.Text = "Статус: Остановлено";
-            _logManager?.AppendLog("JsonRPCprotokol остановлен");
-        }
+        private void btnHttpProtokolStop_Click(object sender, EventArgs e) =>
+            _jsonRpcUiController?.Stop();
+
         private async void btnHttpProtokolTest_Click(object sender, EventArgs e)
         {
-            if (_httpProtokolService == null)
-                return;
-            try
-            {
-                int trCounter = int.Parse(httpProtokolTrCounterTextBox.Text);
-                await _httpProtokolService.SendAsync(trCounter, CancellationToken.None);
-                _logManager?.AppendLog("JSONRPC тест отправлен");
-            }
-            catch (Exception ex)
-            {
-                _logManager?.AppendLog(ex.Message);
-            }
+            if (_jsonRpcUiController != null)
+                await _jsonRpcUiController.TestAsync();
         }
-        private void btnHttpProtokolUpdate_Click(object sender, EventArgs e)
-        {
-            if (_httpProtokolManager == null)
-                return;
 
-            try
-            {
-                int trCounter =
-                    int.Parse(httpProtokolTrCounterTextBox.Text);
-
-                int interval =
-                    int.Parse(httpProtokolIntervalTextBox.Text);
-
-                _httpProtokolManager.UpdateValues(
-                    trCounter,
-                    interval);
-
-                _logManager?.AppendLog(
-                    "JSONRPCprotokol параметры обновлены");
-            }
-            catch (Exception ex)
-            {
-                _logManager?.AppendLog(ex.Message);
-            }
-        }
+        private void btnHttpProtokolUpdate_Click(object sender, EventArgs e) =>
+            _jsonRpcUiController?.Update();
         #endregion
 
         #region HTTPpay Main
 
         private void InitializeHTTPpayMain()
         {
-            if (_httpPayService == null || _logManager == null)
-                return;
-
-            _httpPayManager =
-                new HTTPpayManager(
-                    _httpPayService,
-                    _logManager);
-
-            httpPayTotalNumeric.Value =
-                Math.Min(
-                    httpPayTotalNumeric.Maximum,
-                    (decimal)ConfigService.Config.HTTPpay.TotalPayments);
-
-            lblHttpPayStatus.Text = "Статус: Остановлено";
-            SetHttpPayButtons(false);
+            if (_httpPayService == null || _httpPayLog == null) return;
+            _httpPayManager = new HTTPpayManager(_httpPayService, _httpPayLog);
+            _httpPayUiController = new HttpPayUiController(
+                _httpPayManager,
+                () => ConfigService.Config.HTTPpay.IntervalSeconds,
+                httpPayTotalNumeric, ConfigService.Config.HTTPpay.TotalPayments,
+                btnHttpPayStart, btnHttpPayStop, lblHttpPayStatus,
+                _httpPayLog.AppendLog);
         }
 
-        private void btnHttpPayStart_Click(object sender, EventArgs e)
-        {
-            if (_httpPayManager == null || _logManager == null)
-                return;
+        private void btnHttpPayStart_Click(object sender, EventArgs e) =>
+            _httpPayUiController?.Start();
 
-            if (_httpPayManager.IsRunning)
-                return;
-
-            var intervalSeconds =
-                ConfigService.Config.HTTPpay.IntervalSeconds;
-
-            // ВАЖНО:
-            // передаём метод чтения, а не готовое число.
-            // Поэтому pTotal читается заново перед каждой отправкой.
-            _httpPayManager.Start(
-                ReadHttpPayTotal,
-                intervalSeconds);
-
-            lblHttpPayStatus.Text = "Статус: Запущено";
-            SetHttpPayButtons(true);
-
-            _logManager.AppendLog(
-                $"HTTPpay запущен, интервал {intervalSeconds} сек");
-        }
-
-        private void btnHttpPayStop_Click(object sender, EventArgs e)
-        {
-            _httpPayManager?.Stop();
-
-            lblHttpPayStatus.Text = "Статус: Остановлено";
-            SetHttpPayButtons(false);
-        }
-
-        private int ReadHttpPayTotal()
-        {
-            if (httpPayTotalNumeric.InvokeRequired)
-            {
-                return (int)httpPayTotalNumeric.Invoke(
-                    new Func<int>(() => (int)httpPayTotalNumeric.Value));
-            }
-
-            return (int)httpPayTotalNumeric.Value;
-        }
-
-        private void SetHttpPayButtons(bool running)
-        {
-            btnHttpPayStart.Enabled = !running;
-            btnHttpPayStop.Enabled = running;
-
-            // ВАЖНО:
-            // pTotal не отключаем во время работы,
-            // чтобы его можно было менять на лету.
-            httpPayTotalNumeric.Enabled = true;
-        }
+        private void btnHttpPayStop_Click(object sender, EventArgs e) =>
+            _httpPayUiController?.Stop();
 
         #endregion
 
@@ -1109,68 +889,27 @@ namespace MKtest
         }
 
         #region Сэкоп Протокол
-
-        private SekopValues ReadSekopValues()
-        {
-            if (sekopTransactionsNumeric.InvokeRequired ||
-                sekopPassengersNumeric.InvokeRequired)
-            {
-                return (SekopValues)Invoke(
-                    new Func<SekopValues>(ReadSekopValues));
-            }
-
-            return new SekopValues(
-                (int)sekopTransactionsNumeric.Value,
-                (int)sekopPassengersNumeric.Value);
-        }
+        // Designer продолжает вызывать обработчики кнопок в MainForm.
+        // Состояние UI и отправка значений находятся в SekopUiController.
         private void InitializeSekopProtocolMain()
         {
-            sekopTransactionsNumeric.Value = 0;
-            sekopPassengersNumeric.Value = 0;
-
-            sekopStatusLabel.Text = "Статус: Остановлено";
-
-            sekopStartButton.Enabled = true;
-            sekopStopButton.Enabled = false;
+            if (_sekopProtocolManager == null || _logManager == null) return;
+            _sekopUiController = new SekopUiController(
+                _sekopProtocolManager,
+                new SekopControls(
+                    sekopTransactionsNumeric, sekopPassengersNumeric,
+                    sekopStartButton, sekopStopButton, sekopStatusLabel),
+                _sekopLog!.AppendLog);
         }
+
         private async void sekopStartButton_Click(object sender, EventArgs e)
         {
-            if (_sekopProtocolManager == null)
-                return;
-
-            try
-            {
-                await _sekopProtocolManager.StartAsync(
-                    ReadSekopValues);
-
-                sekopStartButton.Enabled = false;
-                sekopStopButton.Enabled = true;
-
-                sekopStatusLabel.Text = "Статус: Запущено";
-            }
-            catch (Exception ex)
-            {
-                sekopStatusLabel.Text = "Статус: Ошибка";
-
-                _logManager?.AppendLog(
-                    $"Ошибка запуска протокола СЭКОП: {ex.Message}");
-            }
+            if (_sekopUiController != null)
+                await _sekopUiController.StartAsync();
         }
 
-        private void sekopStopButton_Click(object sender, EventArgs e)
-        {
-            if (_sekopProtocolManager == null)
-                return;
-
-            _sekopProtocolManager.Stop();
-
-            sekopStartButton.Enabled = true;
-            sekopStopButton.Enabled = false;
-
-            sekopStatusLabel.Text = "Статус: Остановлено";
-        }
-
-
+        private void sekopStopButton_Click(object sender, EventArgs e) =>
+            _sekopUiController?.Stop();
 
         private void sekopSaveButton_Click(object sender, EventArgs e)
         {
@@ -1217,108 +956,34 @@ namespace MKtest
             }
         }
 
-        private async void sekopValuesNumeric_ValueChanged(object? sender, EventArgs e)
-        {
-            if (_sekopProtocolManager?.IsRunning != true)
-                return;
-
-            try
-            {
-                await _sekopProtocolManager.SendCurrentAsync();
-            }
-            catch (Exception ex)
-            {
-                _logManager?.AppendLog(
-                    $"Ошибка отправки СЭКОП при изменении значений: {ex.Message}");
-            }
-        }
-
         #endregion
 
         #region МЧС
-        private async void btnEmergency1_Click(object sender,EventArgs e)
+        // Existing buttons remain connected in MainForm.Designer.cs.
+        private async void btnEmergency1_Click(object sender, EventArgs e)
         {
-            if (_emergencyManager == null)
-                return;
-
-            await _emergencyManager.SendCommand1Async();
+            if (_emergencyUiController != null)
+                await _emergencyUiController.SendAsync(1);
         }
 
-        private async void btnEmergency2_Click(object sender,EventArgs e)
+        private async void btnEmergency2_Click(object sender, EventArgs e)
         {
-            if (_emergencyManager == null)
-                return;
-
-            await _emergencyManager.SendCommand2Async();
+            if (_emergencyUiController != null)
+                await _emergencyUiController.SendAsync(2);
         }
 
-        private async void btnEmergency3_Click(object sender,EventArgs e)
+        private async void btnEmergency3_Click(object sender, EventArgs e)
         {
-            if (_emergencyManager == null)
-                return;
-
-            await _emergencyManager.SendCommand3Async();
+            if (_emergencyUiController != null)
+                await _emergencyUiController.SendAsync(3);
         }
+
         private async void btnEmergency4_Click(object sender, EventArgs e)
         {
-            if (_emergencyManager == null)
-                return;
-
-            await _emergencyManager.SendCommand4Async();
+            if (_emergencyUiController != null)
+                await _emergencyUiController.SendAsync(4);
         }
         #endregion
 
-        #region
-        private TaskCompletionSource<bool>? _manualStepTcs;
-        private EventHandler? _autoStartHandler;
-
-        private void rbAutoMode_CheckedChanged(object sender, EventArgs e)
-        {
-            if (rbAutoMode.Checked)
-            {
-                btnNextStep.Visible = false;
-                // Убираем свой обработчик, возвращаем автоматический
-                btnStartDemo.Click -= BtnStartDemo_Click;
-                if (_autoStartHandler != null)
-                    btnStartDemo.Click += _autoStartHandler;
-            }
-        }
-
-        private void rbManualMode_CheckedChanged(object sender, EventArgs e)
-        {
-            if (rbManualMode.Checked)
-            {
-                btnNextStep.Visible = true;
-                // Убираем автоматический обработчик, ставим свой
-                if (_autoStartHandler != null)
-                    btnStartDemo.Click -= _autoStartHandler;
-                btnStartDemo.Click += BtnStartDemo_Click;
-            }
-        }
-
-        private void BtnStartDemo_Click(object sender, EventArgs e)
-        {
-            string? scenarioName = cmbDemoScenarios.SelectedItem?.ToString();
-            if (string.IsNullOrEmpty(scenarioName))
-            {
-                _logManager?.AppendLog("Ошибка: не выбран сценарий");
-                return;
-            }
-
-            _logManager?.AppendLog($"Запуск сценария: {scenarioName} (ручной режим)");
-            _demoScenarioService?.StartScenarioManual(scenarioName,
-                () => _manualStepTcs?.Task ?? Task.CompletedTask);
-        }
-
-        private void btnNextStep_Click(object sender, EventArgs e)
-        {
-            if (_manualStepTcs != null && !_manualStepTcs.Task.IsCompleted)
-            {
-                _manualStepTcs.TrySetResult(true);
-                _manualStepTcs = new TaskCompletionSource<bool>();
-            }
-        }
-
-        #endregion
     }
 }

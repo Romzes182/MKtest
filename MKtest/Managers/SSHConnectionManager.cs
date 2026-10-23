@@ -35,7 +35,7 @@ namespace MKtest.Managers
         {
             try
             {
-                _stateManager.SetButtonsEnabled(false, false, true);
+                _stateManager.SetButtonsEnabled(false, false);
                 bool connected = await _sshService.ConnectAsync(config);
 
                 if (connected)
@@ -67,15 +67,6 @@ namespace MKtest.Managers
         public void Disconnect()
         {
             _sshService.Disconnect();
-        }
-
-        public void TestConnection()
-        {
-            if (_sshService.IsConnected())
-            {
-                var result = _sshService.ExecuteDirectCommand("echo 'SSH Test OK'");
-                _logManager.AppendLog($"Тест подключения: {result}");
-            }
         }
 
         public bool IsConnected() => _sshService.IsConnected();

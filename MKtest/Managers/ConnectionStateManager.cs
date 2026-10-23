@@ -7,20 +7,17 @@ namespace MKtest.Managers
     {
         private readonly Control _connectButton;
         private readonly Control _disconnectButton;
-        private readonly Control _testButton;
         private readonly Control _statusLabel;
         private readonly Control[] _timeControls;
 
         public ConnectionStateManager(
             Button connectButton,
             Button disconnectButton,
-            Button testButton,
             Label statusLabel,
             params Control[] timeControls)
         {
             _connectButton = connectButton;
             _disconnectButton = disconnectButton;
-            _testButton = testButton;
             _statusLabel = statusLabel;
             _timeControls = timeControls;
 
@@ -59,18 +56,16 @@ namespace MKtest.Managers
             }
         }
 
-        public void SetButtonsEnabled(bool connectEnabled, bool disconnectEnabled, bool testEnabled)
+        public void SetButtonsEnabled(bool connectEnabled, bool disconnectEnabled)
         {
             SafeInvoke(_connectButton, () => _connectButton.Enabled = connectEnabled);
             SafeInvoke(_disconnectButton, () => _disconnectButton.Enabled = disconnectEnabled);
-            SafeInvoke(_testButton, () => _testButton.Enabled = testEnabled);
         }
 
         private void UpdateButtonsState(bool isConnected)
         {
             _connectButton.Enabled = !isConnected;
             _disconnectButton.Enabled = isConnected;
-            _testButton.Enabled = true;
 
             foreach (var control in _timeControls)
             {

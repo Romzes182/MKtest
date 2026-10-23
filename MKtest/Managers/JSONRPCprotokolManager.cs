@@ -1,93 +1,76 @@
-﻿using MKtest.Services.JSONRPCprotokol;
+using MKtest.Services.JSONRPCprotokol;
+using MKtest.Services.Protocol;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public class JSONRPCprotokolManager
+    public sealed class JSONRPCprotokolManager : IJsonRpcOperations
     {
         private readonly JSONRPCprotokolService _service;
         private readonly LogManager _logManager;
+        private readonly PeriodicOperationRunner _runner = new();
+        private int _counter;
+        private int _interval;
 
-        private CancellationTokenSource? _cts;
+        public bool IsRunning => _runner.IsRunning;
 
-        private bool _running;
-
-        private int _trCounter;
-        private int _intervalSeconds;
-        public bool IsRunning => _running;
-
-        public JSONRPCprotokolManager(
-            JSONRPCprotokolService service,
-            LogManager logManager)
+        public JSONRPCprotokolManager(JSONRPCprotokolService service, LogManager logManager)
         {
-            _service = service;
-            _logManager = logManager;
+            _service = service ?? throw new ArgumentNullException(nameof(service));
+            _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
         }
 
-        public void Start(
-            int trCounter,
-            int intervalSeconds)
+        public void Start(int trCounter, int intervalSeconds)
         {
-            if (_running)
-                return;
+            if (intervalSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(intervalSeconds), "Интервал должен быть больше 0.");
 
-            _trCounter = trCounter;
-            _intervalSeconds = intervalSeconds;
-
-            _running = true;
-
-            _cts = new CancellationTokenSource();
-
-            _ = Task.Run(() =>
-            LoopAsync(_cts.Token));
+            if (IsRunning) return;
+            Interlocked.Exchange(ref _counter, trCounter);
+            Interlocked.Exchange(ref _interval, intervalSeconds);
+            _runner.Start(
+                SendOnceAsync,
+                () => Volatile.Read(ref _interval),
+                ex => _logManager.AppendLog($"JSONRPCprotokol: {ex.Message}"));
         }
 
         public void Stop()
         {
-            _running = false;
-
-            _cts?.Cancel();
-
-            _logManager.AppendLog(
-                "JSONRPCprotokol остановлен");
+            if (!IsRunning)
+            {
+                _runner.Stop();
+                return;
+            }
+            _runner.Stop();
+            _logManager.AppendLog("JSONRPCprotokol остановлен");
         }
 
-        public void UpdateValues(
-            int trCounter,
-            int intervalSeconds)
+        public void UpdateValues(int trCounter, int intervalSeconds)
         {
-            _trCounter = trCounter;
-            _intervalSeconds = intervalSeconds;
+            if (intervalSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(intervalSeconds), "Интервал должен быть больше 0.");
 
+            Interlocked.Exchange(ref _counter, trCounter);
+            Interlocked.Exchange(ref _interval, intervalSeconds);
             _logManager.AppendLog(
                 $"JSONRPCprotokol обновлен: trCounter={trCounter}, interval={intervalSeconds}");
         }
 
-        private async Task LoopAsync(
-            CancellationToken token)
+        /// <summary>Await canceled HTTP/TCP operations before closing their transports.</summary>
+        public Task StopAsync()
         {
-            while (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    await _service.SendAsync(
-                        _trCounter,
-                        token);
+            Stop();
+            return _runner.StopAsync();
+        }
 
-                    _logManager.AppendLog(
-                        $"JSONRPCprotokol отправлен: {_trCounter}");
-                }
-                catch (Exception ex)
-                {
-                    _logManager.AppendLog(ex.Message);
-                }
-
-                await Task.Delay(
-                    _intervalSeconds * 1000,
-                    token);
-            }
+        private async Task SendOnceAsync(CancellationToken token)
+        {
+            int current = Volatile.Read(ref _counter);
+            await _service.SendAsync(current, token);
+            token.ThrowIfCancellationRequested();
+            _logManager.AppendLog($"JSONRPCprotokol отправлен: {current}");
         }
     }
 }

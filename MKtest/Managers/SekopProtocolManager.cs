@@ -1,68 +1,152 @@
-﻿using MKtest.Services.SekopProtocol;
+using MKtest.Services.SekopProtocol;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public readonly record struct SekopValues(
-        int Transactions,
-        int Passengers);
+    public readonly record struct SekopValues(int Transactions, int Passengers);
 
-    public class SekopProtocolManager
+    /// <summary>
+    /// Управляет состоянием сеанса и исключает параллельный TCP-обмен.
+    /// Пакеты строятся и отправляются независимыми сервисами.
+    /// </summary>
+    public sealed class SekopProtocolManager : ISekopProtocolOperations
     {
         private readonly SekopProtocolService _service;
         private readonly LogManager _logManager;
+        private readonly SemaphoreSlim _sendLock = new(1, 1);
+        private readonly object _stateLock = new();
 
         private Func<SekopValues>? _getValues;
-
         private bool _running;
+        private int _sessionId;
 
-        public bool IsRunning => _running;
-
-        public SekopProtocolManager(
-            SekopProtocolService service,
-            LogManager logManager)
+        public bool IsRunning
         {
-            _service = service;
-            _logManager = logManager;
+            get { lock (_stateLock) return _running; }
         }
 
-        public async Task StartAsync(
-            Func<SekopValues> getValues)
+        public SekopProtocolManager(SekopProtocolService service, LogManager logManager)
         {
-            if (_running)
-                return;
+            _service = service ?? throw new ArgumentNullException(nameof(service));
+            _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
+        }
 
-            _getValues = getValues;
-            _running = true;
+        public async Task StartAsync(Func<SekopValues> getValues)
+        {
+            ArgumentNullException.ThrowIfNull(getValues);
 
-            await SendCurrentAsync();
+            int sessionId;
+            lock (_stateLock)
+            {
+                if (_running)
+                    return;
+
+                _getValues = getValues;
+                _running = true;
+                sessionId = ++_sessionId;
+            }
+
+            try
+            {
+                await SendCurrentAsync();
+            }
+            catch
+            {
+                bool shouldDisconnect = false;
+                lock (_stateLock)
+                {
+                    if (_sessionId == sessionId)
+                    {
+                        _running = false;
+                        _getValues = null;
+                        ++_sessionId;
+                        shouldDisconnect = true;
+                    }
+                }
+
+                if (shouldDisconnect)
+                    _service.Disconnect();
+
+                throw;
+            }
         }
 
         public async Task SendCurrentAsync()
         {
-            if (_getValues == null)
-                throw new InvalidOperationException(
-                    "Источник данных СЭКОП не задан.");
+            int sessionId;
+            lock (_stateLock)
+            {
+                if (!_running)
+                    return;
 
-            SekopValues values = _getValues.Invoke();
+                sessionId = _sessionId;
+            }
 
-            string hexPacket = await _service.SendAsync(
-                values.Transactions,
-                values.Passengers);
+            // NumericUpDown.ValueChanged can fire again while the previous
+            // TCP connection is still sending. Each packet must be serialized.
+            await _sendLock.WaitAsync();
+            try
+            {
+                Func<SekopValues>? provider;
+                lock (_stateLock)
+                {
+                    if (!_running || _sessionId != sessionId)
+                        return;
 
-            _logManager.AppendLog(
-                $"Протокол СЭКОП отправлен HEX: {hexPacket}");
+                    provider = _getValues;
+                }
+
+                if (provider == null)
+                    throw new InvalidOperationException("Источник данных СЭКОП не задан.");
+
+                SekopValues values = provider();
+                string hexPacket = await _service.SendAsync(
+                    values.Transactions, values.Passengers);
+
+                _logManager.AppendLog($"Протокол СЭКОП отправлен HEX: {hexPacket}");
+            }
+            finally
+            {
+                _sendLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Stop accepting updates and give the current TCP send time to finish.
+        /// A bounded wait prevents application shutdown from hanging if the
+        /// remote endpoint never completes its connection.
+        /// </summary>
+        public async Task StopAsync()
+        {
+            Stop();
+            if (await _sendLock.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false))
+            {
+                _sendLock.Release();
+            }
+            else
+            {
+                _logManager.AppendLog("СЭКОП: таймаут ожидания завершения передачи");
+            }
         }
 
         public void Stop()
         {
-            _running = false;
+            lock (_stateLock)
+            {
+                if (!_running)
+                    return;
 
+                _running = false;
+                _getValues = null;
+                ++_sessionId;
+            }
+
+            // An in-progress connect/send is aborted; any queued send skips
+            // the operation after taking _sendLock and checking _sessionId.
             _service.Disconnect();
-
-            _logManager.AppendLog(
-                "Протокол СЭКОП остановлен");
+            _logManager.AppendLog("Протокол СЭКОП остановлен");
         }
     }
 }

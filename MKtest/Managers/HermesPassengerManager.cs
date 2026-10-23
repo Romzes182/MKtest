@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public class HermesPassengerManager
+    public class HermesPassengerManager : IHermesPassengerOperations
     {
         private readonly IHermesPassengerService _service;
         private readonly LogManager _log;

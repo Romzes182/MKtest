@@ -1,179 +1,266 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MKtest.Configs;
 using MKtest.Managers;
-using Renci.SshNet;
-using System.Net.NetworkInformation;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MKtest.Services.HermesPassenger
 {
-    public class HermesPassengerService : IHermesPassengerService
+    /// <summary>
+    /// Owns one Hermes run and its cancellation. SSH transport, each command,
+    /// and the periodic schedule have separate responsibilities.
+    /// </summary>
+    public sealed class HermesPassengerService : IHermesPassengerService
     {
         private readonly LogManager _log;
-        private readonly HermesSSHConfig _cfg;
-        private SshClient? _ssh;
-        private CancellationTokenSource? _cts;
-        private bool _isRunning;
-        private int _entered;
-        private int _exited;
+        private readonly HermesSSHConfig _config;
+        private readonly IHermesSshSessionFactory _sessionFactory;
+        private readonly SemaphoreSlim _lifecycle = new(1, 1);
+        private readonly object _stateSync = new();
+
+        private IHermesSshSession? _session;
+        private CancellationTokenSource? _runCancellation;
+        private Task? _workers;
+        private HermesPassengerValues _values = new(0, 0);
+        private volatile bool _disposed;
 
         public event Action<string>? StatusChanged;
         public event Action<string>? ErrorOccurred;
-        public bool IsRunning => _isRunning;
 
-        public HermesPassengerService(LogManager log, HermesSSHConfig cfg)
+        public bool IsRunning
         {
-            _log = log;
-            _cfg = cfg;
+            get
+            {
+                lock (_stateSync)
+                    return _runCancellation is { IsCancellationRequested: false };
+            }
+        }
+
+        // Compatibility: the constructor used by MainForm is unchanged.
+        public HermesPassengerService(LogManager log, HermesSSHConfig config)
+            : this(log, config, new HermesSshSessionFactory()) { }
+
+        public HermesPassengerService(
+            LogManager log,
+            HermesSSHConfig config,
+            IHermesSshSessionFactory sessionFactory)
+        {
+            _log = log ?? throw new ArgumentNullException(nameof(log));
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _sessionFactory = sessionFactory ?? throw new ArgumentNullException(nameof(sessionFactory));
         }
 
         public async Task<bool> TestConnectionAsync()
         {
+            if (_disposed) return false;
+            _log.AppendLog($"Hermes test: {_config.IP}:{_config.Port}, user={_config.User}");
+
+            IHermesSshSession? testSession = null;
             try
             {
-                _log.AppendLog($"Hermes test: {_cfg.IP}:{_cfg.Port}, user={_cfg.User}");
-                using var ssh = new SshClient(CreateConnectionInfo());
-                await Task.Run(() => ssh.Connect());
-                var ok = ssh.IsConnected;
-                if (ok) ssh.Disconnect();
-                return ok;
+                // A test gets its own SSH client; it never interrupts the active run.
+                testSession = _sessionFactory.Create(_config);
+                await testSession.ConnectAsync(CancellationToken.None).ConfigureAwait(false);
+                return testSession.IsConnected;
             }
             catch (Exception ex)
             {
                 _log.AppendLog($"Hermes test error: {ex.Message}");
                 return false;
             }
+            finally
+            {
+                if (testSession != null)
+                {
+                    try { await testSession.DisconnectAsync().ConfigureAwait(false); }
+                    catch (Exception ex) { _log.AppendLog($"Hermes test cleanup: {ex.Message}"); }
+                    testSession.Dispose();
+                }
+            }
         }
+
         public async Task StartAsync(int entered, int exited)
         {
-            if (_isRunning) return;
-
-            _entered = entered;
-            _exited = exited;
-            _cts = new CancellationTokenSource();
-            _isRunning = true;
-
+            await _lifecycle.WaitAsync().ConfigureAwait(false);
             try
             {
-                await ConnectAsync();
-                _ = Task.Run(() => KillLoopAsync(_cts.Token));
-                _ = Task.Run(() => FileLoopAsync(_cts.Token));
+                if (_disposed || _runCancellation != null)
+                    return;
 
-                _log.AppendLog("Гермес: SSH управление запущено");
-                StatusChanged?.Invoke("АКТИВНО");
+                SetValues(entered, exited);
+                IHermesSshSession session;
+                try
+                {
+                    session = _sessionFactory.Create(_config);
+                }
+                catch (Exception ex)
+                {
+                    _log.AppendLog($"Гермес: ошибка создания SSH клиента: {ex.Message}");
+                    ErrorOccurred?.Invoke(ex.Message);
+                    return;
+                }
+
+                var source = new CancellationTokenSource();
+                lock (_stateSync)
+                {
+                    _runCancellation = source;
+                    _session = session;
+                }
+
+                try
+                {
+                    _log.AppendLog($"Hermes connect: {_config.IP}:{_config.Port}, user={_config.User}");
+                    await session.ConnectAsync(source.Token).ConfigureAwait(false);
+                    source.Token.ThrowIfCancellationRequested();
+                    _log.AppendLog($"Гермес: подключено к {_config.IP}:{_config.Port}");
+
+                    var kill = new HermesKillProcessTask(session, _log.AppendLog);
+                    var file = new HermesPassengerFileTask(
+                        session, _config, () => Volatile.Read(ref _values), _log.AppendLog);
+                    var killWorker = new HermesPeriodicWorker(
+                        _config.KillIntervalSeconds, kill.ExecuteAsync,
+                        "Гермес kill-loop ошибка", _log.AppendLog);
+                    var fileWorker = new HermesPeriodicWorker(
+                        _config.FileUpdateIntervalSeconds, file.ExecuteAsync,
+                        "Гермес file-loop ошибка", _log.AppendLog);
+
+                    _workers = Task.WhenAll(
+                        killWorker.RunAsync(source.Token),
+                        fileWorker.RunAsync(source.Token));
+                    _ = ObserveWorkersAsync(_workers);
+
+                    _log.AppendLog("Гермес: SSH управление запущено");
+                    StatusChanged?.Invoke("АКТИВНО");
+                }
+                catch (OperationCanceledException) when (source.IsCancellationRequested)
+                {
+                    await CleanupUnderLockAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _log.AppendLog($"Гермес: ошибка запуска: {ex.Message}");
+                    ErrorOccurred?.Invoke(ex.Message);
+                    await CleanupUnderLockAsync().ConfigureAwait(false);
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                _log.AppendLog($"Гермес: ошибка запуска: {ex.Message}");
-                ErrorOccurred?.Invoke(ex.Message);
-                await StopAsync();
+                _lifecycle.Release();
             }
         }
 
-        public Task StopAsync()
+        public async Task StopAsync()
         {
-            _isRunning = false;
+            // Signal cancellation BEFORE waiting for StartAsync's lifecycle gate.
+            // This also cancels a run if Stop is pressed during SSH connect.
+            lock (_stateSync)
+            {
+                if (_runCancellation != null)
+                {
+                    try { _runCancellation.Cancel(); }
+                    catch (ObjectDisposedException) { }
+                }
+            }
 
-            if (_cts != null && !_cts.IsCancellationRequested)
-                _cts.Cancel();
-
+            await _lifecycle.WaitAsync().ConfigureAwait(false);
             try
             {
-                if (_ssh?.IsConnected == true) _ssh.Disconnect();
-                _ssh?.Dispose();
+                await CleanupUnderLockAsync().ConfigureAwait(false);
             }
-            catch { }
-
-            _ssh = null;
-            _log.AppendLog("Гермес: SSH управление остановлено");
-            StatusChanged?.Invoke("ОСТАНОВЛЕНО");
-            return Task.CompletedTask;
+            finally
+            {
+                _lifecycle.Release();
+            }
         }
 
         public void SetValues(int entered, int exited)
         {
-            _entered = entered;
-            _exited = exited;
+            // A single immutable snapshot keeps A and B from different updates
+            // from being mixed by the periodic file worker.
+            Volatile.Write(ref _values, new HermesPassengerValues(entered, exited));
             _log.AppendLog($"Гермес: значения обновлены A={entered}, B={exited}");
         }
 
-        private async Task ConnectAsync()
+        private async Task ObserveWorkersAsync(Task runningWorkers)
         {
-            _log.AppendLog($"Hermes connect: {_cfg.IP}:{_cfg.Port}, user={_cfg.User}");
-
-            _ssh = new SshClient(CreateConnectionInfo());
-            await Task.Run(() => _ssh.Connect());
-
-            if (_ssh?.IsConnected != true)
-                throw new Exception("Не удалось установить SSH соединение");
-
-            _log.AppendLog($"Гермес: подключено к {_cfg.IP}:{_cfg.Port}");
-        }
-        private async Task KillLoopAsync(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested && _isRunning)
+            try
             {
-                try
+                await runningWorkers.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                _log.AppendLog($"Гермес: ошибка фоновых задач: {ex.Message}");
+                ErrorOccurred?.Invoke(ex.Message);
+            }
+
+            // On unexpected completion, release the active session as well.
+            await StopAsync().ConfigureAwait(false);
+        }
+
+        // Must be called while _lifecycle is held.
+        private async Task CleanupUnderLockAsync()
+        {
+            CancellationTokenSource? source;
+            IHermesSshSession? session;
+            Task? workers;
+
+            lock (_stateSync)
+            {
+                source = _runCancellation;
+                session = _session;
+                workers = _workers;
+                _runCancellation = null;
+                _session = null;
+                _workers = null;
+            }
+
+            if (source == null && session == null)
+                return;
+
+            try
+            {
+                if (source != null && !source.IsCancellationRequested)
+                    source.Cancel();
+
+                if (workers != null)
                 {
-                    if (_ssh?.IsConnected == true)
+                    try { await workers.ConfigureAwait(false); }
+                    catch (OperationCanceledException) { }
+                    catch (Exception ex)
                     {
-                        await Task.Run(() => _ssh.RunCommand("killall pfsens"));
-                        _log.AppendLog("Гермес: выполнен killall pfsens");
+                        _log.AppendLog($"Гермес: завершение задач: {ex.Message}");
                     }
                 }
-                catch (Exception ex)
-                {
-                    _log.AppendLog($"Гермес kill-loop ошибка: {ex.Message}");
-                }
 
-                await Task.Delay(_cfg.KillIntervalSeconds * 1000, token);
-            }
-        }
-
-        private async Task FileLoopAsync(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested && _isRunning)
-            {
-                try
+                if (session != null)
                 {
-                    if (_ssh?.IsConnected == true)
+                    try { await session.DisconnectAsync().ConfigureAwait(false); }
+                    catch (Exception ex)
                     {
-                        var content = $"{_entered};{_exited};61440";
-                        var cmd = $"echo '{content}' > {_cfg.RemoteFilePath}";
-                        await Task.Run(() => _ssh.RunCommand(cmd));
-                        _log.AppendLog($"Гермес: файл обновлён {content}");
+                        _log.AppendLog($"Гермес: отключение SSH: {ex.Message}");
                     }
                 }
+            }
+            finally
+            {
+                try { session?.Dispose(); }
                 catch (Exception ex)
                 {
-                    _log.AppendLog($"Гермес file-loop ошибка: {ex.Message}");
+                    _log.AppendLog($"Гермес: освобождение SSH: {ex.Message}");
                 }
-
-                await Task.Delay(_cfg.FileUpdateIntervalSeconds * 1000, token);
+                source?.Dispose();
+                _log.AppendLog("Гермес: SSH управление остановлено");
+                StatusChanged?.Invoke("ОСТАНОВЛЕНО");
             }
         }
-
-        private ConnectionInfo CreateConnectionInfo()
-        {
-            return new ConnectionInfo(
-                _cfg.IP,
-                _cfg.Port,
-                _cfg.User,
-                new PasswordAuthenticationMethod(_cfg.User, _cfg.Password)
-            )
-            { Timeout = TimeSpan.FromSeconds(30) };
-        }
-
-     
 
         public void Dispose()
         {
-            try { StopAsync().Wait(3000); } catch { }
-            _cts?.Dispose();
-            _ssh?.Dispose();
+            if (_disposed) return;
+            _disposed = true;
+            // All awaits in this service avoid capturing the WinForms context.
+            StopAsync().GetAwaiter().GetResult();
         }
     }
 }

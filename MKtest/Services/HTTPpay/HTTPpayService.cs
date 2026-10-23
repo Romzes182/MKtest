@@ -1,258 +1,76 @@
-﻿using MKtest.Configs;
+using MKtest.Configs;
 using System;
 using System.IO;
 using System.Net.Http;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MKtest.Services.HTTPpay
 {
-    public class HTTPpayService : IDisposable
+    /// <summary>HTTPpay coordination only; raw wire format and parsing live separately.</summary>
+    public sealed class HTTPpayService : IDisposable
     {
-        private const int TimeoutSeconds = 30;
-
         private readonly HTTPpayConfig _config;
+        private readonly IHttpPayUrlBuilder _builder;
+        private readonly IHttpPayTransport _transport;
+        private readonly IHttpPayResponseParser _parser;
 
-        private readonly HttpClient _httpClient;
+        public HTTPpayService(HTTPpayConfig config)
+            : this(config, new HttpPayUrlBuilder(), new RawHttpPayTransport(), new HttpPayResponseParser()) { }
 
         public HTTPpayService(
-            HTTPpayConfig config)
+            HTTPpayConfig config,
+            IHttpPayUrlBuilder builder,
+            IHttpPayTransport transport,
+            IHttpPayResponseParser parser)
         {
-            _config = config;
-
-            _httpClient = new HttpClient();
-
-            _httpClient.Timeout =
-                TimeSpan.FromSeconds(30);
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _builder = builder ?? throw new ArgumentNullException(nameof(builder));
+            _transport = transport ?? throw new ArgumentNullException(nameof(transport));
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
         }
 
-        public async Task<HTTPpayResponse> SendAsync(int pTotal)
+        public Task<HTTPpayResponse> SendAsync(int pTotal) =>
+            SendAsync(pTotal, CancellationToken.None);
+
+        public async Task<HTTPpayResponse> SendAsync(int pTotal, CancellationToken token)
         {
             try
             {
-                var url =
-                    HTTPpayBuilder.BuildUrl(
-                        _config,
-                        pTotal);
-
-                var rawResponse =
-                    await SendRawGetAsync(url);
-
-                return ParseRawResponse(rawResponse);
+                string url = _builder.BuildUrl(_config, pTotal);
+                string rawResponse = await _transport.GetRawAsync(url, token);
+                return _parser.Parse(rawResponse);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
-                return new HTTPpayResponse
-                {
-                    Success = false,
-
-                    Message = "Таймаут запроса",
-
-                    StatusCode = 0,
-
-                    Timestamp = DateTime.Now
-                };
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                return Failed("Таймаут запроса");
             }
             catch (Exception ex) when (
-                ex is HttpRequestException ||
-                ex is IOException ||
-                ex is SocketException ||
-                ex is UriFormatException ||
-                ex is InvalidOperationException)
+                ex is HttpRequestException or IOException or SocketException
+                    or UriFormatException or InvalidOperationException)
             {
-                return new HTTPpayResponse
-                {
-                    Success = false,
-                    Message =
-                        $"Ошибка сети: {ex.Message}",
-
-                    StatusCode = 0,
-
-                    Timestamp = DateTime.Now
-                };
+                return Failed($"Ошибка сети: {ex.Message}");
             }
             catch (Exception ex)
             {
-                return new HTTPpayResponse
-                {
-                    Success = false,
-
-                    Message =
-                        $"Ошибка: {ex.Message}",
-
-                    StatusCode = 0,
-
-                    Timestamp = DateTime.Now
-                };
+                return Failed($"Ошибка: {ex.Message}");
             }
         }
 
-        private static async Task<string> SendRawGetAsync(string url)
+        private static HTTPpayResponse Failed(string message) => new()
         {
-            var uri = new Uri(url);
+            Success = false,
+            Message = message,
+            StatusCode = 0,
+            Timestamp = DateTime.Now
+        };
 
-            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("HTTPpay поддерживает только HTTP-запросы");
-
-            using var cts =
-                new CancellationTokenSource(
-                    TimeSpan.FromSeconds(TimeoutSeconds));
-
-            using var client = new TcpClient();
-
-            await client.ConnectAsync(
-                uri.Host,
-                uri.Port,
-                cts.Token);
-
-            await using var stream =
-                client.GetStream();
-
-            var pathAndQuery =
-                string.IsNullOrEmpty(uri.PathAndQuery)
-                    ? "/"
-                    : uri.PathAndQuery;
-
-            var request =
-                $"GET {pathAndQuery} HTTP/1.1\r\n" +
-                $"Host: {uri.Host}:{uri.Port}\r\n" +
-                "Connection: close\r\n" +
-                "Accept: */*\r\n" +
-                "\r\n";
-
-            var requestBytes =
-                Encoding.ASCII.GetBytes(request);
-
-            await stream.WriteAsync(
-                requestBytes.AsMemory(0, requestBytes.Length),
-                cts.Token);
-
-            var buffer = new byte[4096];
-
-            using var response =
-                new MemoryStream();
-
-            while (true)
-            {
-                var read =
-                    await stream.ReadAsync(
-                        buffer.AsMemory(0, buffer.Length),
-                        cts.Token);
-
-                if (read == 0)
-                    break;
-
-                response.Write(
-                    buffer,
-                    0,
-                    read);
-            }
-
-            return Encoding.UTF8.GetString(
-                response.ToArray());
-        }
-
-        private HTTPpayResponse ParseRawResponse(string rawResponse)
-        {
-            var firstLineEnd =
-                rawResponse.IndexOf("\r\n", StringComparison.Ordinal);
-
-            var statusLine =
-                firstLineEnd >= 0
-                    ? rawResponse.Substring(0, firstLineEnd)
-                    : rawResponse;
-
-            var statusCode = 0;
-
-            var parts =
-                statusLine.Split(
-                    ' ',
-                    StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length >= 2)
-                int.TryParse(parts[1], out statusCode);
-
-            if (statusCode == 0)
-            {
-                return new HTTPpayResponse
-                {
-                    Success = false,
-                    Message = "Некорректный HTTP-ответ",
-                    StatusCode = 0,
-                    Timestamp = DateTime.Now
-                };
-            }
-
-            return ParseResponse(
-                (System.Net.HttpStatusCode)statusCode,
-                rawResponse);
-        }
-        private HTTPpayResponse ParseResponse(System.Net.HttpStatusCode statusCode, string content)
-        {
-            var response =
-                new HTTPpayResponse
-                {
-                    StatusCode = (int)statusCode,
-
-                    Timestamp = DateTime.Now
-                };
-
-            switch (statusCode)
-            {
-                case System.Net.HttpStatusCode.OK:
-
-                    response.Success = true;
-
-                    response.Message =
-                        "OK - Запрос успешно обработан";
-
-                    break;
-
-                case System.Net.HttpStatusCode.BadRequest:
-
-                    response.Success = false;
-
-                    response.Message =
-                        "400 - Ошибка в формате данных";
-
-                    break;
-
-                case System.Net.HttpStatusCode.NotFound:
-
-                    response.Success = false;
-
-                    response.Message =
-                        "404 - Страница не найдена";
-
-                    break;
-
-                case System.Net.HttpStatusCode.InternalServerError:
-
-                    response.Success = false;
-
-                    response.Message =
-                        "500 - Внутренняя ошибка сервера";
-
-                    break;
-
-                default:
-
-                    response.Success = false;
-
-                    response.Message =
-                        $"{(int)statusCode} - Ошибка";
-
-                    break;
-            }
-
-            return response;
-        }
-
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-        }
+        // Kept for compatibility with MainForm's shutdown sequence.
+        public void Dispose() { }
     }
 }

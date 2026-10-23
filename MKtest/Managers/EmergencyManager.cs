@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public class EmergencyManager
+    public class EmergencyManager : IEmergencyOperations
     {
         private readonly EmergencyService _service;
         private readonly EmergencyConfig _config;

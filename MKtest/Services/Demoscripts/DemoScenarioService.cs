@@ -1,97 +1,145 @@
-﻿using MKtest.Managers;
-using MKtest.Services.DemoScenarios;
+using MKtest.Managers;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MKtest.Services.Demoscripts
 {
-    public class DemoScenarioService : IDemoScenarioService
+    /// <summary>
+    /// Координатор жизненного цикла Demo-сценария.
+    /// Каталог, исполнение шагов и правила повторения вынесены в отдельные классы.
+    /// </summary>
+    public sealed class DemoScenarioService : IDemoScenarioService
     {
-        private readonly IDemoFileService _fileService;
+        private readonly IDemoScenarioCatalog _catalog;
+        private readonly IDemoScenarioRunner _runner;
         private readonly LogManager _logManager;
-        private readonly Dictionary<string, IScenario> _scenarios;
-        private CancellationTokenSource? _cts;
-        private bool _isRunning;
-        private bool _manualMode;
-        private Func<Task>? _waitTaskProvider;
+        private readonly object _sync = new();
+        private CancellationTokenSource? _activeRun;
+        private Task? _activeTask;
 
-        public bool IsDemoRunning => _isRunning;
-        public IReadOnlyList<string> AvailableScenarios => _scenarios.Keys.ToList();
+        public bool IsDemoRunning
+        {
+            get
+            {
+                lock (_sync)
+                    return _activeRun != null;
+            }
+        }
+
+        public IReadOnlyList<string> AvailableScenarios => _catalog.Names;
 
         public event EventHandler<string>? ScenarioProgress;
         public event EventHandler<bool>? DemoStatusChanged;
 
+        // Existing MainForm constructor is preserved.
         public DemoScenarioService(IDemoFileService fileService, LogManager logManager)
+            : this(
+                new DemoScenarioCatalog(),
+                CreateDefaultRunner(fileService, logManager),
+                logManager)
         {
-            _fileService = fileService ?? throw new ArgumentNullException(nameof(fileService));
+        }
+
+        public DemoScenarioService(
+            IDemoScenarioCatalog catalog,
+            IDemoScenarioRunner runner,
+            LogManager logManager)
+        {
+            _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+            _runner = runner ?? throw new ArgumentNullException(nameof(runner));
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
-
-            _scenarios = new Dictionary<string, IScenario>
-            {
-                ["demo-1"] = new Demo1Scenario(),
-                ["demo-2"] = new Demo2Scenario(),
-                ["demo-3"] = new Demo3Scenario(),
-                ["demo-4"] = new Demo4Scenario(),
-                ["demo-5"] = new Demo5Scenario(),
-                ["demo-45"] = new Demo45Scenario()
-            };
-
             _logManager.AppendLog("Демо-сервис инициализирован");
         }
 
-        public void StartScenario(string scenarioName)
+        private static IDemoScenarioRunner CreateDefaultRunner(
+            IDemoFileService fileService, LogManager logManager) =>
+            new DemoScenarioRunner(new DemoStepExecutor(
+                fileService ?? throw new ArgumentNullException(nameof(fileService)),
+                (logManager ?? throw new ArgumentNullException(nameof(logManager))).AppendLog));
+
+        public void StartScenario(string scenarioName) =>
+            StartCore(scenarioName, manualMode: false, waitForNext: null);
+
+        public void StartScenarioManual(string scenarioName, Func<Task> waitTaskProvider) =>
+            StartCore(scenarioName, manualMode: true, waitForNext: waitTaskProvider);
+
+        /// <summary>Reversible manual navigation; existing overload remains supported.</summary>
+        public void StartScenarioManual(
+            string scenarioName,
+            Func<Task<ManualStepDirection>> navigationProvider) =>
+            StartCore(scenarioName, manualMode: true, waitForNext: null,
+                navigationProvider: navigationProvider);
+
+        private void StartCore(string scenarioName, bool manualMode, Func<Task>? waitForNext,
+            Func<Task<ManualStepDirection>>? navigationProvider = null)
         {
-            if (_isRunning)
+            CancellationTokenSource source;
+            IScenario scenario;
+
+            lock (_sync)
             {
-                _logManager.AppendLog("Демо уже запущено. Сначала остановите текущий сценарий.");
-                return;
+                if (_activeRun != null)
+                {
+                    _logManager.AppendLog("Демо уже запущено. Сначала остановите текущий сценарий.");
+                    return;
+                }
+
+                if (!_catalog.TryGet(scenarioName, out scenario!))
+                {
+                    _logManager.AppendLog($"Сценарий '{scenarioName}' не найден.");
+                    return;
+                }
+
+                source = new CancellationTokenSource();
+                _activeRun = source;
             }
 
-            if (!_scenarios.TryGetValue(scenarioName, out var scenario))
+            var options = new DemoRunOptions(manualMode, waitForNext,
+                message => ScenarioProgress?.Invoke(this, message))
             {
-                _logManager.AppendLog($"Сценарий '{scenarioName}' не найден.");
-                return;
-            }
+                WaitForDirection = navigationProvider
+            };
 
-            _isRunning = true;
             DemoStatusChanged?.Invoke(this, true);
-            _cts = new CancellationTokenSource();
-
-            Task.Run(() => RunScenarioAsync(scenario, _cts.Token));
+            _activeTask = Task.Run(() => RunScenarioAsync(scenario, options, source));
             _logManager.AppendLog($"Сценарий '{scenarioName}' запущен.");
         }
 
         public void StopScenario()
         {
-            if (!_isRunning) return;
+            lock (_sync)
+            {
+                if (_activeRun == null || _activeRun.IsCancellationRequested)
+                    return;
 
-            _cts?.Cancel();
-            _manualMode = false;
-            _waitTaskProvider = null;
-            _isRunning = false;
-            DemoStatusChanged?.Invoke(this, false);
+                _activeRun.Cancel();
+            }
+
             _logManager.AppendLog("Демо сценарий остановлен.");
         }
 
-        public void StartScenarioManual(string scenarioName, Func<Task> waitTaskProvider)
+        /// <summary>Cancel and await the running demo before the UI logs are disposed.</summary>
+        public async Task StopScenarioAsync()
         {
-            _manualMode = true;
-            _waitTaskProvider = waitTaskProvider;
-            StartScenario(scenarioName);
+            StopScenario();
+            Task? pending;
+            lock (_sync)
+                pending = _activeTask;
+
+            if (pending != null)
+                await pending.ConfigureAwait(false);
         }
 
-        private async Task RunScenarioAsync(IScenario scenario, CancellationToken token)
+        private async Task RunScenarioAsync(
+            IScenario scenario, DemoRunOptions options, CancellationTokenSource source)
         {
             try
             {
-                await ExecuteOnceStepsAsync(scenario, token);
-                await ExecuteLoopStepsAsync(scenario, token);
+                await _runner.RunAsync(scenario, options, source.Token);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (source.IsCancellationRequested)
             {
                 ScenarioProgress?.Invoke(this, "Сценарий прерван пользователем");
             }
@@ -102,104 +150,14 @@ namespace MKtest.Services.Demoscripts
             }
             finally
             {
-                _isRunning = false;
+                lock (_sync)
+                {
+                    if (ReferenceEquals(_activeRun, source))
+                        _activeRun = null;
+                }
+
+                source.Dispose();
                 DemoStatusChanged?.Invoke(this, false);
-            }
-        }
-
-        private async Task ExecuteOnceStepsAsync(IScenario scenario, CancellationToken token)
-        {
-            foreach (var step in scenario.Steps.Where(s => s.ExecutionMode == StepExecutionMode.Once))
-            {
-                if (token.IsCancellationRequested) return;
-                await ExecuteStepAsync(step, scenario.Name, token);
-            }
-        }
-
-        private async Task ExecuteLoopStepsAsync(IScenario scenario, CancellationToken token)
-        {
-            var loopSteps = scenario.Steps.Where(s => s.ExecutionMode == StepExecutionMode.PerLoop).ToList();
-
-            while (!token.IsCancellationRequested)
-            {
-                foreach (var step in loopSteps)
-                {
-                    if (token.IsCancellationRequested) break;
-                    await ExecuteStepAsync(step, scenario.Name, token);
-                }
-            }
-        }
-
-        private async Task ExecuteStepAsync(ScenarioStep step, string scenarioName, CancellationToken token)
-        {
-            try
-            {
-                bool isDelayStep = string.IsNullOrEmpty(step.SourceFile) && step.DelayMs > 0;
-
-                // В ручном режиме пропускаем шаги-задержки
-                if (_manualMode && isDelayStep)
-                    return;
-
-                if (!string.IsNullOrEmpty(step.SourceFile) && !string.IsNullOrEmpty(step.TargetFile))
-                {
-                    await CopyScenarioFileAsync(step, scenarioName);
-
-                    // В ручном режиме после отправки файла ждём нажатия кнопки "Далее"
-                    if (_manualMode && _waitTaskProvider != null)
-                    {
-                        ScenarioProgress?.Invoke(this, "Ожидание нажатия кнопки 'Далее'...");
-                        await WaitForManualSignalAsync(token);
-                    }
-                }
-                else if (!_manualMode && step.DelayMs > 0)
-                {
-                    // Автоматический режим – обычная задержка
-                    ScenarioProgress?.Invoke(this, $"Задержка {step.DelayMs}мс: {step.Description}");
-                    await Task.Delay(step.DelayMs, token);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logManager.AppendLog($"Ошибка выполнения шага '{step.Description}': {ex.Message}");
-                ScenarioProgress?.Invoke(this, $"Ошибка: {step.Description}");
-            }
-        }
-
-        private async Task WaitForManualSignalAsync(CancellationToken token)
-        {
-            if (_waitTaskProvider == null)
-                return;
-
-            Task manualSignal = _waitTaskProvider.Invoke();
-            var tcs = new TaskCompletionSource<bool>();
-            using (token.Register(() => tcs.TrySetCanceled()))
-            {
-                await Task.WhenAny(manualSignal, tcs.Task);
-            }
-            token.ThrowIfCancellationRequested();
-        }
-
-        private async Task CopyScenarioFileAsync(ScenarioStep step, string scenarioName)
-        {
-            try
-            {
-                var scenarioPath = _fileService.GetScenarioPath(scenarioName);
-                var sourcePath = Path.Combine(scenarioPath, step.SourceFile);
-                var destPath = Path.Combine("JsonTemplates", step.TargetFile);
-
-                await _fileService.CopyFileAsync(sourcePath, destPath);
-                ScenarioProgress?.Invoke(this, step.Description);
-                _logManager.AppendLog($"[Демо] {step.Description}");
-            }
-            catch (FileNotFoundException ex)
-            {
-                _logManager.AppendLog($"Файл не найден: {ex.FileName}");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logManager.AppendLog($"Ошибка копирования файла: {ex.Message}");
-                throw;
             }
         }
     }

@@ -67,7 +67,8 @@ namespace MKtest.Services.USRTransfer
                     if (!File.Exists(file)) continue;
 
                     Raise(i + 1, total, 0, $"Отправка IN: {Path.GetFileName(file)}");
-                    await SendBytecodeAsync(file, ConfigService.Config.USRTransfer.InBaudRate, $"IN{i + 1}");
+                    await SendBytecodeAsync(file, ConfigService.Config.USRTransfer.InBaudRate,
+                        $"IN{i + 1}", token).ConfigureAwait(false);
                     await WaitBetweenStepsAsync(i, total, token);
                 }
 
@@ -84,16 +85,18 @@ namespace MKtest.Services.USRTransfer
                 Raise(0, total, 0, "Ошибка");
             }
         }
-        private async Task SendBytecodeAsync(string filePath, int baudRate, string type)
+        private async Task SendBytecodeAsync(
+            string filePath, int baudRate, string type,
+            CancellationToken token = default)
         {
             try
             {
                 var cfg = ConfigService.Config.USRTransfer;
-                var fileData = await File.ReadAllBytesAsync(filePath);
+                var fileData = await File.ReadAllBytesAsync(filePath, token);
                 _logManager.AppendLog($"Отправка {type}: {Path.GetFileName(filePath)} ({fileData.Length} байт)");
 
                 using var client = new TcpClient();
-                var connected = await WaitConnectAsync(client, cfg.IP, cfg.Port, 3000);
+                var connected = await WaitConnectAsync(client, cfg.IP, cfg.Port, 3000, token);
                 if (!connected)
                 {
                     _logManager.AppendLog($"Ошибка {type}: таймаут подключения к {cfg.IP}:{cfg.Port}");
@@ -101,15 +104,19 @@ namespace MKtest.Services.USRTransfer
                 }
 
                 await using var stream = client.GetStream();
-                await stream.WriteAsync(USRCommands.GetBaudRateCommand(baudRate));
-                await stream.WriteAsync(USRCommands.CreateSaveSettingsCommand());
-                await Task.Delay(1000);
+                await stream.WriteAsync(USRCommands.GetBaudRateCommand(baudRate), token);
+                await stream.WriteAsync(USRCommands.CreateSaveSettingsCommand(), token);
+                await Task.Delay(1000, token);
 
-                await stream.WriteAsync(fileData);
-                await stream.FlushAsync();
-                await Task.Delay(500);
+                await stream.WriteAsync(fileData, token);
+                await stream.FlushAsync(token);
+                await Task.Delay(500, token);
 
                 _logManager.AppendLog($"Успешно отправлен {type}: {Path.GetFileName(filePath)}");
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -117,14 +124,22 @@ namespace MKtest.Services.USRTransfer
             }
         }
 
-        private static async Task<bool> WaitConnectAsync(TcpClient client, string ip, int port, int timeoutMs)
+        private static async Task<bool> WaitConnectAsync(
+            TcpClient client, string ip, int port, int timeoutMs,
+            CancellationToken token = default)
         {
-            var connectTask = client.ConnectAsync(ip, port);
-            var done = await Task.WhenAny(connectTask, Task.Delay(timeoutMs));
-            if (done != connectTask) return false;
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeout.CancelAfter(timeoutMs);
 
-            await connectTask;
-            return true;
+            try
+            {
+                await client.ConnectAsync(ip, port, timeout.Token);
+                return client.Connected;
+            }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested)
+            {
+                return false;
+            }
         }
 
         private async Task WaitBetweenStepsAsync(int index, int total, CancellationToken token)

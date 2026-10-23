@@ -90,13 +90,14 @@
             beelinkCollapsiblePanel = new Panel();
             beelinkContentPanel = new Panel();
             timeGroupBox = new GroupBox();
+            beelinkRemoteTimeTextBox = new TextBox();
+            beelinkRemoteTimeLabel = new Label();
             timeSetButton = new Button();
             manualTimePicker = new DateTimePicker();
             manualDatePicker = new DateTimePicker();
             timeDisableNTPButton = new Button();
             timeEnableNTPButton = new Button();
             timeCheckButton = new Button();
-            beelinkTestButton = new Button();
             beelinkDisconnectButton = new Button();
             beelinkConnectButton = new Button();
             beelinkStatusLabel = new Label();
@@ -400,7 +401,6 @@
             webServerHeaderPanel.Name = "webServerHeaderPanel";
             webServerHeaderPanel.Size = new Size(356, 24);
             webServerHeaderPanel.TabIndex = 0;
-            webServerHeaderPanel.Click += CollapsiblePanelHeader_Click;
             // 
             // webServerHeaderLabel
             // 
@@ -420,7 +420,7 @@
             demoCollapsiblePanel.Location = new Point(0, 94);
             demoCollapsiblePanel.Margin = new Padding(0, 0, 0, 10);
             demoCollapsiblePanel.Name = "demoCollapsiblePanel";
-            demoCollapsiblePanel.Size = new Size(361, 175);
+            demoCollapsiblePanel.Size = new Size(361, 137);
             demoCollapsiblePanel.TabIndex = 8;
             // 
             // demoContentPanel
@@ -435,7 +435,7 @@
             demoContentPanel.Dock = DockStyle.Fill;
             demoContentPanel.Location = new Point(0, 23);
             demoContentPanel.Name = "demoContentPanel";
-            demoContentPanel.Size = new Size(359, 150);
+            demoContentPanel.Size = new Size(359, 112);
             demoContentPanel.TabIndex = 1;
             // 
             // btnNextStep
@@ -516,7 +516,6 @@
             demoHeaderPanel.Name = "demoHeaderPanel";
             demoHeaderPanel.Size = new Size(359, 23);
             demoHeaderPanel.TabIndex = 0;
-            demoHeaderPanel.Click += CollapsiblePanelHeader_Click;
             // 
             // demoHeaderLabel
             // 
@@ -533,7 +532,7 @@
             usrTransferCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             usrTransferCollapsiblePanel.Controls.Add(usrTransferContentPanel);
             usrTransferCollapsiblePanel.Controls.Add(usrTransferHeaderPanel);
-            usrTransferCollapsiblePanel.Location = new Point(3, 282);
+            usrTransferCollapsiblePanel.Location = new Point(3, 244);
             usrTransferCollapsiblePanel.Name = "usrTransferCollapsiblePanel";
             usrTransferCollapsiblePanel.Size = new Size(361, 208);
             usrTransferCollapsiblePanel.TabIndex = 9;
@@ -680,7 +679,6 @@
             usrTransferHeaderPanel.Name = "usrTransferHeaderPanel";
             usrTransferHeaderPanel.Size = new Size(359, 24);
             usrTransferHeaderPanel.TabIndex = 0;
-            usrTransferHeaderPanel.Click += CollapsiblePanelHeader_Click;
             // 
             // usrTransferHeaderLabel
             // 
@@ -697,7 +695,7 @@
             emergencyCollapsiblePanel.BorderStyle = BorderStyle.FixedSingle;
             emergencyCollapsiblePanel.Controls.Add(emergencyContentPanel);
             emergencyCollapsiblePanel.Controls.Add(emergencyHeaderPanel);
-            emergencyCollapsiblePanel.Location = new Point(3, 496);
+            emergencyCollapsiblePanel.Location = new Point(3, 458);
             emergencyCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             emergencyCollapsiblePanel.Name = "emergencyCollapsiblePanel";
             emergencyCollapsiblePanel.Size = new Size(361, 81);
@@ -909,36 +907,58 @@
             beelinkCollapsiblePanel.Location = new Point(4, 327);
             beelinkCollapsiblePanel.Margin = new Padding(3, 3, 3, 10);
             beelinkCollapsiblePanel.Name = "beelinkCollapsiblePanel";
-            beelinkCollapsiblePanel.Size = new Size(367, 190);
+            beelinkCollapsiblePanel.Size = new Size(367, 211);
             beelinkCollapsiblePanel.TabIndex = 0;
             // 
             // beelinkContentPanel
             // 
             beelinkContentPanel.Controls.Add(timeGroupBox);
-            beelinkContentPanel.Controls.Add(beelinkTestButton);
             beelinkContentPanel.Controls.Add(beelinkDisconnectButton);
             beelinkContentPanel.Controls.Add(beelinkConnectButton);
             beelinkContentPanel.Controls.Add(beelinkStatusLabel);
             beelinkContentPanel.Dock = DockStyle.Fill;
             beelinkContentPanel.Location = new Point(0, 24);
             beelinkContentPanel.Name = "beelinkContentPanel";
-            beelinkContentPanel.Size = new Size(365, 164);
+            beelinkContentPanel.Size = new Size(365, 185);
             beelinkContentPanel.TabIndex = 1;
             // 
             // timeGroupBox
             // 
+            timeGroupBox.Controls.Add(beelinkRemoteTimeTextBox);
+            timeGroupBox.Controls.Add(beelinkRemoteTimeLabel);
             timeGroupBox.Controls.Add(timeSetButton);
             timeGroupBox.Controls.Add(manualTimePicker);
             timeGroupBox.Controls.Add(manualDatePicker);
             timeGroupBox.Controls.Add(timeDisableNTPButton);
             timeGroupBox.Controls.Add(timeEnableNTPButton);
             timeGroupBox.Controls.Add(timeCheckButton);
-            timeGroupBox.Location = new Point(10, 65);
+            timeGroupBox.Location = new Point(3, 48);
             timeGroupBox.Name = "timeGroupBox";
-            timeGroupBox.Size = new Size(352, 88);
+            timeGroupBox.Size = new Size(352, 120);
             timeGroupBox.TabIndex = 4;
             timeGroupBox.TabStop = false;
             timeGroupBox.Text = "Управление временем";
+            // 
+            // beelinkRemoteTimeTextBox
+            // 
+            beelinkRemoteTimeTextBox.BackColor = SystemColors.Window;
+            beelinkRemoteTimeTextBox.Font = new Font("Consolas", 9F);
+            beelinkRemoteTimeTextBox.Location = new Point(124, 87);
+            beelinkRemoteTimeTextBox.Name = "beelinkRemoteTimeTextBox";
+            beelinkRemoteTimeTextBox.ReadOnly = true;
+            beelinkRemoteTimeTextBox.Size = new Size(223, 22);
+            beelinkRemoteTimeTextBox.TabIndex = 0;
+            beelinkRemoteTimeTextBox.TabStop = false;
+            beelinkRemoteTimeTextBox.Text = "—";
+            // 
+            // beelinkRemoteTimeLabel
+            // 
+            beelinkRemoteTimeLabel.AutoSize = true;
+            beelinkRemoteTimeLabel.Location = new Point(10, 90);
+            beelinkRemoteTimeLabel.Name = "beelinkRemoteTimeLabel";
+            beelinkRemoteTimeLabel.Size = new Size(86, 15);
+            beelinkRemoteTimeLabel.TabIndex = 1;
+            beelinkRemoteTimeLabel.Text = "Время Beelink:";
             // 
             // timeSetButton
             // 
@@ -999,21 +1019,11 @@
             timeCheckButton.UseVisualStyleBackColor = true;
             timeCheckButton.Click += timeCheckButton_Click;
             // 
-            // beelinkTestButton
-            // 
-            beelinkTestButton.Location = new Point(3, 33);
-            beelinkTestButton.Name = "beelinkTestButton";
-            beelinkTestButton.Size = new Size(90, 21);
-            beelinkTestButton.TabIndex = 3;
-            beelinkTestButton.Text = "Тест ";
-            beelinkTestButton.UseVisualStyleBackColor = true;
-            beelinkTestButton.Click += beelinkTestButton_Click;
-            // 
             // beelinkDisconnectButton
             // 
             beelinkDisconnectButton.Location = new Point(99, 6);
             beelinkDisconnectButton.Name = "beelinkDisconnectButton";
-            beelinkDisconnectButton.Size = new Size(90, 21);
+            beelinkDisconnectButton.Size = new Size(90, 36);
             beelinkDisconnectButton.TabIndex = 2;
             beelinkDisconnectButton.Text = "Отключить";
             beelinkDisconnectButton.UseVisualStyleBackColor = true;
@@ -1023,7 +1033,7 @@
             // 
             beelinkConnectButton.Location = new Point(3, 6);
             beelinkConnectButton.Name = "beelinkConnectButton";
-            beelinkConnectButton.Size = new Size(90, 21);
+            beelinkConnectButton.Size = new Size(90, 36);
             beelinkConnectButton.TabIndex = 1;
             beelinkConnectButton.Text = "Подключить";
             beelinkConnectButton.UseVisualStyleBackColor = true;
@@ -1048,7 +1058,6 @@
             beelinkHeaderPanel.Name = "beelinkHeaderPanel";
             beelinkHeaderPanel.Size = new Size(365, 24);
             beelinkHeaderPanel.TabIndex = 0;
-            beelinkHeaderPanel.Click += CollapsiblePanelHeader_Click;
             // 
             // beelinkHeaderLabel
             // 
@@ -1373,7 +1382,7 @@
             // 
             // btnHermesTest
             // 
-            btnHermesTest.Location = new Point(291, 6);
+            btnHermesTest.Location = new Point(260, 6);
             btnHermesTest.Name = "btnHermesTest";
             btnHermesTest.Size = new Size(41, 25);
             btnHermesTest.TabIndex = 6;
@@ -1383,7 +1392,7 @@
             // 
             // btnHermesUpdate
             // 
-            btnHermesUpdate.Location = new Point(195, 9);
+            btnHermesUpdate.Location = new Point(179, 6);
             btnHermesUpdate.Name = "btnHermesUpdate";
             btnHermesUpdate.Size = new Size(72, 26);
             btnHermesUpdate.TabIndex = 7;
@@ -1410,7 +1419,6 @@
             hermesHeaderPanel.Name = "hermesHeaderPanel";
             hermesHeaderPanel.Size = new Size(366, 24);
             hermesHeaderPanel.TabIndex = 0;
-            hermesHeaderPanel.Click += CollapsiblePanelHeader_Click;
             // 
             // hermesHeaderLabel
             // 
@@ -1421,7 +1429,6 @@
             hermesHeaderLabel.Size = new Size(366, 24);
             hermesHeaderLabel.TabIndex = 0;
             hermesHeaderLabel.Text = "Гермес";
-            hermesHeaderLabel.Click += CollapsiblePanelHeader_Click;
             // 
             // logPanel
             // 
@@ -2218,6 +2225,7 @@
             beelinkContentPanel.ResumeLayout(false);
             beelinkContentPanel.PerformLayout();
             timeGroupBox.ResumeLayout(false);
+            timeGroupBox.PerformLayout();
             beelinkHeaderPanel.ResumeLayout(false);
             httpProtokolCollapsiblePanel.ResumeLayout(false);
             httpProtokolContentPanel.ResumeLayout(false);
@@ -2284,8 +2292,9 @@
         private Label beelinkStatusLabel;
         private Button beelinkConnectButton;
         private Button beelinkDisconnectButton;
-        private Button beelinkTestButton;
         private GroupBox timeGroupBox;
+        private Label beelinkRemoteTimeLabel;
+        private TextBox beelinkRemoteTimeTextBox;
         private Button timeCheckButton;
         private Button timeEnableNTPButton;
         private Button timeDisableNTPButton;

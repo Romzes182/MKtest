@@ -9,12 +9,14 @@ using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public class USRTransferManager
+    public class USRTransferManager : IUSRTransferOperations
     {
         private readonly IRouteService _routeService;
         private readonly IUSRTransferService _transferService;
         private readonly LogManager _logManager;
         private CancellationTokenSource? _sequenceToken;
+        private TaskCompletionSource<bool>? _sequenceComplete;
+        private readonly object _sequenceSync = new();
         private List<RouteConfig> _routes = new();
 
         public event EventHandler<TransferProgressEventArgs>? ProgressChanged;
@@ -66,23 +68,19 @@ namespace MKtest.Managers
             await _transferService.SendSingleFileAsync(path, ConfigService.Config.USRTransfer.InBaudRate, "IN");
         }
 
-        public async Task StartInFromSelectedAsync(string routeNumber, string inFileName)
+        public Task StartInFromSelectedAsync(string routeNumber, string inFileName)
         {
-            if (IsSequenceRunning) return;
-
             var route = GetRoute(routeNumber);
-            if (route == null) { _logManager.AppendLog("Маршрут не найден"); return; }
+            if (route == null) { _logManager.AppendLog("Маршрут не найден"); return Task.CompletedTask; }
 
             var startIndex = route.InFilePaths.FindIndex(f =>
                 string.Equals(Path.GetFileName(f), inFileName, StringComparison.OrdinalIgnoreCase));
 
-            if (startIndex < 0) { _logManager.AppendLog("Выбранный IN файл не найден"); return; }
+            if (startIndex < 0) { _logManager.AppendLog("Выбранный IN файл не найден"); return Task.CompletedTask; }
 
-            IsSequenceRunning = true;
-            _sequenceToken = new CancellationTokenSource();
-            try { await _transferService.RunInSequenceFromAsync(route, startIndex, _sequenceToken.Token); }
-            finally { IsSequenceRunning = false; }
+            return RunSequenceAsync(route, startIndex, fromSelected: true);
         }
+
         public Task<bool> TestConnectionAsync() => _transferService.TestConnectionAsync();
 
         public async Task SendSvcAsync(string routeNumber)
@@ -92,21 +90,74 @@ namespace MKtest.Managers
             await _transferService.SendSvcFolderAsync(route);
         }
 
-        public async Task StartInSequenceAsync(string routeNumber)
+        public Task StartInSequenceAsync(string routeNumber)
         {
-            if (IsSequenceRunning) return;
             var route = _routes.FirstOrDefault(r => r.RouteNumber == routeNumber);
-            if (route == null) { _logManager.AppendLog("Маршрут не найден"); return; }
-            IsSequenceRunning = true;
-            _sequenceToken = new CancellationTokenSource();
-            try { await _transferService.RunInSequenceAsync(route, _sequenceToken.Token); }
-            finally { IsSequenceRunning = false; }
+            if (route == null) { _logManager.AppendLog("Маршрут не найден"); return Task.CompletedTask; }
+            return RunSequenceAsync(route, 0, fromSelected: false);
+        }
+
+        private async Task RunSequenceAsync(RouteConfig route, int startIndex, bool fromSelected)
+        {
+            CancellationTokenSource source;
+            TaskCompletionSource<bool> finished;
+
+            lock (_sequenceSync)
+            {
+                if (IsSequenceRunning)
+                    return;
+
+                IsSequenceRunning = true;
+                source = new CancellationTokenSource();
+                _sequenceToken = source;
+                finished = new TaskCompletionSource<bool>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                _sequenceComplete = finished;
+            }
+
+            try
+            {
+                if (fromSelected)
+                    await _transferService.RunInSequenceFromAsync(route, startIndex, source.Token)
+                        .ConfigureAwait(false);
+                else
+                    await _transferService.RunInSequenceAsync(route, source.Token)
+                        .ConfigureAwait(false);
+            }
+            finally
+            {
+                lock (_sequenceSync)
+                {
+                    IsSequenceRunning = false;
+                    _sequenceToken = null;
+                    _sequenceComplete = null;
+                    // Resolve the waiter before exposing an idle sequence.
+                    finished.TrySetResult(true);
+                }
+
+                source.Dispose();
+            }
         }
 
         public void StopInSequence()
         {
-            _sequenceToken?.Cancel();
+            lock (_sequenceSync)
+            {
+                if (_sequenceToken == null) return;
+                if (!_sequenceToken.IsCancellationRequested)
+                    _sequenceToken.Cancel();
+            }
             _logManager.AppendLog("Запрошена остановка последовательности IN");
+        }
+
+        public async Task StopInSequenceAsync()
+        {
+            StopInSequence();
+            Task? pending;
+            lock (_sequenceSync)
+                pending = _sequenceComplete?.Task;
+            if (pending != null)
+                await pending.ConfigureAwait(false);
         }
     }
 }

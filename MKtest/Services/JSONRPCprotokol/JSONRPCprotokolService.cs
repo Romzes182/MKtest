@@ -1,31 +1,31 @@
-﻿using MKtest.Configs;
+using MKtest.Configs;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MKtest.Services.JSONRPCprotokol
 {
-    public class JSONRPCprotokolService
+    /// <summary>Coordinates an unchanged JSON-RPC payload and a TCP transport.</summary>
+    public sealed class JSONRPCprotokolService : IJsonRpcSender
     {
         private readonly JSONRPCprotokolConfig _config;
+        private readonly IJsonRpcPayloadBuilder _builder;
+        private readonly IJsonRpcTransport _transport;
+
+        public JSONRPCprotokolService(JSONRPCprotokolConfig config)
+            : this(config, new JsonRpcPayloadBuilder(), new TcpJsonRpcTransport()) { }
 
         public JSONRPCprotokolService(
-            JSONRPCprotokolConfig config)
+            JSONRPCprotokolConfig config,
+            IJsonRpcPayloadBuilder builder,
+            IJsonRpcTransport transport)
         {
-            _config = config;
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _builder = builder ?? throw new ArgumentNullException(nameof(builder));
+            _transport = transport ?? throw new ArgumentNullException(nameof(transport));
         }
 
-        public async Task SendAsync(
-            int trCounter,
-            CancellationToken token)
-        {
-            string json =
-                JSONRPCprotokolPacketBuilder.Build(trCounter);
-
-            await JSONRPCprotokolSender.SendAsync(
-                _config.IP,
-                _config.Port,
-                json,
-                token);
-        }
+        public Task SendAsync(int trCounter, CancellationToken token) =>
+            _transport.SendAsync(_config.IP, _config.Port, _builder.Build(trCounter), token);
     }
 }

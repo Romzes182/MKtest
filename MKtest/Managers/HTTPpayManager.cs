@@ -1,91 +1,66 @@
-﻿using MKtest.Configs;
+using MKtest.Configs;
 using MKtest.Services.HTTPpay;
+using MKtest.Services.Protocol;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MKtest.Managers
 {
-    public class HTTPpayManager
+    public sealed class HTTPpayManager : IHttpPayOperations
     {
         private readonly HTTPpayService _service;
-
         private readonly LogManager _logManager;
+        private readonly PeriodicOperationRunner _runner = new();
+        private Func<int>? _readPtotal;
 
-        private CancellationTokenSource? _cts;
+        public bool IsRunning => _runner.IsRunning;
 
-        private bool _running;
-
-        private Func<int>? _getPtotal;
-
-        public bool IsRunning => _running;
-
-        public HTTPpayManager(
-            HTTPpayService service,
-            LogManager logManager)
+        public HTTPpayManager(HTTPpayService service, LogManager logManager)
         {
-            _service = service;
-
-            _logManager = logManager;
+            _service = service ?? throw new ArgumentNullException(nameof(service));
+            _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
         }
 
-        public void Start(
-            Func<int> getPtotal,
-            int intervalSeconds)
+        public void Start(Func<int> getPtotal, int intervalSeconds)
         {
-            if (_running)
-                return;
+            ArgumentNullException.ThrowIfNull(getPtotal);
+            if (intervalSeconds <= 0)
+                throw new ArgumentOutOfRangeException(nameof(intervalSeconds), "Интервал должен быть больше 0.");
+            if (IsRunning) return;
 
-            _running = true;
-
-            _getPtotal = getPtotal;
-
-            _cts = new CancellationTokenSource();
-
-            _ = Task.Run(() =>
-                LoopAsync(
-                    intervalSeconds,
-                    _cts.Token));
+            _readPtotal = getPtotal;
+            _runner.Start(
+                SendOnceAsync,
+                () => intervalSeconds,
+                ex => _logManager.AppendLog($"HTTPpay: {ex.Message}"));
         }
 
         public void Stop()
         {
-            _running = false;
-
-            _cts?.Cancel();
-
-            _logManager.AppendLog(
-                "HTTPpay остановлен");
+            if (!IsRunning)
+            {
+                _runner.Stop();
+                return;
+            }
+            _runner.Stop();
+            _logManager.AppendLog("HTTPpay остановлен");
         }
 
-        private async Task LoopAsync(
-            int intervalSeconds,
-            CancellationToken token)
+        /// <summary>Await canceled HTTP/TCP operations before closing their transports.</summary>
+        public Task StopAsync()
         {
-            while (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    int pTotal =
-                        _getPtotal?.Invoke() ?? 0;
+            Stop();
+            return _runner.StopAsync();
+        }
 
-                    HTTPpayResponse response =
-                        await _service.SendAsync(
-                            pTotal);
-
-                    _logManager.AppendLog(
-                        $"HTTPpay: {response.Message}");
-                }
-                catch (Exception ex)
-                {
-                    _logManager.AppendLog(
-                        ex.Message);
-                }
-
-                await Task.Delay(
-                    intervalSeconds * 1000,
-                    token);
-            }
+        private async Task SendOnceAsync(CancellationToken token)
+        {
+            var getPtotal = _readPtotal;
+            int total = getPtotal?.Invoke() ?? 0;
+            HTTPpayResponse response = await _service.SendAsync(total, token);
+            token.ThrowIfCancellationRequested();
+            _logManager.AppendLog($"HTTPpay: {response.Message}");
         }
     }
 }
