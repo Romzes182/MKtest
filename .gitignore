@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Local publish outputs and installer packages
+artifacts/
+publish/
+*.msi
+*Setup*.exe
+*.zip
