@@ -31,6 +31,11 @@ function Invoke-Msi([string] $Action, [string] $LogName) {
     }
 }
 
+function Get-ComProperty([object] $Object, [string] $Name, [object[]] $Arguments) {
+    $Object.GetType().InvokeMember($Name, [Reflection.BindingFlags]::GetProperty,
+        $null, $Object, $Arguments)
+}
+
 $installed = $false
 $application = $null
 try {
@@ -53,10 +58,20 @@ try {
     if (-not $runtime.runtimeOptions.includedFrameworks) { throw 'The installed application is not self-contained.' }
 
     $shell = New-Object -ComObject WScript.Shell
+    $installer = New-Object -ComObject WindowsInstaller.Installer
     foreach ($path in $shortcuts) {
         if (-not (Test-Path -LiteralPath $path)) { throw "Shortcut not found: $path" }
         $shortcut = $shell.CreateShortcut($path)
-        if ($shortcut.TargetPath -ne $exe) { throw "Incorrect shortcut target: $($shortcut.TargetPath)" }
+        $target = $shortcut.TargetPath
+        if ($target -ne $exe) {
+            # Setup Project creates advertised MSI shortcuts. Resolve their actual
+            # installed component through Windows Installer, not the icon/cache path.
+            $record = Get-ComProperty $installer 'ShortcutTarget' @($path)
+            $productCode = Get-ComProperty $record 'StringData' @(1)
+            $componentCode = Get-ComProperty $record 'StringData' @(3)
+            $target = Get-ComProperty $installer 'ComponentPath' @($productCode, $componentCode)
+        }
+        if ($target -ne $exe) { throw "Incorrect shortcut target: $target" }
         if ($shortcut.WorkingDirectory.TrimEnd('\') -ne $installDirectory.TrimEnd('\')) {
             throw "Incorrect shortcut working directory: $($shortcut.WorkingDirectory)"
         }
