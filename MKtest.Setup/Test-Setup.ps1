@@ -31,9 +31,42 @@ function Invoke-Msi([string] $Action, [string] $LogName) {
     }
 }
 
-function Get-ComProperty([object] $Object, [string] $Name, [object[]] $Arguments) {
-    $Object.GetType().InvokeMember($Name, [Reflection.BindingFlags]::GetProperty,
-        $null, $Object, $Arguments)
+if (-not ('MKtestSetupVerification.InstallerShortcut' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Text;
+
+namespace MKtestSetupVerification
+{
+    public static class InstallerShortcut
+    {
+        [DllImport("msi.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern uint MsiGetShortcutTargetW(string shortcut,
+            StringBuilder product, StringBuilder feature, StringBuilder component);
+
+        [DllImport("msi.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern int MsiGetComponentPathW(string product, string component,
+            StringBuilder path, ref uint length);
+
+        public static string Resolve(string shortcut)
+        {
+            var product = new StringBuilder(39);
+            var feature = new StringBuilder(256);
+            var component = new StringBuilder(39);
+            uint error = MsiGetShortcutTargetW(shortcut, product, feature, component);
+            if (error != 0) throw new Win32Exception((int)error);
+            var path = new StringBuilder(32768);
+            uint length = (uint)path.Capacity;
+            int state = MsiGetComponentPathW(product.ToString(), component.ToString(), path, ref length);
+            if (state != 3) // INSTALLSTATE_LOCAL
+                throw new InvalidOperationException("Shortcut component is not installed locally: " + state);
+            return path.ToString();
+        }
+    }
+}
+'@
 }
 
 $installed = $false
@@ -56,9 +89,9 @@ try {
     }
     $runtime = Get-Content -LiteralPath (Join-Path $installDirectory 'MKtest.runtimeconfig.json') -Raw | ConvertFrom-Json
     if (-not $runtime.runtimeOptions.includedFrameworks) { throw 'The installed application is not self-contained.' }
+    Write-Host "Verified $($publishedFiles.Count) installed files and self-contained runtime metadata."
 
     $shell = New-Object -ComObject WScript.Shell
-    $installer = New-Object -ComObject WindowsInstaller.Installer
     foreach ($path in $shortcuts) {
         if (-not (Test-Path -LiteralPath $path)) { throw "Shortcut not found: $path" }
         $shortcut = $shell.CreateShortcut($path)
@@ -66,16 +99,14 @@ try {
         if ($target -ne $exe) {
             # Setup Project creates advertised MSI shortcuts. Resolve their actual
             # installed component through Windows Installer, not the icon/cache path.
-            $record = Get-ComProperty $installer 'ShortcutTarget' @($path)
-            $productCode = Get-ComProperty $record 'StringData' @(1)
-            $componentCode = Get-ComProperty $record 'StringData' @(3)
-            $target = Get-ComProperty $installer 'ComponentPath' @($productCode, $componentCode)
+            $target = [MKtestSetupVerification.InstallerShortcut]::Resolve($path)
         }
         if ($target -ne $exe) { throw "Incorrect shortcut target: $target" }
         if ($shortcut.WorkingDirectory.TrimEnd('\') -ne $installDirectory.TrimEnd('\')) {
             throw "Incorrect shortcut working directory: $($shortcut.WorkingDirectory)"
         }
     }
+    Write-Host 'Verified Desktop and Start menu shortcut targets and working directories.'
 
     $application = Start-Process -FilePath $exe -WorkingDirectory $installDirectory -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(30)
