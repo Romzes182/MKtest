@@ -367,3 +367,6 @@ publish/
 *.msi
 *Setup*.exe
 *.zip
+
+# Shared, non-secret publish profile used by the Visual Studio Setup Project.
+!MKtest/Properties/PublishProfiles/Setup-win-x64.pubxml

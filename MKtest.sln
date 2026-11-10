@@ -7,12 +7,19 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MKtest", "MKtest\MKtest.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MKtest.Tests", "MKtest.Tests\MKtest.Tests.csproj", "{5E91E868-5EF7-464D-80F5-2BB46C5A96DA}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "MKtest.Setup", "MKtest.Setup\MKtest.Setup.vdproj", "{F1D96C68-EDF7-4BFF-96DF-0A171546307D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8A27ECD2-767B-4C3C-B62E-1DF2553CB861} = {8A27ECD2-767B-4C3C-B62E-1DF2553CB861}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F1D96C68-EDF7-4BFF-96DF-0A171546307D}.Debug|Any CPU.ActiveCfg = Debug
+		{F1D96C68-EDF7-4BFF-96DF-0A171546307D}.Release|Any CPU.ActiveCfg = Release
 		{8A27ECD2-767B-4C3C-B62E-1DF2553CB861}.Debug|Any CPU.ActiveCfg = Release|Any CPU
 		{8A27ECD2-767B-4C3C-B62E-1DF2553CB861}.Debug|Any CPU.Build.0 = Release|Any CPU
 		{8A27ECD2-767B-4C3C-B62E-1DF2553CB861}.Release|Any CPU.ActiveCfg = Release|Any CPU
