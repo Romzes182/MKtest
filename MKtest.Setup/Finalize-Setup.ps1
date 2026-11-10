@@ -88,8 +88,18 @@ public static class MKtestMsiFinalizer
             // Framework and modern .NET DLLs can share file versions. Remove the
             // old product inside the transaction, before copying the new payload.
             Query(database, "UPDATE `InstallExecuteSequence` SET `Sequence` = " + sequence + " WHERE `Action` = 'RemoveExistingProducts'", false);
+
+            // File costing occurs before removal. Framework facades such as
+            // System.Buffers have LOWER versions than the old runtime DLLs;
+            // force payload replacement so costing cannot omit those files.
+            // config.json and logs are user data and are not part of this MSI.
+            var reinstallMode = Query(database, "SELECT `Value` FROM `Property` WHERE `Property` = 'REINSTALLMODE'", true);
+            if (reinstallMode.Count == 0)
+                Query(database, "INSERT INTO `Property` (`Property`, `Value`) VALUES ('REINSTALLMODE', 'amus')", false);
+            else
+                Query(database, "UPDATE `Property` SET `Value` = 'amus' WHERE `Property` = 'REINSTALLMODE'", false);
             Check(MsiDatabaseCommit(database), "Commit MSI");
-            Console.WriteLine("Verified Windows 7 SP1 / .NET Framework 4.8 requirements; RemoveExistingProducts sequence: " + sequence);
+            Console.WriteLine("Verified Windows 7 SP1 / .NET Framework 4.8 requirements; RemoveExistingProducts sequence: " + sequence + "; REINSTALLMODE=amus");
         }
         finally { MsiCloseHandle(database); }
     }
