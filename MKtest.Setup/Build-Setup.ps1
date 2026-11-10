@@ -40,8 +40,14 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed: $LASTEXITCODE" }
 
     # Official extension helper: required for command-line vdproj builds.
-    & $disableOutOfProc
-    if ($LASTEXITCODE -ne 0) { throw "DisableOutOfProcBuild failed: $LASTEXITCODE" }
+    # The helper locates its Visual Studio instance from the current directory.
+    Push-Location (Split-Path -Parent $disableOutOfProc)
+    try {
+        & $disableOutOfProc
+        if ($LASTEXITCODE -ne 0) { throw "DisableOutOfProcBuild failed: $LASTEXITCODE" }
+    } finally {
+        Pop-Location
+    }
 
     & $devenv MKtest.sln /Build 'Release|Any CPU' /Project MKtest.Setup /ProjectConfig Release /Out $buildLog
     $buildExitCode = $LASTEXITCODE
