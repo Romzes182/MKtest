@@ -34,14 +34,19 @@ namespace MKtest.Services.DemoScenarios
                     Description = $"Остановка 1i{i}"
                 });
 
-                list.Add(new ScenarioStep
+                // Coordinate fixtures exist only for steps 1–6. Later informator
+                // steps must not publish invented or repeated coordinates.
+                if (i <= 6)
                 {
-                    SourceFile = $"coord1{i}.json",
-                    TargetFile = "coord.json",
-                    DelayMs = 0,
-                    ExecutionMode = StepExecutionMode.PerLoop,
-                    Description = $"Координаты coord1{i}"
-                });
+                    list.Add(new ScenarioStep
+                    {
+                        SourceFile = $"coord1{i}.json",
+                        TargetFile = "coord.json",
+                        DelayMs = 0,
+                        ExecutionMode = StepExecutionMode.PerLoop,
+                        Description = $"Координаты coord1{i}"
+                    });
+                }
 
                 list.Add(new ScenarioStep
                 {

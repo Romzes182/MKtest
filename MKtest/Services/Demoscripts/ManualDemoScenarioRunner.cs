@@ -15,6 +15,7 @@ namespace MKtest.Services.Demoscripts
     {
         private const int HistoryLimit = 500;
         private readonly IDemoStepExecutor _stepExecutor;
+        private readonly Func<string, string>? _templatePathResolver;
 
         private sealed class Entry
         {
@@ -28,9 +29,11 @@ namespace MKtest.Services.Demoscripts
             }
         }
 
-        public ManualDemoScenarioRunner(IDemoStepExecutor stepExecutor)
+        public ManualDemoScenarioRunner(IDemoStepExecutor stepExecutor,
+            Func<string, string>? templatePathResolver = null)
         {
             _stepExecutor = stepExecutor ?? throw new ArgumentNullException(nameof(stepExecutor));
+            _templatePathResolver = templatePathResolver;
         }
 
         public async Task RunAsync(
@@ -63,7 +66,7 @@ namespace MKtest.Services.Demoscripts
                     ++current;
                     var existing = history[current];
                     existing.Checkpoint = await ManualStepCheckpoint.CaptureAsync(
-                        existing.Step.TargetFile, token);
+                        existing.Step.TargetFile, token, _templatePathResolver);
                     await _stepExecutor.ExecuteAsync(existing.Step, scenario.Name, playback, token);
                 }
                 else
@@ -79,7 +82,8 @@ namespace MKtest.Services.Demoscripts
                         : loop[nextIndex - once.Length];
                     ++nextIndex;
 
-                    var snapshot = await ManualStepCheckpoint.CaptureAsync(step.TargetFile, token);
+                    var snapshot = await ManualStepCheckpoint.CaptureAsync(
+                        step.TargetFile, token, _templatePathResolver);
                     history.Add(new Entry(step, snapshot));
                     ++current;
                     await _stepExecutor.ExecuteAsync(step, scenario.Name, playback, token);

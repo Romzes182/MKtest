@@ -12,10 +12,13 @@ namespace MKtest.Services.Demoscripts
     public sealed class DemoScenarioRunner : IDemoScenarioRunner
     {
         private readonly IDemoStepExecutor _steps;
+        private readonly Func<string, string>? _templatePathResolver;
 
-        public DemoScenarioRunner(IDemoStepExecutor steps)
+        public DemoScenarioRunner(IDemoStepExecutor steps,
+            Func<string, string>? templatePathResolver = null)
         {
             _steps = steps ?? throw new ArgumentNullException(nameof(steps));
+            _templatePathResolver = templatePathResolver;
         }
 
         public async Task RunAsync(
@@ -27,7 +30,7 @@ namespace MKtest.Services.Demoscripts
             ArgumentNullException.ThrowIfNull(options);
             if (options.ManualMode && options.WaitForDirection != null)
             {
-                await new ManualDemoScenarioRunner(_steps)
+                await new ManualDemoScenarioRunner(_steps, _templatePathResolver)
                     .RunAsync(scenario, options, cancellationToken);
                 return;
             }

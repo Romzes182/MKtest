@@ -76,7 +76,7 @@ namespace MKtest.Services.Demoscripts
             {
                 var scenarioPath = _files.GetScenarioPath(scenarioName);
                 var sourcePath = Path.Combine(scenarioPath, step.SourceFile);
-                var destPath = Path.Combine("JsonTemplates", step.TargetFile);
+                var destPath = _files.GetTemplatePath(step.TargetFile);
 
                 cancellationToken.ThrowIfCancellationRequested();
                 await _files.CopyFileAsync(sourcePath, destPath);

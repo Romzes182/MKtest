@@ -57,7 +57,8 @@ namespace MKtest.Services.Demoscripts
             IDemoFileService fileService, LogManager logManager) =>
             new DemoScenarioRunner(new DemoStepExecutor(
                 fileService ?? throw new ArgumentNullException(nameof(fileService)),
-                (logManager ?? throw new ArgumentNullException(nameof(logManager))).AppendLog));
+                (logManager ?? throw new ArgumentNullException(nameof(logManager))).AppendLog),
+                fileService.GetTemplatePath);
 
         public void StartScenario(string scenarioName) =>
             StartCore(scenarioName, manualMode: false, waitForNext: null);

@@ -21,9 +21,12 @@ namespace MKtest.Services.Demoscripts
         }
 
         public static async Task<ManualStepCheckpoint> CaptureAsync(
-            string targetFile, CancellationToken token)
+            string targetFile, CancellationToken token,
+            Func<string, string>? templatePathResolver = null)
         {
-            var path = Path.Combine("JsonTemplates", targetFile);
+            var path = templatePathResolver != null
+                ? templatePathResolver(targetFile)
+                : Path.Combine(AppContext.BaseDirectory, "JsonTemplates", targetFile);
             byte[]? before = File.Exists(path)
                 ? await File.ReadAllBytesAsync(path, token)
                 : null;
