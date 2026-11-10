@@ -16,6 +16,7 @@ if (-not (Test-Path -LiteralPath $vswhere)) {
 $vsPath = & $vswhere -latest -products '*' -version '[17.12,19.0)' -property installationPath
 if (-not $vsPath) { throw 'Visual Studio 2022 17.12+ or Visual Studio 2026 is required for .NET 9.' }
 $devenv = Join-Path $vsPath 'Common7\IDE\devenv.com'
+$msbuild = Join-Path $vsPath 'MSBuild\Current\Bin\MSBuild.exe'
 $disableOutOfProc = Join-Path $vsPath 'Common7\IDE\CommonExtensions\Microsoft\VSI\DisableOutOfProcBuild\DisableOutOfProcBuild.exe'
 if (-not (Test-Path -LiteralPath $devenv) -or -not (Test-Path -LiteralPath $disableOutOfProc)) {
     throw 'Install the Microsoft Visual Studio Installer Projects extension in the full Visual Studio IDE, then restart Visual Studio.'
@@ -36,8 +37,9 @@ try {
     if (Test-Path -LiteralPath $msi) { Remove-Item -LiteralPath $msi -Force }
     if (Test-Path -LiteralPath $buildLog) { Remove-Item -LiteralPath $buildLog -Force }
 
-    & dotnet publish MKtest/MKtest.csproj -c Release -p:PublishProfile=Setup-win-x64 --verbosity minimal
-    if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed: $LASTEXITCODE" }
+    # Use the same MSBuild/SDK resolver as devenv, and the same Setup configuration.
+    & $msbuild MKtest/MKtest.csproj /restore /t:Publish /p:Configuration=Setup /p:PublishProfile=Setup-win-x64 /verbosity:minimal /nologo
+    if ($LASTEXITCODE -ne 0) { throw "MSBuild publish failed: $LASTEXITCODE" }
 
     # Official extension helper: required for command-line vdproj builds.
     # The helper locates its Visual Studio instance from the current directory.
@@ -49,7 +51,7 @@ try {
         Pop-Location
     }
 
-    & $devenv MKtest.sln /Build 'Release|Any CPU' /Project MKtest.Setup /ProjectConfig Release /Out $buildLog
+    & $devenv MKtest.sln /Build 'Setup|Any CPU' /Project MKtest.Setup /ProjectConfig Release /Out $buildLog
     $buildExitCode = $LASTEXITCODE
     if (Test-Path -LiteralPath $buildLog) { Get-Content -LiteralPath $buildLog }
     if ($buildExitCode -ne 0 -or -not (Test-Path -LiteralPath $msi)) {

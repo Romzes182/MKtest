@@ -23,6 +23,8 @@
   правила копирования в выходной каталог находятся в `MKtest.csproj`.
 - `MKtest.Setup/` — Visual Studio Installer Projects (`.vdproj`), MSI для текущего
   пользователя, Windows x64. Профиль `Setup-win-x64.pubxml` включает .NET runtime.
+  Для установщика используется конфигурация решения `Setup | Any CPU`;
+  Debug/Release не требуют расширения Installer Projects.
   Правила сборки и обновления версии описаны в `MKtest.Setup/README.md`.
 
 Перед работой сверяй этот контекст с актуальными файлами: источником истины служит

@@ -8,6 +8,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- Setup Project and publishing must build the same self-contained output. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Setup'">
+    <PublishProfile>Setup-win-x64</PublishProfile>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="SSH.NET" Version="2026.0.0" />
   </ItemGroup>
