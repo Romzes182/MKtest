@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Configurations>Debug;Release;Setup</Configurations>
   </PropertyGroup>
 
   <!-- Setup Project and publishing must build the same self-contained output. -->
