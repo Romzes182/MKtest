@@ -59,7 +59,7 @@ Visual Studio, включает штатный `DisableOutOfProcBuild` и выз
 Один `dotnet build` не собирает `.vdproj`.
 Лог: `artifacts\setup-logs\devenv-build.log`.
 
-Событие после сборки `.vdproj` вызывает `Finalize-Setup.js`: проверяет требования
+Событие после сборки `.vdproj` вызывает `Finalize-Setup.ps1`: проверяет требования
 MSI и переносит `RemoveExistingProducts` сразу после `InstallInitialize`, внутрь
 транзакции. Это необходимо при переходе с .NET 9: библиотеки для разных платформ
 могут иметь одинаковые версии, и позднее удаление сохраняло несовместимые DLL.
