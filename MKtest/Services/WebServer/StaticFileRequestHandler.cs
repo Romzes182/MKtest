@@ -18,18 +18,21 @@ namespace MKtest.Services.WebServer
 
         public StaticFileRequestHandler(string rootPath)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(rootPath);
+            if (rootPath == null) throw new ArgumentNullException(nameof(rootPath));
+            if (string.IsNullOrWhiteSpace(rootPath))
+                throw new ArgumentException("Value cannot be empty or whitespace.", nameof(rootPath));
 
             _rootPath = Path.GetFullPath(rootPath);
             Directory.CreateDirectory(_rootPath);
-            _rootPrefix = Path.EndsInDirectorySeparator(_rootPath)
+            _rootPrefix = (_rootPath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
+                _rootPath.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal))
                 ? _rootPath
                 : _rootPath + Path.DirectorySeparatorChar;
         }
 
         public void Handle(HttpListenerContext context)
         {
-            ArgumentNullException.ThrowIfNull(context);
+            if (context == null) throw new ArgumentNullException(nameof(context));
             var response = context.Response;
 
             try

@@ -39,14 +39,18 @@
         "InstallerBootstrapper" = "3:2"
             "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
             {
-            "Enabled" = "11:FALSE"
+            "Enabled" = "11:TRUE"
             "PromptEnabled" = "11:TRUE"
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
                 "Items"
                 {
-
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Net.Framework.4.8"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.8 (x86 and x64)"
+                    "ProductCode" = "8:Microsoft.Net.Framework.4.8"
+                    }
                 }
             }
         }
@@ -67,14 +71,18 @@
         "InstallerBootstrapper" = "3:2"
             "BootstrapperCfg:{63ACBE69-63AA-4F98-B2B6-99F9E24495F2}"
             {
-            "Enabled" = "11:FALSE"
+            "Enabled" = "11:TRUE"
             "PromptEnabled" = "11:TRUE"
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
                 "Items"
                 {
-
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Net.Framework.4.8"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.8 (x86 and x64)"
+                    "ProductCode" = "8:Microsoft.Net.Framework.4.8"
+                    }
                 }
             }
         }
@@ -92,6 +100,17 @@
         }
         "ExternalPersistence"
         {
+            "LaunchCondition"
+            {
+                "{A06ECF26-33A3-4562-8140-9B0E340D4F24}:_96D7D7B93CB049FD87B3EC00E2642EE7"
+                {
+                "Name" = "8:.NET Framework"
+                "Message" = "8:Для MKtest требуется Microsoft .NET Framework 4.8. Запустите setup.exe либо установите .NET Framework 4.8 с сайта Microsoft и повторите установку."
+                "FrameworkVersion" = "8:v4.8"
+                "AllowLaterVersions" = "11:TRUE"
+                "InstallUrl" = "8:https://go.microsoft.com/fwlink/?linkid=2088631"
+                }
+            }
         }
         "File"
         {
@@ -138,6 +157,13 @@
         }
         "LaunchCondition"
         {
+            "{836E08B8-0285-4809-BA42-01DB6754A45D}:_AC807892305841659EB0B35C53148954"
+            {
+            "Name" = "8:Windows 7 SP1 x64 or later"
+            "Condition" = "8:Installed OR (VersionNT64 AND ((VersionNT > 601) OR (VersionNT = 601 AND ServicePackLevel >= 1)))"
+            "Message" = "8:Для MKtest требуется 64-разрядная Windows 7 с пакетом обновления SP1 или более новая Windows."
+            "InstallUrl" = "8:"
+            }
         }
         "Locator"
         {
@@ -151,15 +177,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:MKtest"
-        "ProductCode" = "8:{361A4F49-C5D7-4EF0-8109-1C75BFC94D66}"
-        "PackageCode" = "8:{A9E29FBF-6FDC-4A17-B560-83C967C9CC3C}"
+        "ProductCode" = "8:{39B3AE26-AD1B-49A5-BBC3-473F61753B23}"
+        "PackageCode" = "8:{5EFD6B37-A4A3-4A33-8A00-FFEF6E4AFA13}"
         "UpgradeCode" = "8:{957722A2-0970-4857-84E8-1C05F5E2E1D6}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.0.0"
+        "ProductVersion" = "8:1.0.1"
         "Manufacturer" = "8:Romzes182"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"

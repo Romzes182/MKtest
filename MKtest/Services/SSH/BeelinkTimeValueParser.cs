@@ -25,7 +25,7 @@ namespace MKtest.Services.SSH
             if (string.IsNullOrWhiteSpace(status))
                 return null;
 
-            foreach (string line in status.Split('\n'))
+            foreach (string line in status!.Split('\n'))
             {
                 if (line.Contains("Universal time", StringComparison.OrdinalIgnoreCase) ||
                     line.Contains("RTC time", StringComparison.OrdinalIgnoreCase))

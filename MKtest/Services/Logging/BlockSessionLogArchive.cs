@@ -15,7 +15,9 @@ namespace MKtest.Services.Logging
 
         public BlockSessionLogArchive(string blockName)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(blockName);
+            if (blockName == null) throw new ArgumentNullException(nameof(blockName));
+            if (string.IsNullOrWhiteSpace(blockName))
+                throw new ArgumentException("Value cannot be empty or whitespace.", nameof(blockName));
 
             string directory = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory, "logs", "blocks");

@@ -45,8 +45,8 @@ public sealed class DemoScenarioTests
     public void RelativeConfiguredPaths_AreResolvedFromApplicationDirectory()
     {
         var config = CreateConfig();
-        config.ScenariosPath = Path.GetRelativePath(AppContext.BaseDirectory, config.ScenariosPath);
-        config.TemplatesPath = Path.GetRelativePath(AppContext.BaseDirectory, config.TemplatesPath);
+        config.ScenariosPath = RelativeToApplication(config.ScenariosPath);
+        config.TemplatesPath = RelativeToApplication(config.TemplatesPath);
         var files = new DemoFileService(config);
 
         Assert.AreEqual(Path.Combine(_root, "scenarios", "Demo1"), files.GetScenarioPath("demo-1"));
@@ -60,7 +60,7 @@ public sealed class DemoScenarioTests
         var files = new DemoFileService(config);
         Directory.CreateDirectory(files.GetScenarioPath("demo-1"));
         const string json = "{\"number\":\"1\"}";
-        await File.WriteAllTextAsync(Path.Combine(files.GetScenarioPath("demo-1"), "source.json"), json);
+        File.WriteAllText(Path.Combine(files.GetScenarioPath("demo-1"), "source.json"), json);
         var errors = new List<string>();
         var executor = new DemoStepExecutor(files, errors.Add);
 
@@ -72,7 +72,7 @@ public sealed class DemoScenarioTests
 
         var target = Path.Combine(config.TemplatesPath, "route.json");
         Assert.IsTrue(File.Exists(target), string.Join(Environment.NewLine, errors));
-        Assert.AreEqual(json, await File.ReadAllTextAsync(target));
+        Assert.AreEqual(json, File.ReadAllText(target));
     }
 
     [TestMethod]
@@ -112,7 +112,7 @@ public sealed class DemoScenarioTests
         Assert.AreEqual(1, scenario.Steps.Count(s => s.ExecutionMode == StepExecutionMode.Once));
         var loop = scenario.Steps.Where(s => s.ExecutionMode == StepExecutionMode.PerLoop).ToArray();
         int index = 0;
-        var number = scenarioName["demo-".Length..];
+        var number = scenarioName.Substring("demo-".Length);
         for (int i = 1; i <= informatorSteps; i++)
         {
             Assert.AreEqual($"{number}i{i}.json", loop[index].SourceFile);
@@ -136,12 +136,12 @@ public sealed class DemoScenarioTests
         var files = new DemoFileService(CreateConfig());
         var source = files.GetScenarioPath("demo-1");
         Directory.CreateDirectory(source);
-        await File.WriteAllTextAsync(Path.Combine(source, "route.json"), "{\"route\":1}");
-        await File.WriteAllTextAsync(Path.Combine(source, "first.json"), "{\"stop\":1}");
-        await File.WriteAllTextAsync(Path.Combine(source, "second.json"), "{\"stop\":2}");
+        File.WriteAllText(Path.Combine(source, "route.json"), "{\"route\":1}");
+        File.WriteAllText(Path.Combine(source, "first.json"), "{\"stop\":1}");
+        File.WriteAllText(Path.Combine(source, "second.json"), "{\"stop\":2}");
         var target = files.GetTemplatePath("informator.json");
         if (targetExisted)
-            await File.WriteAllTextAsync(target, "{\"stop\":0}");
+            File.WriteAllText(target, "{\"stop\":0}");
 
         var scenario = new TestScenario(new[]
         {
@@ -178,8 +178,8 @@ public sealed class DemoScenarioTests
         await runner.RunAsync(scenario, options, timeout.Token);
 
         Assert.AreEqual(7, navigationCalls);
-        Assert.AreEqual("{\"stop\":2}", await File.ReadAllTextAsync(target));
-        Assert.IsFalse(log.Any(line => line.Contains("Ошибка", StringComparison.Ordinal)));
+        Assert.AreEqual("{\"stop\":2}", File.ReadAllText(target));
+        Assert.IsFalse(log.Any(line => line.IndexOf("Ошибка", StringComparison.Ordinal) >= 0));
         Assert.IsFalse(Directory.Exists(Path.Combine(_root, "JsonTemplates")));
     }
 
@@ -189,7 +189,7 @@ public sealed class DemoScenarioTests
         var files = new DemoFileService(CreateConfig());
         var target = files.GetTemplatePath("coord.json");
         const string previous = "{\"latitude\":59.8}";
-        await File.WriteAllTextAsync(target, previous);
+        File.WriteAllText(target, previous);
         var log = new List<string>();
         int waits = 0;
         var options = new DemoRunOptions(true, () =>
@@ -201,7 +201,7 @@ public sealed class DemoScenarioTests
         await new DemoStepExecutor(files, log.Add).ExecuteAsync(
             FileStep("missing.json", "coord.json"), "demo-1", options, CancellationToken.None);
 
-        Assert.AreEqual(previous, await File.ReadAllTextAsync(target));
+        Assert.AreEqual(previous, File.ReadAllText(target));
         Assert.AreEqual(0, waits);
         StringAssert.Contains(string.Join(Environment.NewLine, log),
             Path.Combine(files.GetScenarioPath("demo-1"), "missing.json"));
@@ -212,12 +212,12 @@ public sealed class DemoScenarioTests
     {
         var files = new DemoFileService(CreateConfig());
         Directory.CreateDirectory(files.GetScenarioPath("demo-1"));
-        await File.WriteAllTextAsync(Path.Combine(files.GetScenarioPath("demo-1"), "source.json"), "{}");
-        var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var neverClicked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        File.WriteAllText(Path.Combine(files.GetScenarioPath("demo-1"), "source.json"), "{}");
+        var waiting = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var neverClicked = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var options = new DemoRunOptions(true, () =>
         {
-            waiting.SetResult();
+            waiting.SetResult(true);
             return neverClicked.Task;
         }, _ => { });
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -225,9 +225,9 @@ public sealed class DemoScenarioTests
             FileStep("source.json", "route.json"), "demo-1", options, cancellation.Token);
         try
         {
-            await waiting.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await WaitForCompletionAsync(waiting.Task);
             cancellation.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => execution.WaitAsync(TimeSpan.FromSeconds(5)));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => WaitForCompletionAsync(execution));
         }
         finally
         {
@@ -235,6 +235,17 @@ public sealed class DemoScenarioTests
             try { await execution; }
             catch (OperationCanceledException) { }
         }
+    }
+
+    private static string RelativeToApplication(string path) =>
+        Uri.UnescapeDataString(new Uri(AppContext.BaseDirectory).MakeRelativeUri(new Uri(path)).ToString())
+            .Replace('/', Path.DirectorySeparatorChar);
+
+    private static async Task WaitForCompletionAsync(Task task)
+    {
+        if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(5))) != task)
+            throw new TimeoutException("The operation did not finish in time.");
+        await task;
     }
 
     private static ScenarioStep FileStep(string source, string target) => new()

@@ -32,6 +32,7 @@ namespace MKtest.Checklists
 
         public ChecklistPaperEntryDialog(ChecklistDocument document, Action save)
         {
+            Font = new System.Drawing.Font("Segoe UI", 9F);
             _document = document ?? throw new ArgumentNullException(nameof(document));
             _save = save ?? throw new ArgumentNullException(nameof(save));
             Text = "Внести отметки с бумажного чек-листа — MKtest";
@@ -190,7 +191,7 @@ namespace MKtest.Checklists
         private void Navigate(int step)
         {
             SaveCurrent();
-            _index = Math.Clamp(_index + step, 0,
+            _index = FrameworkCompatibility.Clamp(_index + step, 0,
                 Math.Max(0, _document.Cases.Count - 1));
             ShowCase();
         }
@@ -236,7 +237,7 @@ namespace MKtest.Checklists
         {
             int done = _document.Cases.Count(x => x.Result != "Не проверено");
             int bugs = _document.Cases.Count(x => x.Result == "Баг");
-            _progress.Text = $"Проход: {_document.RunId[..8]}  •  " +
+            _progress.Text = $"Проход: {_document.RunId.Substring(0, 8)}  •  " +
                 $"Отмечено: {done}/{_document.Cases.Count}  •  Багов: {bugs}";
         }
 

@@ -23,12 +23,12 @@ namespace MKtest.UI
 
         public void Register(Panel container, Panel header, Label titleLabel, Panel content, string title)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            ArgumentNullException.ThrowIfNull(container);
-            ArgumentNullException.ThrowIfNull(header);
-            ArgumentNullException.ThrowIfNull(titleLabel);
-            ArgumentNullException.ThrowIfNull(content);
-            ArgumentNullException.ThrowIfNull(title);
+            if (_disposed) throw new ObjectDisposedException(GetType().FullName);
+            if (container == null) throw new ArgumentNullException(nameof(container));
+            if (header == null) throw new ArgumentNullException(nameof(header));
+            if (titleLabel == null) throw new ArgumentNullException(nameof(titleLabel));
+            if (content == null) throw new ArgumentNullException(nameof(content));
+            if (title == null) throw new ArgumentNullException(nameof(title));
 
             var entry = new PanelEntry(container, header, titleLabel, content, title, container.Height);
             _entries.Add(entry);
@@ -41,7 +41,7 @@ namespace MKtest.UI
 
         public void CollapseAll()
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_disposed) throw new ObjectDisposedException(GetType().FullName);
             foreach (var entry in _entries)
                 SetExpanded(entry, false);
 

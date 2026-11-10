@@ -24,7 +24,7 @@ namespace MKtest.Managers
 
         public void Start(Func<int> getPtotal, int intervalSeconds)
         {
-            ArgumentNullException.ThrowIfNull(getPtotal);
+            if (getPtotal == null) throw new ArgumentNullException(nameof(getPtotal));
             if (intervalSeconds <= 0)
                 throw new ArgumentOutOfRangeException(nameof(intervalSeconds), "Интервал должен быть больше 0.");
             if (IsRunning) return;

@@ -73,12 +73,12 @@ namespace MKtest.UI
                 _navigation = new DemoNavigationQueue();
                 _log($"Запуск сценария: {name} (ручной режим)");
                 Func<Task<ManualStepDirection>> navigation = () => _navigation.NextAsync();
-                _scenarioService.StartScenarioManual(name, navigation);
+                _scenarioService.StartScenarioManual(name!, navigation);
             }
             else
             {
                 _log($"Запуск сценария: {name}");
-                _scenarioService.StartScenario(name);
+                _scenarioService.StartScenario(name!);
             }
         }
 

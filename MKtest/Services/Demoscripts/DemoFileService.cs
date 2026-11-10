@@ -19,19 +19,19 @@ namespace MKtest.Services.Demoscripts
 
         private void EnsureDirectoriesExist()
         {
-            Directory.CreateDirectory(Path.GetFullPath(_config.ScenariosPath, AppContext.BaseDirectory));
-            Directory.CreateDirectory(Path.GetFullPath(_config.TemplatesPath, AppContext.BaseDirectory));
+            Directory.CreateDirectory(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _config.ScenariosPath)));
+            Directory.CreateDirectory(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _config.TemplatesPath)));
         }
 
         public string GetScenarioPath(string scenarioName)
         {
             // Маппинг имен сценариев на папки
             var folderName = GetScenarioFolderName(scenarioName);
-            return Path.Combine(Path.GetFullPath(_config.ScenariosPath, AppContext.BaseDirectory), folderName);
+            return Path.Combine(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _config.ScenariosPath)), folderName);
         }
 
         public string GetTemplatePath(string targetFile) =>
-            Path.Combine(Path.GetFullPath(_config.TemplatesPath, AppContext.BaseDirectory), targetFile);
+            Path.Combine(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _config.TemplatesPath)), targetFile);
 
         private string GetScenarioFolderName(string scenarioName)
         {
@@ -65,7 +65,7 @@ namespace MKtest.Services.Demoscripts
             if (!FileExists(filePath))
                 throw new FileNotFoundException($"File not found: {filePath}", filePath);
 
-            return await File.ReadAllTextAsync(filePath);
+            return await FrameworkFiles.ReadAllTextAsync(filePath);
         }
 
         public IEnumerable<string> GetAvailableScenarios()

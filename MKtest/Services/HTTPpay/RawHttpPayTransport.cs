@@ -23,7 +23,7 @@ namespace MKtest.Services.HTTPpay
             cts.CancelAfter(TimeSpan.FromSeconds(30));
             using var client = new TcpClient();
             await client.ConnectAsync(uri.Host, uri.Port, cts.Token);
-            await using var stream = client.GetStream();
+            using var stream = client.GetStream();
 
             string pathAndQuery = string.IsNullOrEmpty(uri.PathAndQuery)
                 ? "/" : uri.PathAndQuery;
@@ -35,13 +35,13 @@ namespace MKtest.Services.HTTPpay
                 "Accept: */*\r\n\r\n";
 
             byte[] bytes = Encoding.ASCII.GetBytes(request);
-            await stream.WriteAsync(bytes.AsMemory(), cts.Token);
+            await stream.WriteAsync(bytes, cts.Token);
 
             using var response = new MemoryStream();
             byte[] buffer = new byte[4096];
             while (true)
             {
-                int count = await stream.ReadAsync(buffer.AsMemory(), cts.Token);
+                int count = await stream.ReadAsync(buffer, cts.Token);
                 if (count == 0) break;
                 response.Write(buffer, 0, count);
             }

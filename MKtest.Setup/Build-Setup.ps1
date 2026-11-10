@@ -27,6 +27,7 @@ New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 $buildLog = Join-Path $logDirectory 'devenv-build.log'
 $publishDirectory = Join-Path $repoRoot 'artifacts\publish\win-x64'
 $msi = Join-Path $PSScriptRoot 'Release\MKtest.Setup.msi'
+$bootstrapper = Join-Path $PSScriptRoot 'Release\setup.exe'
 
 Push-Location $repoRoot
 try {
@@ -35,6 +36,7 @@ try {
         Remove-Item -LiteralPath $publishDirectory -Recurse -Force
     }
     if (Test-Path -LiteralPath $msi) { Remove-Item -LiteralPath $msi -Force }
+    if (Test-Path -LiteralPath $bootstrapper) { Remove-Item -LiteralPath $bootstrapper -Force }
     if (Test-Path -LiteralPath $buildLog) { Remove-Item -LiteralPath $buildLog -Force }
 
     # Use the same MSBuild/SDK resolver as devenv, and the same Setup configuration.
@@ -54,7 +56,7 @@ try {
     & $devenv MKtest.sln /Build 'Setup|Any CPU' /Project MKtest.Setup /ProjectConfig Release /Out $buildLog
     $buildExitCode = $LASTEXITCODE
     if (Test-Path -LiteralPath $buildLog) { Get-Content -LiteralPath $buildLog }
-    if ($buildExitCode -ne 0 -or -not (Test-Path -LiteralPath $msi)) {
+    if ($buildExitCode -ne 0 -or -not (Test-Path -LiteralPath $msi) -or -not (Test-Path -LiteralPath $bootstrapper)) {
         throw "Setup Project build failed (exit $buildExitCode). See $buildLog"
     }
     Write-Host "Installer: $msi"

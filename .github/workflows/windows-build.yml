@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build WinForms (.NET 9, Release)
+    name: Build WinForms (.NET Framework 4.8, Release)
     runs-on: windows-2022
     timeout-minutes: 25
 
@@ -61,6 +61,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: MKtest-Windows-Release-${{ github.run_number }}
-          path: MKtest/bin/Release/net9.0-windows/
+          path: MKtest/bin/Release/net48/
           if-no-files-found: error
           retention-days: 14

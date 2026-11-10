@@ -114,8 +114,8 @@ namespace MKtest.UI.Logging
                 {
                     int boundary = existing.IndexOf('\n', toRemove);
                     _textBox.Text = boundary >= 0
-                        ? existing[(boundary + 1)..]
-                        : existing[toRemove..];
+                        ? existing.Substring(boundary + 1)
+                        : existing.Substring(toRemove);
                 }
             }
 

@@ -9,7 +9,7 @@ namespace MKtest.Services.HermesPassenger
     {
         public IHermesSshSession Create(HermesSSHConfig config)
         {
-            ArgumentNullException.ThrowIfNull(config);
+            if (config == null) throw new ArgumentNullException(nameof(config));
 
             var connectionInfo = new ConnectionInfo(
                 config.IP,

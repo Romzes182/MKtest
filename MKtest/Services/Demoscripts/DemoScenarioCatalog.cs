@@ -25,7 +25,7 @@ namespace MKtest.Services.Demoscripts
 
         public DemoScenarioCatalog(IEnumerable<IScenario> scenarios)
         {
-            ArgumentNullException.ThrowIfNull(scenarios);
+            if (scenarios == null) throw new ArgumentNullException(nameof(scenarios));
             _scenarios = scenarios.ToDictionary(s => s.Name, StringComparer.Ordinal);
         }
 

@@ -26,7 +26,7 @@ namespace MKtest.Services.SekopProtocol
 
         public async Task SendAsync(byte[] packet)
         {
-            ArgumentNullException.ThrowIfNull(packet);
+            if (packet == null) throw new ArgumentNullException(nameof(packet));
             var generation = Volatile.Read(ref _generation);
 
             try

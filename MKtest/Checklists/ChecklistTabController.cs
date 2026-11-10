@@ -29,7 +29,7 @@ namespace MKtest.Checklists
         private ChecklistDocument _document = new();
 
         private readonly DataGridView _list = new();
-        private readonly TextBox _search = new();
+        private readonly PlaceholderTextBox _search = new();
         private readonly TextBox _paperNumber = new();
         private readonly ComboBox _categoryFilter = new();
         private readonly ComboBox _resultFilter = new();
@@ -44,7 +44,7 @@ namespace MKtest.Checklists
         private readonly TextBox _action = new();
         private readonly TextBox _expected = new();
         private readonly TextBox _bug = new();
-        private readonly TextBox _notes = new();
+        private readonly PlaceholderTextBox _notes = new();
         private readonly Label _hint = new();
         private readonly CheckBox _autoNext = new()
         {
@@ -475,7 +475,7 @@ namespace MKtest.Checklists
 
         private static string ShortId(string? runId) =>
             string.IsNullOrEmpty(runId)
-                ? "--------" : runId[..Math.Min(8, runId.Length)];
+                ? "--------" : runId!.Substring(0, Math.Min(8, runId.Length));
 
         private void RefreshList()
         {
@@ -640,7 +640,7 @@ namespace MKtest.Checklists
         {
             SaveEdits();
             if (_document.Cases.Count == 0) return;
-            int target = Math.Clamp(_currentIndex + offset,
+            int target = FrameworkCompatibility.Clamp(_currentIndex + offset,
                 0, _document.Cases.Count - 1);
             SelectByIndex(target);
         }
@@ -746,6 +746,7 @@ namespace MKtest.Checklists
             SaveEdits();
             using var dialog = new Form
             {
+                Font = new System.Drawing.Font("Segoe UI", 9F),
                 Text = "Новый обход медиакомплекса",
                 Size = new Size(480, 245),
                 MinimumSize = new Size(460, 245),
@@ -886,6 +887,7 @@ namespace MKtest.Checklists
             var runs = _runs.List();
             using var history = new Form
             {
+                Font = new System.Drawing.Font("Segoe UI", 9F),
                 Text = "История проверок",
                 StartPosition = FormStartPosition.CenterParent,
                 Size = new Size(830, 520),
@@ -1087,6 +1089,7 @@ namespace MKtest.Checklists
 
             using var window = new Form
             {
+                Font = new System.Drawing.Font("Segoe UI", 9F),
                 Text = "Итоги проверки",
                 StartPosition = FormStartPosition.CenterParent,
                 Size = new Size(790, 630)
@@ -1128,7 +1131,7 @@ namespace MKtest.Checklists
                 JsonSerializer.Serialize(document,
                     new JsonSerializerOptions { WriteIndented = true }),
                 Encoding.UTF8);
-            File.Move(temp, path, true);
+            FrameworkFiles.MoveReplacing(temp, path);
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

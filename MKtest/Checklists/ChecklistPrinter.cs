@@ -81,10 +81,10 @@ namespace MKtest.Checklists
                 bool selectedRange =
                     chooserDocument.PrinterSettings.PrintRange == PrintRange.SomePages;
                 int from = selectedRange
-                    ? Math.Clamp(chooserDocument.PrinterSettings.FromPage, 1, count)
+                    ? FrameworkCompatibility.Clamp(chooserDocument.PrinterSettings.FromPage, 1, count)
                     : 1;
                 int to = selectedRange
-                    ? Math.Clamp(chooserDocument.PrinterSettings.ToPage, from, count)
+                    ? FrameworkCompatibility.Clamp(chooserDocument.PrinterSettings.ToPage, from, count)
                     : int.MaxValue;
 
                 using var selectedDocument = CreateDocument(
@@ -223,7 +223,7 @@ namespace MKtest.Checklists
             using var format = new StringFormat { Trimming = StringTrimming.EllipsisWord };
 
             string runId = document.RunId.Length >= 8
-                ? document.RunId[..8] : document.RunId;
+                ? document.RunId.Substring(0, 8) : document.RunId;
             string operatingSystem = ChecklistPrintLayout.RunOperatingSystem(
                 document, cases);
 

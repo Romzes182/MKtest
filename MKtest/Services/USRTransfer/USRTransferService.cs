@@ -92,7 +92,7 @@ namespace MKtest.Services.USRTransfer
             try
             {
                 var cfg = ConfigService.Config.USRTransfer;
-                var fileData = await File.ReadAllBytesAsync(filePath, token);
+                var fileData = await FrameworkFiles.ReadAllBytesAsync(filePath, token);
                 _logManager.AppendLog($"Отправка {type}: {Path.GetFileName(filePath)} ({fileData.Length} байт)");
 
                 using var client = new TcpClient();
@@ -103,7 +103,7 @@ namespace MKtest.Services.USRTransfer
                     return;
                 }
 
-                await using var stream = client.GetStream();
+                using var stream = client.GetStream();
                 await stream.WriteAsync(USRCommands.GetBaudRateCommand(baudRate), token);
                 await stream.WriteAsync(USRCommands.CreateSaveSettingsCommand(), token);
                 await Task.Delay(1000, token);

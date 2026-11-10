@@ -16,7 +16,7 @@ namespace MKtest.Checklists
 
         public static void Normalize(ChecklistCase item)
         {
-            ArgumentNullException.ThrowIfNull(item);
+            if (item == null) throw new ArgumentNullException(nameof(item));
             string category = item.Category.Trim();
             if (category.Equals("Статистика не оплативших", StringComparison.OrdinalIgnoreCase))
             {

@@ -25,7 +25,7 @@ namespace MKtest.UI
         public ScrollablePanelStackController(Control host, params Panel[] panels)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
-            ArgumentNullException.ThrowIfNull(panels);
+            if (panels == null) throw new ArgumentNullException(nameof(panels));
 
             _viewport = new BufferedScrollablePanel
             {

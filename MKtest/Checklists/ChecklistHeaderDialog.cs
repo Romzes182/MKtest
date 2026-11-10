@@ -13,6 +13,7 @@ namespace MKtest.Checklists
             var current = (document.PrintHeader ?? new ChecklistPrintHeader()).Clone();
             using var window = new Form
             {
+                Font = new System.Drawing.Font("Segoe UI", 9F),
                 Text = "Шапка печатного чек-листа",
                 StartPosition = FormStartPosition.CenterParent,
                 Size = new Size(940, 790),

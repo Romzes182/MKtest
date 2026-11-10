@@ -129,8 +129,8 @@ public sealed class HttpPayProtocolTests
     };
 
     private static Dictionary<string, string> ParseQuery(string query) =>
-        query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
-            .Select(pair => pair.Split('=', 2))
+        query.TrimStart('?').Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(pair => pair.Split(new[] { '=' }, 2))
             .ToDictionary(
                 parts => WebUtility.UrlDecode(parts[0]),
                 parts => WebUtility.UrlDecode(parts.Length > 1 ? parts[1] : ""));

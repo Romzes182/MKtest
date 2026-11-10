@@ -14,7 +14,7 @@ namespace MKtest.Checklists
     {
         private readonly List<ChecklistCase> _draft;
         private readonly DataGridView _grid = new();
-        private readonly TextBox _search = new();
+        private readonly PlaceholderTextBox _search = new();
         private readonly ComboBox _section = new();
         private readonly ComboBox _algorithm = new();
         private readonly Label _status = new();
@@ -24,6 +24,7 @@ namespace MKtest.Checklists
 
         public ChecklistCatalogEditor(IEnumerable<ChecklistCase> source)
         {
+            Font = new System.Drawing.Font("Segoe UI", 9F);
             _draft = ChecklistCatalogRules.NormalizeCopy(source);
             Text = "Редактирование каталога проверок";
             StartPosition = FormStartPosition.CenterParent;

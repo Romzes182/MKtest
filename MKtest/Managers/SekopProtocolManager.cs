@@ -35,7 +35,7 @@ namespace MKtest.Managers
 
         public async Task StartAsync(Func<SekopValues> getValues)
         {
-            ArgumentNullException.ThrowIfNull(getValues);
+            if (getValues == null) throw new ArgumentNullException(nameof(getValues));
 
             int sessionId;
             lock (_stateLock)

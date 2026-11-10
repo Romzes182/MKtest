@@ -87,9 +87,16 @@ try {
             throw "Installed file differs from publish output: $relative"
         }
     }
-    $runtime = Get-Content -LiteralPath (Join-Path $installDirectory 'MKtest.runtimeconfig.json') -Raw | ConvertFrom-Json
-    if (-not $runtime.runtimeOptions.includedFrameworks) { throw 'The installed application is not self-contained.' }
-    Write-Host "Verified $($publishedFiles.Count) installed files and self-contained runtime metadata."
+    [xml] $configuration = Get-Content -LiteralPath ($exe + '.config') -Raw
+    if ($configuration.configuration.startup.supportedRuntime.sku -ne '.NETFramework,Version=v4.8') {
+        throw 'The installed application does not target .NET Framework 4.8.'
+    }
+    foreach ($modernRuntimeFile in @('coreclr.dll', 'hostfxr.dll', 'MKtest.runtimeconfig.json')) {
+        if (Test-Path -LiteralPath (Join-Path $installDirectory $modernRuntimeFile)) {
+            throw "Incompatible modern .NET runtime left in the installation: $modernRuntimeFile"
+        }
+    }
+    Write-Host "Verified $($publishedFiles.Count) installed files and .NET Framework 4.8 configuration."
 
     $shell = New-Object -ComObject WScript.Shell
     foreach ($path in $shortcuts) {
@@ -116,9 +123,10 @@ try {
         if ($application.HasExited) { throw "Installed application exited unexpectedly: $($application.ExitCode)" }
     } until ($application.MainWindowTitle -eq 'MKtest' -or [DateTime]::UtcNow -ge $deadline)
     if ($application.MainWindowTitle -ne 'MKtest') { throw "Main form did not open: $($application.MainWindowTitle)" }
-    $coreClr = @($application.Modules | Where-Object ModuleName -eq 'coreclr.dll')
-    if ($coreClr.Count -ne 1 -or $coreClr[0].FileName -ne (Join-Path $installDirectory 'coreclr.dll')) {
-        throw 'Application did not load its bundled .NET runtime.'
+    $frameworkClr = @($application.Modules | Where-Object ModuleName -eq 'clr.dll')
+    $frameworkDirectory = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
+    if ($frameworkClr.Count -ne 1 -or $frameworkClr[0].FileName -ne (Join-Path $frameworkDirectory 'clr.dll')) {
+        throw 'Application did not load the x64 .NET Framework CLR.'
     }
     $appLogs = @(Get-ChildItem -LiteralPath (Join-Path $installDirectory 'logs') -Filter 'log_*.txt')
     if (-not ($appLogs | Select-String -SimpleMatch 'Приложение инициализирован')) {
@@ -141,7 +149,7 @@ try {
     if ((Get-Content -LiteralPath $userConfig -Raw).Trim() -ne $configContent) {
         throw 'Uninstall changed user-generated settings.'
     }
-    Write-Host "Verified $($publishedFiles.Count) files, both shortcuts, bundled runtime, application startup/shutdown and uninstall."
+    Write-Host "Verified $($publishedFiles.Count) files, both shortcuts, x64 Framework CLR, application startup/shutdown and uninstall."
 } finally {
     if ($null -ne $application -and -not $application.HasExited) {
         Stop-Process -Id $application.Id -Force

@@ -40,7 +40,7 @@ public sealed class SekopProtocolTests
         Assert.AreEqual((byte)0xFF, packet[2]);
         Assert.AreEqual((byte)0xFF, packet[3]);
         Assert.AreEqual((byte)0xFF, packet[4]);
-        CollectionAssert.AreEqual(ZeroPacket[5..], packet[5..]);
+        CollectionAssert.AreEqual(ZeroPacket.Skip(5).ToArray(), packet.Skip(5).ToArray());
     }
 
     [TestMethod]

@@ -17,7 +17,7 @@ namespace MKtest.UI.Logging
         public static async Task SaveAsync(
             IWin32Window? owner, LogManager log, string sectionName)
         {
-            ArgumentNullException.ThrowIfNull(log);
+            if (log == null) throw new ArgumentNullException(nameof(log));
 
             string name = new string(sectionName.Select(ch =>
                 Path.GetInvalidFileNameChars().Contains(ch) || char.IsControl(ch)
@@ -50,10 +50,10 @@ namespace MKtest.UI.Logging
 
                 await Task.Run(async () =>
                 {
-                    await using var input = new FileStream(
+                    using var input = new FileStream(
                         source, FileMode.Open, FileAccess.Read,
                         FileShare.ReadWrite, 81920, FileOptions.Asynchronous);
-                    await using var output = new FileStream(
+                    using var output = new FileStream(
                         destination, FileMode.Create, FileAccess.Write,
                         FileShare.None, 81920, FileOptions.Asynchronous);
                     await input.CopyToAsync(output);

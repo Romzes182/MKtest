@@ -83,7 +83,7 @@ namespace MKtest.UI.USRTransfer
             if (string.IsNullOrEmpty(routeNumber)) return;
 
             // Маршруты загружаются при инициализации, а не при каждом выборе.
-            var route = _operations.GetRoute(routeNumber);
+            var route = _operations.GetRoute(routeNumber!);
             if (route == null) return;
 
             foreach (var path in route.SvcFilePaths)
@@ -124,7 +124,7 @@ namespace MKtest.UI.USRTransfer
 
             try
             {
-                await _operations.SendSelectedSvcAsync(route, file);
+                await _operations.SendSelectedSvcAsync(route!, file!);
             }
             catch (Exception ex)
             {
@@ -156,13 +156,13 @@ namespace MKtest.UI.USRTransfer
                 switch (mode)
                 {
                     case "Все подряд":
-                        await _operations.StartInSequenceAsync(route);
+                        await _operations.StartInSequenceAsync(route!);
                         break;
                     case "С выбранного":
-                        await _operations.StartInFromSelectedAsync(route, file);
+                        await _operations.StartInFromSelectedAsync(route!, file);
                         break;
                     default:
-                        await _operations.SendSingleInAsync(route, file);
+                        await _operations.SendSingleInAsync(route!, file);
                         break;
                 }
             }

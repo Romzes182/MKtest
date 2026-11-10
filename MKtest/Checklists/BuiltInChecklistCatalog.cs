@@ -27,7 +27,7 @@ namespace MKtest.Checklists
             {
                 if (fields.Length < 5) continue;
                 string[] platformAndModule =
-                    fields[2].Replace("\r", "").Split('\n', 2);
+                    fields[2].Replace("\r", "").Split(new[] { '\n' }, 2);
                 result.Add(new ChecklistCase
                 {
                     Id = fields[0],

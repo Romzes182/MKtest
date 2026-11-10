@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   setup:
-    name: Build and verify MSI (Windows x64)
+    name: Build and verify MSI (.NET Framework 4.8, x64)
     runs-on: windows-2022
     timeout-minutes: 30
     steps:
@@ -38,8 +38,11 @@ jobs:
       - name: Upload MSI
         uses: actions/upload-artifact@v7
         with:
-          name: MKtest-Setup-win-x64-${{ github.run_number }}
-          path: MKtest.Setup/Release/MKtest.Setup.msi
+          name: MKtest-Setup-Windows7-x64-${{ github.run_number }}
+          path: |
+            MKtest.Setup/Release/MKtest.Setup.msi
+            MKtest.Setup/Release/setup.exe
+            MKtest.Setup/INSTALL-WINDOWS7.md
           if-no-files-found: error
           retention-days: 30
 

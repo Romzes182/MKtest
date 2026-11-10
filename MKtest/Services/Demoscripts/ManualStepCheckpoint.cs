@@ -28,7 +28,7 @@ namespace MKtest.Services.Demoscripts
                 ? templatePathResolver(targetFile)
                 : Path.Combine(AppContext.BaseDirectory, "JsonTemplates", targetFile);
             byte[]? before = File.Exists(path)
-                ? await File.ReadAllBytesAsync(path, token)
+                ? await FrameworkFiles.ReadAllBytesAsync(path, token)
                 : null;
 
             return new ManualStepCheckpoint(path, before);
@@ -44,7 +44,7 @@ namespace MKtest.Services.Demoscripts
             }
             else
             {
-                await File.WriteAllBytesAsync(_path, _previousBytes, token);
+                await FrameworkFiles.WriteAllBytesAsync(_path, _previousBytes, token);
             }
         }
     }

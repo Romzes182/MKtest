@@ -44,6 +44,7 @@ namespace MKtest.Checklists
             afterId = null;
             using var window = new Form
             {
+                Font = new System.Drawing.Font("Segoe UI", 9F),
                 Text = forAddition ? "Добавить проверку в каталог" : "Изменить проверку",
                 Width = 820, Height = 645,
                 MinimumSize = new Size(700, 540),
@@ -157,7 +158,7 @@ namespace MKtest.Checklists
                         string description = check.Action.Replace('\r', ' ')
                             .Replace('\n', ' ');
                         if (description.Length > 65)
-                            description = description[..62] + "...";
+                            description = description.Substring(0, 62) + "...";
                         position.Items.Add(new PlacementChoice(check.Id,
                             $"После {check.Id} — {description}"));
                     }

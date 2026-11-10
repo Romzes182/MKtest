@@ -32,8 +32,7 @@ namespace MKtest.Checklists
         public static string OperatingSystems(IEnumerable<ChecklistCase> items)
         {
             string[] values = items
-                .SelectMany(x => (x.Platforms ?? "").Split(',',
-                    StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                .SelectMany(x => (x.Platforms ?? "").Split(',').Select(value => value.Trim()).Where(value => value.Length != 0))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
                 .ToArray();

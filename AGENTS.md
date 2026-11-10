@@ -8,9 +8,10 @@
 ## Контекст проекта
 
 - `MKtest.sln` содержит приложение `MKtest` и тесты `MKtest.Tests`.
-- Приложение: C#, WinForms, `net9.0-windows`, включены nullable и implicit usings.
-  Текущая внешняя зависимость — `SSH.NET` 2026.0.0.
-- Тесты: `net9.0-windows`, MSTest; версии пакетов заданы в
+- Приложение: C#, WinForms, `net48`, Windows 7 SP1 x64 и новее, включены nullable и implicit usings.
+  Зависимости: `SSH.NET` 2026.0.0, `System.Text.Json` и `System.Threading.Channels` 9.0.22.
+  `Compatibility/` содержит адаптацию API .NET Framework; сохраняй отмену сетевых операций.
+- Тесты: `net48`, MSTest; версии пакетов заданы в
   `MKtest.Tests/MKtest.Tests.csproj`.
 - `MKtest/Program.cs` — точка входа с STA; `MainForm.cs` связывает компоненты,
   `MainForm.Designer.cs` и `MainForm.resx` относятся к форме и её ресурсам.
@@ -22,7 +23,8 @@
 - `DemoScenarios/`, `JsonTemplates/`, `Routes/` внутри `MKtest/` — данные приложения;
   правила копирования в выходной каталог находятся в `MKtest.csproj`.
 - `MKtest.Setup/` — Visual Studio Installer Projects (`.vdproj`), MSI для текущего
-  пользователя, Windows x64. Профиль `Setup-win-x64.pubxml` включает .NET runtime.
+  пользователя, Windows x64. Профиль `Setup-win-x64.pubxml` публикует сборку .NET Framework 4.8.
+  MSI проверяет SP1 и Framework, setup.exe предлагает установку Framework с сайта Microsoft.
   Для установщика используется конфигурация решения `Setup | Any CPU`;
   Debug/Release не требуют расширения Installer Projects.
   Правила сборки и обновления версии описаны в `MKtest.Setup/README.md`.
@@ -81,7 +83,7 @@
 используй существующие тесты и при необходимости добавляй регрессионный тест,
 проверяющий поведение. Для правок документации не создавай искусственные тесты.
 
-Полная сборка и выполнение тестов требуют Windows и .NET 9 SDK. Из корня решения:
+Полная сборка и выполнение тестов требуют Windows с .NET Framework 4.8 и .NET 9 SDK (компилятор C# 13). Из корня решения:
 
 ```powershell
 dotnet restore MKtest.sln --verbosity minimal
@@ -96,6 +98,7 @@ git diff --check
 Установщик проверяется отдельным ручным workflow `.github/workflows/windows-setup.yml`:
 сборка `.vdproj` через Visual Studio, установка, проверка файлов и ярлыков,
 запуск и удаление. Не запускай `Test-Setup.ps1` поверх пользовательской установки.
+CI Windows Server 2022 не подтверждает запуск на Windows 7 или установку самого Framework.
 При проверке через GitHub Actions сверяй ветку и SHA, дождись результата и
 проверь шаги сборки и тестов, а не только факт запуска workflow.
 

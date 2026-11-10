@@ -29,7 +29,7 @@ namespace MKtest.UI.HTTPpay
             _status = status ?? throw new ArgumentNullException(nameof(status));
             _log = log ?? throw new ArgumentNullException(nameof(log));
 
-            _total.Value = Math.Clamp(defaultTotal, (int)_total.Minimum, (int)_total.Maximum);
+            _total.Value = FrameworkCompatibility.Clamp(defaultTotal, (int)_total.Minimum, (int)_total.Maximum);
             SetRunning(false);
         }
 

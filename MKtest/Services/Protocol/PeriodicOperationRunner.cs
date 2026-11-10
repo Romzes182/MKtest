@@ -37,9 +37,9 @@ namespace MKtest.Services.Protocol
             Func<int> intervalSeconds,
             Action<Exception> onError)
         {
-            ArgumentNullException.ThrowIfNull(operation);
-            ArgumentNullException.ThrowIfNull(intervalSeconds);
-            ArgumentNullException.ThrowIfNull(onError);
+            if (operation == null) throw new ArgumentNullException(nameof(operation));
+            if (intervalSeconds == null) throw new ArgumentNullException(nameof(intervalSeconds));
+            if (onError == null) throw new ArgumentNullException(nameof(onError));
 
             lock (_sync)
             {

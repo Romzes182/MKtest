@@ -28,7 +28,7 @@ namespace MKtest.Checklists
 
         public void Save(ChecklistDocument document)
         {
-            ArgumentNullException.ThrowIfNull(document);
+            if (document == null) throw new ArgumentNullException(nameof(document));
             if (string.IsNullOrWhiteSpace(document.RunId))
                 document.RunId = Guid.NewGuid().ToString("N");
 
@@ -40,7 +40,7 @@ namespace MKtest.Checklists
             string temporary = file + ".tmp";
             File.WriteAllText(temporary,
                 JsonSerializer.Serialize(document, _jsonOptions));
-            File.Move(temporary, file, true);
+            FrameworkFiles.MoveReplacing(temporary, file);
         }
 
         public ChecklistDocument Load(string runId)

@@ -86,6 +86,7 @@ namespace MKtest
         #region Конструктор
         public MainForm()
         {
+            Font = new System.Drawing.Font("Segoe UI", 9F);
             InitializeComponent();
             InitializeAll();
         }

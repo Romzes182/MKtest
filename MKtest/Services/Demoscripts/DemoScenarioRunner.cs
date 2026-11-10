@@ -26,8 +26,8 @@ namespace MKtest.Services.Demoscripts
             DemoRunOptions options,
             CancellationToken cancellationToken)
         {
-            ArgumentNullException.ThrowIfNull(scenario);
-            ArgumentNullException.ThrowIfNull(options);
+            if (scenario == null) throw new ArgumentNullException(nameof(scenario));
+            if (options == null) throw new ArgumentNullException(nameof(options));
             if (options.ManualMode && options.WaitForDirection != null)
             {
                 await new ManualDemoScenarioRunner(_steps, _templatePathResolver)

@@ -135,7 +135,7 @@ namespace MKtest.Checklists
                 {
                     item.Category = Read(row.Cells, "B");
                     string platformAndModule = Read(row.Cells, "C").Replace("\r", "");
-                    string[] split = platformAndModule.Split('\n', 2);
+                    string[] split = platformAndModule.Split(new[] { '\n' }, 2);
                     item.Platforms = split[0];
                     item.Module = split.Length > 1 ? split[1] : "";
                     item.Action = Read(row.Cells, "D");

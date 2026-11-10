@@ -17,7 +17,7 @@ namespace MKtest.Services.SSH
 
         public SshShellSession(SshClient client, Action<string> log)
         {
-            ArgumentNullException.ThrowIfNull(client);
+            if (client == null) throw new ArgumentNullException(nameof(client));
             _log = log ?? throw new ArgumentNullException(nameof(log));
             _shell = client.CreateShellStream("xterm", 80, 24, 800, 600, 1024);
             _reader = new SshShellReader(_shell, log);

@@ -31,7 +31,7 @@ namespace MKtest.Services
 
         public bool Connect(SSHConfig config)
         {
-            ArgumentNullException.ThrowIfNull(config);
+            if (config == null) throw new ArgumentNullException(nameof(config));
 
             try
             {

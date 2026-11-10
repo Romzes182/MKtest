@@ -10,8 +10,8 @@ namespace MKtest.Services.HTTPpay
         public HTTPpayResponse Parse(string rawResponse)
         {
             int end = rawResponse.IndexOf("\r\n", StringComparison.Ordinal);
-            string statusLine = end >= 0 ? rawResponse[..end] : rawResponse;
-            var parts = statusLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string statusLine = end >= 0 ? rawResponse.Substring(0, end) : rawResponse;
+            var parts = statusLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             int statusCode = 0;
             if (parts.Length >= 2)
                 int.TryParse(parts[1], out statusCode);

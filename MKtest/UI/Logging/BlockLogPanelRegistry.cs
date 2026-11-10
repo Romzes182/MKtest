@@ -29,8 +29,8 @@ namespace MKtest.UI.Logging
 
         public LogManager Add(string blockName, Panel contentPanel, Panel container)
         {
-            ArgumentNullException.ThrowIfNull(contentPanel);
-            ArgumentNullException.ThrowIfNull(container);
+            if (contentPanel == null) throw new ArgumentNullException(nameof(contentPanel));
+            if (container == null) throw new ArgumentNullException(nameof(container));
 
             var logContainer = new Panel
             {

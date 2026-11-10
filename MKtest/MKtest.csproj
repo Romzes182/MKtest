@@ -1,20 +1,29 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <Nullable>enable</Nullable>
+    <LangVersion>13.0</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.0.1</Version>
     <Configurations>Debug;Release;Setup</Configurations>
   </PropertyGroup>
 
-  <!-- Setup Project and publishing must build the same self-contained output. -->
+  <!-- Setup Project and publishing must build the same Framework output. -->
   <PropertyGroup Condition="'$(Configuration)' == 'Setup'">
     <PublishProfile>Setup-win-x64</PublishProfile>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="System.Text.Json" Version="9.0.22" />
+    <PackageReference Include="System.Threading.Channels" Version="9.0.22" />
     <PackageReference Include="SSH.NET" Version="2026.0.0" />
   </ItemGroup>
   <ItemGroup>
@@ -27,6 +36,14 @@
       <None Include="Routes\**\*.*">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </None>
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MKtest.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Routes\71-631-02 Вол\SVC\" />
