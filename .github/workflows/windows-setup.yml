@@ -2,9 +2,15 @@ name: MKtest Setup Project
 
 on:
   workflow_dispatch:
+    inputs:
+      previous_run_id:
+        description: 'Optional .NET 9 installer run ID for testing the upgrade from 1.0.0'
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: setup-project-${{ github.ref }}
@@ -34,6 +40,19 @@ jobs:
       - name: Verify installation, shortcuts, launch and uninstall
         shell: pwsh
         run: ./MKtest.Setup/Test-Setup.ps1
+
+      - name: Verify upgrade from the previous installer
+        if: inputs.previous_run_id != ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_RUN_ID: ${{ inputs.previous_run_id }}
+        run: |
+          gh run download "$env:PREVIOUS_RUN_ID" --repo "$env:GITHUB_REPOSITORY" --pattern 'MKtest-Setup-win-x64-*' --dir artifacts/previous-setup
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to download the previous installer.' }
+          $previous = @(Get-ChildItem artifacts/previous-setup -Recurse -Filter MKtest.Setup.msi)
+          if ($previous.Count -ne 1) { throw 'Expected exactly one previous MSI.' }
+          ./MKtest.Setup/Test-Setup.ps1 -PreviousMsi $previous[0].FullName
 
       - name: Upload MSI
         uses: actions/upload-artifact@v7

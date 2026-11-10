@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([string] $PreviousMsi = '')
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -9,6 +9,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $msi = Join-Path $PSScriptRoot 'Release\MKtest.Setup.msi'
 $publishDirectory = Join-Path $repoRoot 'artifacts\publish\win-x64'
 $logDirectory = Join-Path $repoRoot 'artifacts\setup-logs'
+if ($PreviousMsi) { $logDirectory = Join-Path $logDirectory 'upgrade' }
 $installDirectory = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Programs\MKtest'
 $exe = Join-Path $installDirectory 'MKtest.exe'
 $shortcuts = @(
@@ -23,9 +24,9 @@ foreach ($path in @($installDirectory) + $shortcuts) {
 }
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 
-function Invoke-Msi([string] $Action, [string] $LogName) {
+function Invoke-Msi([string] $Action, [string] $LogName, [string] $Package = $msi) {
     $log = Join-Path $logDirectory $LogName
-    $process = Start-Process msiexec.exe -ArgumentList "$Action `"$msi`" /qn /norestart /l*v `"$log`"" -PassThru -Wait
+    $process = Start-Process msiexec.exe -ArgumentList "$Action `"$Package`" /qn /norestart /l*v `"$log`"" -PassThru -Wait
     if ($process.ExitCode -notin @(0, 3010)) {
         throw "msiexec $Action failed with code $($process.ExitCode); see $log"
     }
@@ -70,10 +71,25 @@ namespace MKtestSetupVerification
 }
 
 $installed = $false
+$previousInstalled = $false
 $application = $null
 try {
+    $userConfig = Join-Path $installDirectory 'config.json'
+    $configContent = '{"setupSmokeTest":"preserve-user-data"}'
+    if ($PreviousMsi) {
+        Invoke-Msi '/i' 'previous-install.log' $PreviousMsi
+        $previousInstalled = $true
+        if (-not (Test-Path -LiteralPath (Join-Path $installDirectory 'coreclr.dll'))) {
+            throw 'Expected the previous installer to contain the .NET 9 runtime.'
+        }
+        Set-Content -LiteralPath $userConfig -Value $configContent -Encoding utf8
+    }
     Invoke-Msi '/i' 'install.log'
     $installed = $true
+    $previousInstalled = $false
+    if ($PreviousMsi -and (Get-Content -LiteralPath $userConfig -Raw).Trim() -ne $configContent) {
+        throw 'Upgrade changed user-generated settings.'
+    }
     if (-not (Test-Path -LiteralPath $exe)) { throw "Application not installed at the default per-user path: $exe" }
 
     # Verify every published dependency and data file, including extensionless routes.
@@ -138,8 +154,6 @@ try {
     if ($application.ExitCode -ne 0) { throw "Application shutdown exit code: $($application.ExitCode)" }
 
     # User-generated settings must not be removed along with installed binaries.
-    $userConfig = Join-Path $installDirectory 'config.json'
-    $configContent = '{"setupSmokeTest":"preserve-user-data"}'
     Set-Content -LiteralPath $userConfig -Value $configContent -Encoding utf8
     Invoke-Msi '/x' 'uninstall.log'
     $installed = $false
@@ -150,9 +164,13 @@ try {
         throw 'Uninstall changed user-generated settings.'
     }
     Write-Host "Verified $($publishedFiles.Count) files, both shortcuts, x64 Framework CLR, application startup/shutdown and uninstall."
+    # Only this successful clean-VM test's generated data is removed, so the
+    # optional upgrade test can use the same runner without touching user files.
+    Remove-Item -LiteralPath $installDirectory -Recurse -Force
 } finally {
     if ($null -ne $application -and -not $application.HasExited) {
         Stop-Process -Id $application.Id -Force
     }
     if ($installed) { Invoke-Msi '/x' 'cleanup-uninstall.log' }
+    if ($previousInstalled) { Invoke-Msi '/x' 'cleanup-previous.log' $PreviousMsi }
 }

@@ -20,6 +20,17 @@
     <PublishProfile>Setup-win-x64</PublishProfile>
   </PropertyGroup>
 
+  <!-- Framework executables have no apphost, so the SDK does not mark a key
+       publish output automatically. Installer Projects needs it for shortcuts. -->
+  <Target Name="MarkFrameworkPublishKeyOutput" BeforeTargets="PublishItemsOutputGroup">
+    <ItemGroup>
+      <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
+                             Condition="'%(ResolvedFileToPublish.RelativePath)' == '$(TargetFileName)'">
+        <IsKeyOutput>true</IsKeyOutput>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
     <PackageReference Include="System.Text.Json" Version="9.0.22" />
